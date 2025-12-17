@@ -1,0 +1,42 @@
+    {
+        "Workflow Summary":{
+            "Description":"RNAseq analysis of candidate genes",
+            "Version":"2.4",
+            "Script":"README_rnaseq.md,CHANGELOG.md"
+            },
+        "RNASPLICE":{
+            "Software":"nextflow rnasplice",
+            "Version":"1.0.4",
+            "Script":"nextflow run rnasplice -params-file data/params.json -c data/config.json"
+            },
+        "OUTRIDER":{
+            "Software":"OUTRIDER",
+            "Version":"1.26.3",
+            "Script":"outrider.slurm,outrider.R"
+            },
+        "FEATURECOUNTS":{
+            "Software":"featureCounts",
+            "Version":"2.0.6",
+            "Script":"featureCounts.slurm,featureCounts.R"
+            },
+        "FRASER":{
+            "Software":"FRASER",
+            "Version":"2.4.3",
+            "Script":"fraser.slurm,fraser.R,fraser_prepare_bamfiles.sh"
+            },
+        "consensus":{
+            "Software":"bcftools,bedtools,Rscript",
+            "Version":"1.0",
+            "Script":"consensus.slurm,consensus.R,consensus.sh"
+            },
+        "CPandCLEANUP":{
+            "Software":"Rscript",
+            "Version":"1",
+            "Script":"cp_and_cleanup.R"
+            },
+        "SHINYAPP":{
+            "Software":"Rscript",
+            "Version":"2.4",
+            "Script":"RNAseq_shiny_v2.4.R"
+            }
+    }
