@@ -2,7 +2,7 @@
         "Workflow Summary":{
             "Description":"RNAseq analysis of candidate genes",
             "Version":"2.4",
-            "Script":"README_rnaseq.md,CHANGELOG.md"
+            "Script":"README.md,CHANGELOG.md"
             },
         "RNASPLICE":{
             "Software":"nextflow rnasplice",
@@ -12,17 +12,17 @@
         "OUTRIDER":{
             "Software":"OUTRIDER",
             "Version":"1.26.3",
-            "Script":"outrider.slurm,outrider.R"
+            "Script":"outrider.slurm,outrider.R,outrider_perexon.R"
             },
         "FEATURECOUNTS":{
             "Software":"featureCounts",
             "Version":"2.0.6",
-            "Script":"featureCounts.slurm,featureCounts.R"
+            "Script":"featureCounts.slurm,featureCounts.R,featureCounts.sh,rnaseq_helper_functions.R"
             },
         "FRASER":{
             "Software":"FRASER",
             "Version":"2.4.3",
-            "Script":"fraser.slurm,fraser.R,fraser_prepare_bamfiles.sh"
+            "Script":"fraser.slurm,fraser.R,fraser.sh"
             },
         "consensus":{
             "Software":"bcftools,bedtools,Rscript",
@@ -37,6 +37,6 @@
         "SHINYAPP":{
             "Software":"Rscript",
             "Version":"2.4",
-            "Script":"RNAseq_shiny_v2.4.R"
+            "Script":"RNAseq_shiny_v2.4.R,rnaseq_shinyhelper_functions.R"
             }
     }

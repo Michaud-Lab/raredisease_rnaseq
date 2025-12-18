@@ -1,3 +1,8 @@
+### 2025-12-18 - v2.4: update_readme
+		
+**Changed**		
+* Update to the README.md, LICENCE, VERSION.json		
+
 ### 2025-12-17 - v2.4
 
 **Changed**
