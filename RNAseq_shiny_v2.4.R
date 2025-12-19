@@ -38,8 +38,8 @@ unzip(params$zipfile,exdir = sub('data','.',params$datadir),overwrite=TRUE)
 #addResourcePath("pdfs",file.path(params$datadir,'/pdfs'))
 
 #fc_exons
-#source(file.path('~/Desktop/rnaseq_shinyhelper_functions.R'))
-source(file.path(params$datadir,'scripts/rnaseq_shinyhelper_functions.R'))
+source(file.path('~/Desktop/rnaseq_shinyhelper_functions.R'))
+#source(file.path(params$datadir,'scripts/rnaseq_shinyhelper_functions.R'))
 fc_exons_raw = read.table(file.path(params$datadir,'fc_exons_raw.tsv'),sep = '\t',check.names = F);fc_exons_raw[,-c(1:5)] = round(fc_exons_raw[,-c(1:5)])
 fc_exons_tpm = read.table(file.path(params$datadir,'fc_exons_tpm.tsv'),sep = '\t',check.names = F)
 fc_genes_tpm = read.table(file.path(params$datadir,'fc_genes_tpm.tsv'),sep = '\t',check.names = F)
@@ -154,12 +154,11 @@ ui <- navbarPage(
     tabPanel(width = "100%",
              "Gene model",
              h3('Gene model and significance values for FRASER'),
-             selectInput("zoom_choice", "Gene localisation: ",
-                         choices = c('full gene','mutation zoom (+/-1kb)','mutation zoom (+/-5kb)'),
-                         selected = 'full gene'),
+             br(),
+             column(width = 12,align = "center",uiOutput("genemodel_slider")),
              br(),
              mainPanel(
-               uiOutput("Figure_genemodel_dynamic"),
+               plotOutput("Figure_genemodel", width = '1200px', height = "800px"),
                br(),
                htmlOutput('Figure_genemodel_legend')
              )
@@ -235,18 +234,6 @@ server <- function(input, output, session) {
     #SELECTED VARIABLE
     output$selected_var <- renderText({input$proband2})
   
-    #REACTIVE PLOTS
-    reactive_ggplots <- reactive({
-    plotting_coverage(
-      candidate = candidates[candidates$proband2 == input$proband2,],
-      depth_file = paste0(params$datadir,"/gene_statistics/gene_",candidates$geneID[candidates$proband2 == input$proband2],"_",candidates$proband[candidates$proband2 == input$proband2],"_depth5.csv"),
-      res_dt_candidate_gene_file = paste0(params$datadir,"/gene_statistics/gene_",candidates$geneID[candidates$proband2 == input$proband2],"_",candidates$proband[candidates$proband2 == input$proband2],"_res_dt_candidate_gene.csv"),
-      bam_file = paste0(params$datadir,'/gene_statistics/',candidates$proband[candidates$proband2 == input$proband2],"_sorted_chrN.bam"),
-      colmean_genes_counts_file = paste0(params$datadir,'/colmean_genes_counts.tsv'),
-      gene_annotations=gene_annotations,
-      zoom = input$zoom_choice)
-    })
-    
     #REACTIVE INPUT (AS A LIST)
     reactive_inputs <- reactive({
         reactive_i  = strsplit(input$proband2,'@')[[1]][1]
@@ -534,22 +521,35 @@ server <- function(input, output, session) {
      igvShiny(genomeOptions)
   })
     
-    #ggplots for coverage    
-    output$Figure_genemodel = renderPlot({reactive_ggplots()})
-    
-    #ggplots for coverage    
-    output$Figure_genemodel_dynamic <- renderUI({
-      width = '1200px'
+    #slider
+    output$genemodel_slider <- renderUI({
+      cmin <- floor(candidates$start[candidates$proband2 ==  input$proband2]/1000)
+      cmax <- ceiling(candidates$stop[candidates$proband2  == input$proband2]/1000)
       
-      if(input$zoom_choice!='full gene'){
-      #Check if you have 1 or 2 mutations.
-      mut_pos = candidates$position[candidates$proband2 == input$proband2]
-      width = ifelse(length(grep('_',mut_pos))==1,'1600px','1200px')
-      }
-  
-      # Return a plotOutput with the specified width and a fixed height
-      plotOutput("Figure_genemodel", width = width,height = "800px")
+      sliderInput(
+        inputId = "sliderxlims",
+        label = "Select genomic window (Kb)",
+        min = cmin,
+        max = cmax,
+        value = c(cmin, cmax),
+        width = '80%'
+      )
     })
+    
+    #ggplots for coverage
+    output$Figure_genemodel = renderPlot({
+      if(is.null(input$sliderxlims)) {genemodel = ggplot() +  theme_void() + geom_text(aes(0,0,label='Plotting in ¨Progress')) + xlab(NULL)} else {
+        genemodel = plotting_coverage(
+          candidate = candidates[candidates$proband2 == input$proband2,],
+          depth_file = paste0(params$datadir,"/gene_statistics/gene_",candidates$geneID[candidates$proband2 == input$proband2],"_",candidates$proband[candidates$proband2 == input$proband2],"_depth5.csv"),
+          res_dt_candidate_gene_file = paste0(params$datadir,"/gene_statistics/gene_",candidates$geneID[candidates$proband2 == input$proband2],"_",candidates$proband[candidates$proband2 == input$proband2],"_res_dt_candidate_gene.csv"),
+          bam_file = paste0(params$datadir,'/gene_statistics/',candidates$proband[candidates$proband2 == input$proband2],"_sorted_chrN.bam"),
+          colmean_genes_counts_file = paste0(params$datadir,'/colmean_genes_counts.tsv'),
+          gene_annotations=gene_annotations,
+          xlims = input$sliderxlims)}
+      
+      genemodel
+      })
 }
 
 ######shiny app
