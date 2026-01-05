@@ -38,8 +38,8 @@ unzip(params$zipfile,exdir = sub('data','.',params$datadir),overwrite=TRUE)
 #addResourcePath("pdfs",file.path(params$datadir,'/pdfs'))
 
 #fc_exons
-source(file.path('~/Desktop/rnaseq_shinyhelper_functions.R'))
-#source(file.path(params$datadir,'scripts/rnaseq_shinyhelper_functions.R'))
+#source(file.path('~/Desktop/rnaseq_shinyhelper_functions.R'))
+source(file.path(params$datadir,'scripts/rnaseq_shinyhelper_functions.R'))
 fc_exons_raw = read.table(file.path(params$datadir,'fc_exons_raw.tsv'),sep = '\t',check.names = F);fc_exons_raw[,-c(1:5)] = round(fc_exons_raw[,-c(1:5)])
 fc_exons_tpm = read.table(file.path(params$datadir,'fc_exons_tpm.tsv'),sep = '\t',check.names = F)
 fc_genes_tpm = read.table(file.path(params$datadir,'fc_genes_tpm.tsv'),sep = '\t',check.names = F)
