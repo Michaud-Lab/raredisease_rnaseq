@@ -104,7 +104,9 @@ wh = wh[wh$gene_id == candidate$ensembl,]
     
     #pivoted
     depth_pivoted = depth_filtered %>% pivot_longer(cols = c(3:ncol(depth_filtered)), names_to = 'PatientID',values_to = 'Coverage')
-
+    print('----')
+    print(dim(depth_pivoted))
+    print('----')
     #plot
     plotCov_v2 =
       ggplot(depth_pivoted[depth_pivoted$PatientID != candidate$proband,],aes(x = POS, y = Coverage)) +
@@ -117,9 +119,7 @@ wh = wh[wh$gene_id == candidate$ensembl,]
       ggtitle('Coverage (proband in black, 25-75th reference percentiles in orange)') +
       theme(plot.title = element_text(size = 24),axis.title = element_text(size = 18),axis.text = element_text(size = 14))
     
-  #list outputs as patchwork ggplot2 object.
-  list(list((candidate_gene_model/signif/plotCov_v2) + plot_layout(heights = c(1,1,3))))
+  #list outputs
+  output = list(list((candidate_gene_model/signif/plotCov_v2) + plot_layout(heights = c(1,1,3))))
+  output
   }
-  
-
-
