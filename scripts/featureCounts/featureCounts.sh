@@ -1,16 +1,26 @@
 #!/bin/bash
 
-cpu=16
-genome_in="$HOME/scratch/reference/Homo_sapiens/Homo_sapiens.GRCh38.114.gtf"
-genome_out="$HOME/scratch/reference/Homo_sapiens/Homo_sapiens.GRCh38.114.exonid_transcriptid.gtf"
-bamdir="$HOME/scratch/raredisease_rnaseq/results_07_10_2025/star_salmon/"
-workdir="$HOME/scratch/raredisease_rnaseq/"
+cpu=$1
+genome_in=$2
+genome_out=$3
+bamdir=$4
+workdir=$5
+MANE=$6 
+candidate_genes=$7
+ens_gene=$8
+masterlog$9
+fc_exons=${10} 
+fc_genes${11}
+
+$ens_gene $masterlog $fc_exons $fc_genes 
+
+
 
 mkdir -p $workdir/featureCounts  
 
 #Prepare genome per exon if it does not exist.
-if [ ! -f "$output" ]; then
-   echo "Preparing the genome reference"
+if [ ! -f "$genome_out" ]; then
+   echo "~~~ Preparing the genome reference ~~~"
    awk 'BEGIN{OFS="\t"}
    $3=="exon" {
        # extract existing attributes
@@ -24,32 +34,32 @@ if [ ! -f "$output" ]; then
        print
    }' $genome_in >$genome_out
 else
-   echo "File $genome_out already exists. No action taken."
+   echo "~~~ File $genome_out already exists. No action taken ~~~"
+fi
+
+#get the MANE
+if [ ! -f "$workdir/featureCounts/MANE.tsv" ]; then
+  awk '{print $14}' $MANE | grep 'Ensembl:ENST' | awk '{gsub(/Ensembl:|;|\.[0-9]+/,""); print}'| uniq -c >$workdir/featureCounts/MANE.tsv
+else
+  echo "~~~ File $workdir/featureCounts/MANE.tsv already exists. No action taken ~~~"
 fi
 
 #list all the bams
 ls -1 $bamdir*bam >bamlist
-
-# Read BAM files into a single string
 bams=$(tr '\n' ' ' < "bamlist")
-
-#per exon (we could fraction reads in case they are multi-mapped, instead I choose to keep the single longest transcript with featureCounts.R for quantification per exon)
-featureCounts -a $genome_out -o $workdir/featureCounts/feature_counts_perexon_pertranscript.txt -T $cpu  -p -B -C -g exon_id -t exon -O $bams
-
-echo 'Done per exon expression'
-
-#per gene
-featureCounts -a $genome_in -o $workdir/featureCounts/feature_counts_pergene.txt -T $cpu -p -B -C -g gene_id -t exon -O --fraction $bams
-
-#
-echo 'Done featureCount'
 rm bamlist
 
-#get the MANE
-awk '{print $14}' $workdir/../reference/MANE/MANE.GRCh38.v1.5.refseq_genomic.gtf | grep 'Ensembl:ENST' | awk '{gsub(/Ensembl:|;|\.[0-9]+/,""); print}'| uniq -c >$workdir/featureCounts/MANE.tsv
+#per gene and exon
+if [ ! -f "$workdir/featureCounts/feature_counts_pergene.txt" ]; then
+  featureCounts -a $genome_in -o $workdir/featureCounts/feature_counts_pergene.txt -T $cpu -p -B -C -g gene_id -t exon -O --fraction $bams
+  featureCounts -a $genome_out -o $workdir/featureCounts/feature_counts_perexon_pertranscript.txt -T $cpu  -p -B -C -g exon_id -t exon -O $bams
+else
+  echo "~~~ File $workdir/featureCounts/feature_counts_pergene.txt already exists. No action taken ~~~"
+fi 
 
 #Rscript for data clean-up
-Rscript featureCounts.R $workdir
+Rscript featureCounts.R $workdir $candidate_genes $ens_gene $masterlog $fc_exons $fc_genes
+
 
 echo 'Done featureCounts.R Rscript'
 

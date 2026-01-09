@@ -10,7 +10,7 @@
             "Script":"nextflow run rnasplice -params-file data/params.json -c data/config.json"
             },
         "OUTRIDER":{
-            "Software":"OUTRIDER",
+            "Software":"Rscript",
             "Version":"1.26.3",
             "Script":"outrider.slurm,outrider.R,outrider_perexon.R"
             },
@@ -20,7 +20,7 @@
             "Script":"featureCounts.slurm,featureCounts.R,featureCounts.sh,rnaseq_helper_functions.R"
             },
         "FRASER":{
-            "Software":"FRASER",
+            "Software":"Rscript",
             "Version":"2.4.3",
             "Script":"fraser.slurm,fraser.R,fraser.sh"
             },

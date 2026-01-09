@@ -2,18 +2,21 @@ library(seqinr)
 library(dplyr)
 
 #Define parameters
-i = as.numeric(commandArgs(trailingOnly=TRUE)[1])
-params = list(workdir = commandArgs(trailingOnly=TRUE)[2])
+args = commandArgs(trailingOnly=TRUE)
+i = as.numeric(args[1])
+params = list(workdir = args[2])
+params$candidates = args[3]
 params$consensus = file.path(params$workdir,'consensus/')
 params$FRASER = file.path(params$workdir,'FRASER')
-params$ref_file =  file.path(params$workdir,'../reference/Homo_sapiens/Homo_sapiensChr.GRCh38.dna.primary_assembly.fa') 
-params$ref_annot =  file.path(params$workdir,'../reference/Homo_sapiens/Homo_sapiens.GRCh38.114.gtf')
+params$fc_exons = args[4]
+params$ref_file = args[5]
+params$ref_annot = args[6]
 
 #candidates
-candidates = read.csv(file.path(params$workdir,'data/candidate_genes_3.txt'))
+candidates = read.csv(params$candidates)
 
 #transcript analysed
-fc_exons_tpm = read.table(file.path(params$workdir,'featureCounts/fc_exons_tpm.tsv'),sep = '\t',check.names = F) 
+fc_exons_tpm = read.table(params$fc_exons,sep = '\t',check.names = F) 
 unique_transcript = unique(fc_exons_tpm[,1:3])
 params$transcript = unique_transcript$transcriptID[unique_transcript$geneID == candidates$geneID[i]]
 

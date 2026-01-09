@@ -2,9 +2,9 @@
 gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcriptID),
                            candidates = candidates){
 
-  library(biomaRt)
-  library(ggbio)
-  library(GenomicAlignments)
+  suppressMessages(suppressWarnings(library(biomaRt)))
+  suppressMessages(suppressWarnings(library(ggbio)))
+  suppressMessages(suppressWarnings(library(GenomicAlignments)))  
 
   # Connect to Ensembl and select the human dataset for hg38 (GRCh38)
   ensembl <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", GRCh = 38)

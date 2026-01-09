@@ -1,4 +1,10 @@
-params = list(OUTRIDER = file.path(commandArgs(trailingOnly=TRUE)[1],"OUTRIDER/"))
+
+#param arguments
+args = commandArgs(trailingOnly=TRUE)
+params = list(OUTRIDER = file.path(args[1],"OUTRIDER/"))
+params$candidate_genes = args[2]
+params$fc_pergene = args[3]
+params$fc_perexon = args[4]
 
 #library
 suppressMessages(suppressWarnings(library(OUTRIDER)))
@@ -10,7 +16,7 @@ ncores = 8
 register(MulticoreParam(ncores, ncores*2, progressbar = TRUE))
 
 #candidate genes
-candidates = read.csv(file.path(params$OUTRIDER,'../data/candidate_genes_3.txt'))
+candidates = read.csv(params$candidate_genes)
 #candidates$ensembl = sapply(strsplit(candidates$ensembl,'.',fixed = T),"[[",1)
 candidates$ensembl_proband2 = apply(candidates[,colnames(candidates) %in% c('ensembl','proband2')],1,paste0,collapse ='_')
 
@@ -28,15 +34,15 @@ map = merge(map, gene_locations, by.y = 'group_name', by.x = 'ENTREZID')
 colnames(map)[c(2,3,5)] = c('ensemblID','geneID','Chr')
 
 ###from featurecount gene expression data
-genes_counts = read.table(file.path(params$OUTRIDER,'../featureCounts/feature_counts_pergene.txt'),sep = '\t',header = T,comment.char = '#',check.names = F)
+genes_counts = read.table(params$fc_pergene,sep = '\t',header = T,comment.char = '#',check.names = F)
 rownames(genes_counts) = genes_counts[,1]
 genes_counts = genes_counts[,-c(1:6)]
 genes_counts = round(genes_counts)
 colnames(genes_counts) = sapply(lapply(strsplit(colnames(genes_counts),'/'),'['),tail,1)
 colnames(genes_counts) = gsub('_sorted.bam','',colnames(genes_counts))
 
-#probands only (and the LC and F0 from Philippe Campeau)
-probands = colnames(genes_counts)[grepl('_03_',colnames(genes_counts)) | grepl('LC_',colnames(genes_counts)) | grepl('F0',colnames(genes_counts)) ]
+#probands only (and the LC and F0 from Philippe Campeau, and 04 because that is a twin of a 03)
+probands = colnames(genes_counts)[grepl('_0[34]_',colnames(genes_counts)) | grepl('LC_',colnames(genes_counts)) | grepl('F0',colnames(genes_counts)) ]
 genes_counts = genes_counts[,colnames(genes_counts) %in% c('gene_id',probands)]
 
 #OUTRIDER
@@ -69,11 +75,11 @@ write.table(significant_table[,colnames_ALL],file.path(params$OUTRIDER,'results_
 write.table(candidate_table[,colnames_candidate_genes],file.path(params$OUTRIDER,'candidates_OUTRIDER.tsv'),sep = '\t',quote = F)
 
 #message
-print(paste0('Done OUTRIDER --- Time is:',Sys.time()) )
+print(paste0('Done OUTRIDER --- Time is: ',Sys.time()) )
 
 ####PER EXON
 #from featurecount gene expression data
-fc_exons_raw_ALL = read.table(file.path(params$OUTRIDER,'../featureCounts/fc_exons_raw.tsvALL'),sep = '\t',check.names = F)
+fc_exons_raw_ALL = read.table(params$fc_perexon,sep = '\t',check.names = F)
 rownames(fc_exons_raw_ALL) = paste0(fc_exons_raw_ALL$geneID,"_",fc_exons_raw_ALL$ensemblID,"_",fc_exons_raw_ALL$transcriptID,"_",fc_exons_raw_ALL$exonID)
 
 #filter dataset to remove very low expression genes
@@ -103,7 +109,7 @@ colnames_candidate_exons = c("sampleID","geneID","ensemblID","transcriptID","exo
 write.table(candidate_table_exon[,colnames_candidate_exons],file.path(params$OUTRIDER,'candidates_perexons_OUTRIDER.tsv'),sep = '\t',quote = F)
 
 #message
-print(paste0('Done OUTRIDER per exon --- Time is:',Sys.time()) )
+print(paste0('Done OUTRIDER per exon --- Time is: ',Sys.time()) )
 
 
 
