@@ -56,7 +56,7 @@ for bam_in in $rnasplice_bamdir/*sorted.bam
   done
 
 #run coverage once all bam files have been generated for a particular gene
-samtools depth -H -a $fraser_perregion/*sorted_chrN.bam -r chr$chromosome:$start-$stop | awk 'NR % 5 == 1' >'$fraser_perregion'/gene_'$geneID'_'$proband'_depth5.csv
+samtools depth -H -a $fraser_perregion/*sorted_chrN.bam -r chr$chromosome:$start-$stop | awk 'NR % 5 == 1' >"$fraser_perregion"/gene_"$geneID"_"$proband"_depth5.csv
 
 #clean up
 rm -r $fraser_temp_bamdir
