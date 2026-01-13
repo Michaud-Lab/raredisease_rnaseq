@@ -19,6 +19,7 @@ register(MulticoreParam(ncores, ncores*2, progressbar = TRUE))
 candidates = read.csv(params$candidate_genes)
 #candidates$ensembl = sapply(strsplit(candidates$ensembl,'.',fixed = T),"[[",1)
 candidates$ensembl_proband2 = apply(candidates[,colnames(candidates) %in% c('ensembl','proband2')],1,paste0,collapse ='_')
+candidates$ensembl_proband2 = sapply(strsplit(candidates$ensembl_proband2,'@'),'[[',1)
 
 ##mapping genes
 map <- select(org.Hs.eg.db, keys=keys(TxDb.Hsapiens.UCSC.hg38.knownGene, keytype = "GENEID"),

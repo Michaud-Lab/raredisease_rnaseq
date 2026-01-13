@@ -28,31 +28,33 @@ for bam_in in $rnasplice_bamdir/*sorted.bam
     file_out=${file_out//$fraser_bamdir/$fraser_perregion}  
 
     #2. Convert BAM to SAM
-    samtools view -h $bam_chr_out >tempFRASER.sam
+    if [ ! -f "$file_out" ];
+      then samtools view -h $bam_chr_out >tempFRASER.sam
 
-    #3. Prefix chromosome names with 'chr' (skip header lines starting with '@')
-    awk 'BEGIN{OFS="\t"} 
-     /^@SQ/ {
-             # Edit SN (sequence name) in the header
-             sub(/^SN:/, "SN:chr", $2)
-             print
-             next
-         }
-         /^@/ {print; next}  # keep other headers unchanged
-         {
-             # Edit reference column in alignment lines
-             if ($3 != "*" && $3 !~ /^chr/) $3 = "chr"$3
-             print
-         }' tempFRASER.sam > tempFRASER_chr.sam
+      #3. Prefix chromosome names with 'chr' (skip header lines starting with '@')
+      awk 'BEGIN{OFS="\t"} 
+       /^@SQ/ {
+               # Edit SN (sequence name) in the header
+               sub(/^SN:/, "SN:chr", $2)
+               print
+               next
+           }
+           /^@/ {print; next}  # keep other headers unchanged
+           {
+               # Edit reference column in alignment lines
+               if ($3 != "*" && $3 !~ /^chr/) $3 = "chr"$3
+               print
+           }' tempFRASER.sam > tempFRASER_chr.sam
 
-    #4. Convert back to BAM and sort
-    samtools view -bS tempFRASER_chr.sam | samtools sort -o $file_out
+      #4. Convert back to BAM and sort
+      samtools view -bS tempFRASER_chr.sam | samtools sort -o $file_out
 
-    #5. Index the sorted BAM
-    samtools index $file_out
+      #5. Index the sorted BAM
+      samtools index $file_out
 
-    #6. Clean up temporary files
-    rm tempFRASER.sam tempFRASER_chr.sam
+      #6. Clean up temporary files
+      rm tempFRASER.sam tempFRASER_chr.sam
+    fi
   done
 
 #run coverage once all bam files have been generated for a particular gene

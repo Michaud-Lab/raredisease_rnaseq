@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --time=01:00:00
-#SBATCH --mem=64G
+#SBATCH --mem=32G
 #SBATCH --account=def-rallard
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
@@ -24,7 +24,7 @@ count=$((temp - 1))
 
 #R script launches the bash script to annotated variant file and continues with consensus.R to produce the reference sequence.
 #Can add new genes here too.
-for i in $(seq 1 "$count"); do
+for i in $(seq 9 44); do
   Rscript consensus.R $i $workdir $candidate_genes $fc_exons $ref_file $ref_annot
   echo $i
 done
