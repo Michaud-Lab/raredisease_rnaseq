@@ -2,6 +2,7 @@
 **Changed** 
 
 * Minor refactor to accomodate new samples
+* Moved parameters as much as possible to the .slurm scripts.
 
 ### 2026-01-06  - feat: add slider for coverage
 

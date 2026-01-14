@@ -77,14 +77,9 @@ fc_exons_tpm_ggplot = fc_exons_tpm_ggplot %>% pivot_longer(cols = c(6:(ncol(fc_e
 fc_exons_tpm_ggplot = merge(fc_exons_tpm_ggplot,clinical[,colnames(clinical) %in% c('PatientID','Sexe','type','age')])  
 
 #filter out parents and keep only probands
-
-print(paste0(' Salut bob. avant tpm a cette dimension: ',ncol(fc_exons_tpm)))
 fc_exons_tpm = fc_exons_tpm[,colnames(fc_exons_tpm) %in% c('geneID','ensemblID','transcriptID','exonID','Length',gsub('_PAX','',clinical$`Patient ID`[clinical$type =='Proband']))] #filter patients
-print(paste0(' Salut bob. apres tpm a cette dimension: ',ncol(fc_exons_tpm)))
 fc_exons_raw_ALL = fc_exons_raw_ALL[,colnames(fc_exons_raw_ALL) %in% c('geneID','ensemblID','transcriptID','exonID','Length',gsub('_PAX','',clinical$`Patient ID`[clinical$type =='Proband']))] #filter patients
-
 fc_exons_tpm = fc_exons_tpm[fc_exons_tpm$geneID %in% candidates$geneID, ] #filter ONLY genes of interest
-print(paste0(' Salut bob. a la fin tpm a cette dimension: ',ncol(fc_exons_tpm)))
 fc_exons_raw = fc_exons_raw_ALL[fc_exons_raw_ALL$geneID %in% candidates$geneID, ] #filter ONLY genes of interest
 
 #GENES
