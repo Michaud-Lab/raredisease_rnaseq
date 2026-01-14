@@ -30,19 +30,21 @@ chr = candidates$chromosome[i]
 start = candidates$start[i] - 100000; if(start <= 0) start = 1
 stop = candidates$stop[i] + 100000
 geneID = candidates$geneID[i]
+proband = candidates$proband[i]
 
-command = paste('./fraser.sh', chr, start, stop, geneID)
+if(geneID != "") {
+
+command = paste('./fraser.sh', chr, start, stop, geneID,proband)
 out_dir = paste0(params$FRASER,'bams_subset/gene',candidates$geneID[i],'_chr',chr,'_',start,'_',stop)
 FRASER_test_output = file.path(params$FRASER,paste0('results/output_FRASER_',candidates$proband[i]))
-    
-if(file.exists(out_dir) == F) {system(command)} else {print(paste0('Allready done: ', out_dir))}
+system(command)
 
 #generate a coverage table with samtools for the position of interest
 #samtools_depth_cmd = paste0('samtools depth -H -a ',out_dir,'/*sorted_chrN.bam -r chr',chr,':',start,'-',stop,' >',out_dir,'/gene.depth')
-samtools_depth_cmd = paste0("samtools depth -H -a ",out_dir,"/*sorted_chrN.bam -r chr",chr,":",start,"-",stop," | awk 'NR % 5 == 1' >",out_dir,"/gene_",candidates$geneID[i],"_",candidates$proband[i],"_depth5.csv")
+#samtools_depth_cmd = paste0("samtools depth -H -a ",out_dir,"/*sorted_chrN.bam -r chr",chr,":",start,"-",stop," | awk 'NR % 5 == 1' >",out_dir,"/gene_",candidates$geneID[i],"_",candidates$proband[i],"_depth5.csv")
 
-print(samtools_depth_cmd)
-system(samtools_depth_cmd)
+#print(samtools_depth_cmd)
+#system(samtools_depth_cmd)
     
 #FRASER analysis
 dir.create(params$FRASER,showWarnings = T)
@@ -58,7 +60,7 @@ sampleTable$group = 1:nrow(sampleTable)
 sampleTable$bamFile = paste0(params$FRASER,'bams_subset/gene',geneID,'_chr',chr,'_',start,'_',stop,'/',sampleTable$bamFile) 
 
 #probands only
-probands = c(1:nrow(sampleTable))[grepl('_03_',sampleTable$bamFile) | grepl('LC_',sampleTable$bamFile)| grepl('F0',sampleTable$bamFile)]
+probands = c(1:nrow(sampleTable))[grepl('_0[34]_',sampleTable$bamFile) | grepl('LC_',sampleTable$bamFile)| grepl('F0',sampleTable$bamFile)]
 settings <- FraserDataSet(colData=sampleTable[probands,], workingDir=FRASER_test_output)
 
 fds <- countRNAData(settings)
@@ -81,6 +83,13 @@ temp = c(1:nrow(as.data.frame(res_dt)))[res_dt$hgncSymbol == candidates$geneID[i
 control_samples = sampleTable$sampleID[grepl('_03_',sampleTable$bamFile) | grepl('LC_',sampleTable$bamFile)]
 control_samples = control_samples[control_samples != candidates$proband[i]][1:5]
 
+#save it
+res_dt_candidate_gene = res_dt[temp[!is.na(temp)],]
+res_dt_candidate_gene$mean = (res_dt_candidate_gene$start + res_dt_candidate_gene$end) / 2
+res_dt_candidate_gene$minuslogpval = -log(res_dt_candidate_gene$pValue,10)
+write.csv(res_dt_candidate_gene,paste0(out_dir,"/gene_",candidates$geneID[i],"_",candidates$proband[i],"_res_dt_candidate_gene.csv"))
+
+
 #fail-safe in case the plotting does not work.
 png(file.path(FRASER_test_output,paste0('gene_',candidates$geneID[i],'_',candidates$proband[i],'_sashimi.png')),width = 1000,height = 600)
 plot(0, main = 'failed test')
@@ -94,6 +103,8 @@ splicegraph_labels="id",
 mar = c(1,10,0.1,1))
 ,silent = T)
 dev.off()
+
+}
 
 print(paste0('Done sample ~~~ ', i))
 

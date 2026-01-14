@@ -76,12 +76,8 @@
   transcripts_named = data.frame(transcripts_named[,c(ncol(transcripts_named),2)],transcripts_named[,-c(1,2,ncol(transcripts_named))], check.names = F) #reorder
   colnames(transcripts_named)[1:2] = c('geneID','isoform/transcript') #rename
 
-  #Clinical data (from Maude)
-  clinical = readxl::read_xlsx(file.path(params$workdir,'data/CHUSJ\ Master\ Linking\ Log_modif.xlsx'), sheet = 'Suivi - RNAseq',skip = 1)
-  clinical$type =  "Parent"; clinical$type[!is.na(clinical$Mutation)] = 'Proband' #Parent versus Proband
-  clinical = clinical[order(clinical$`Patient ID`),] #Same order as the transript expression data.
-  clinical$age = as.numeric(clinical$`Âge (années)`); clinical$age[clinical$`Âge (années)` == '0 (3 mois)'] = 0.25 # Prettify
-  clinical$PatientID = gsub('_PAX','',clinical$`Patient ID`)
+  #Clinical data (from Maude excel file)
+  clinical = read.table(file.path(params$datadir,'clinical.tsv'), check.names = F)  
 
   #all.equal(clinical$`Patient ID`,colnames(transcripts_named_filtered)[-c(1:3)]) #sanity check
   #transcripts dataframe formatting for ggplot / plotly  datatable
@@ -102,8 +98,6 @@
   #zip everything into one zip for easier transfer
   setwd(params$workdir)
   zip(zipfile = paste0('data_',as.character(format(Sys.time(), format = "%Y_%m_%d_%H_%M")),'.zip'), files = 'data')
-  #zip_cmd = paste0('zip -rj data_',as.character(format(Sys.time(), format = "%Y_%m_%d_%H_%M")),'.zip ',params$workdir,'/data')
-  #system(zip_cmd)
 
   #print
   print(paste0('All done, Time is: ',Sys.time()))

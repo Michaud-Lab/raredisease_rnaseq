@@ -10,10 +10,14 @@
 module load samtools
 module load r
 
+#params
 workdir="$HOME/scratch/raredisease_rnaseq/"
+temp=$(wc -l < $workdir/data/candidate_genes_3.txt)
+count=$((temp - 1))
 
 #R script launches the bash script to prepare data (i.e. subset the big bam files) and continues with FRASER analysis and plots.
-for i in {1..32}; do
+#Can add new genes specified in candidate_genes_3.txt to the for loop below:
+for i in $(seq 1 "$count"); do
   Rscript fraser.R $i $workdir
   echo $i
 done

@@ -1,3 +1,14 @@
+### 2026-01-09 
+**Changed** 
+
+* Minor refactor to accomodate new samples
+* Moved parameters as much as possible to the .slurm scripts.
+
+### 2026-01-06  - feat: add slider for coverage
+
+**Added**
+* Add a slider widget to the coverage plots
+
 ### 2025-12-18 - v2.4: update_readme
 		
 **Changed**		

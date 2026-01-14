@@ -1,29 +1,36 @@
-#Librariesy
-library(readxl)
-library(tidyr)
-library(dplyr)
+#Libraries
+suppressMessages(suppressWarnings(library(readxl)))
+suppressMessages(suppressWarnings(library(tidyr)))
+suppressMessages(suppressWarnings(library(dplyr)))
 
-#directory were the files are located
-params = list(workdir = commandArgs(trailingOnly=TRUE)[1])
+#args and params 
+args=commandArgs(trailingOnly=TRUE)
+
+params = list(workdir = args[1])
+params$candidate_genes = args[2]
 params$FCdir = file.path(params$workdir,'/featureCounts/')
 params$datadir = file.path(params$workdir,'data/')
+params$ens_gene = args[3]
+params$masterlog = args[4]
+params$fc_exons = args[5]
+params$fc_genes = args[6]
 
 #Ensembl - GeneID correspondance file
-ensembl_geneid = read.table(file.path(params$datadir,'ensembl_geneid.tsv'),header = T)
+ensembl_geneid = read.table(params$ens_gene,header = T)
 
 #candidate genes
-candidates = read.csv(file.path(params$datadir,'candidate_genes_3.txt'))
+candidates = read.csv(params$candidate_genes)
 
 #Clinical data (from Maude)
-clinical = readxl::read_xlsx(file.path(params$workdir,'data/CHUSJ\ Master\ Linking\ Log_modif.xlsx'), sheet = 'Suivi - RNAseq',skip = 1)
+clinical = readxl::read_xlsx(params$masterlog, sheet = 'Suivi - RNAseq',skip = 1)
 clinical$type =  "Parent"; clinical$type[!is.na(clinical$Mutation)] = 'Proband' #Parent versus Proband
 clinical = clinical[order(clinical$`Patient ID`),] #Same order as the transript expression data.
-clinical$age = as.numeric(clinical$`Âge (années)`); clinical$age[clinical$`Âge (années)` == '0 (3 mois)'] = 0.25 # Prettify
+clinical$age = as.numeric(clinical$`Âge (années)`); clinical$age[clinical$`Âge (années)` == '0 (3 mois)'] = 0.25; clinical$age[clinical$`Âge (années)` == '0 (9 mois)'] = 0.75 # Prettify
 clinical$PatientID = gsub('_PAX','',clinical$`Patient ID`)
 
 #featureCounts (per gene and per exons)
-fc_exons = read.table(file.path(params$FCdir,'feature_counts_perexon_pertranscript.txt'),sep = '\t',header = T,comment.char = '#',check.names = F)
-fc_genes = read.table(file.path(params$FCdir,'feature_counts_pergene.txt'),sep = '\t',header = T,comment.char = '#',check.names = F)
+fc_exons = read.table(params$fc_exons,sep = '\t',header = T,comment.char = '#',check.names = F)
+fc_genes = read.table(params$fc_genes,sep = '\t',header = T,comment.char = '#',check.names = F)
 
 #featureCounts average per sample
 colsum_genes_counts = colSums(fc_genes[,7:ncol(fc_genes)])
@@ -36,35 +43,13 @@ write.table(colmean_genes_counts,file.path(params$FCdir,'colmean_genes_counts.ts
 fc_exons$ensemblID = sapply(strsplit(fc_exons$Geneid,'_'),'[',1)
 fc_exons$transcriptID = sapply(strsplit(fc_exons$Geneid,'_'),'[',2)
 fc_exons$exonID = sapply(strsplit(fc_exons$Geneid,'_'),'[',3)
-#fc_exons$longestID = 0
 
 #sum it up per gene in order to find the transcript with the greatest number of reads aligned.
 transcripts_summed = fc_exons %>% group_by(ensemblID,transcriptID) %>% summarise(across(c(7:(ncol(fc_exons)-4)), sum))
 
-#find the unique genes
-#unique_ensembl = unique(transcripts_summed$ensemblID)
-
-#for(i in 1:length(unique_ensembl)){
-#for(i in 1:5100){
- # transcripts_summed_pergene = transcripts_summed[transcripts_summed$ensemblID == unique_ensembl[i],]
- # transcripts_summed_pergene_mean = rowMeans(transcripts_summed_pergene[,-c(1:2)])
- # longest_transcripts = transcripts_summed_pergene$transcriptID[transcripts_summed_pergene_mean == max(transcripts_summed_pergene_mean)]
- # fc_exons$longestID[fc_exons$transcriptID == longest_transcripts] = 1
-
-#  if(i %% 10000 == 0) print(paste0('Done ', i, ' transcript of ',length(unique_ensembl), ', Time is : ', Sys.time() ))
-#}
-
 #keep the MANE instead of the longest gene. 
-#system(paste0("awk '{print $14}' ",params$workdir,"../reference/MANE/MANE.GRCh38.v1.5.refseq_genomic.gtf | grep 'Ensembl:ENST' | uniq -c >",params$FCdir,"/MANE.tsv"))
 MANE = read.table(paste0(params$FCdir,"/MANE.tsv"))
-#MANE = sapply(strsplit(gsub('Ensembl:','',MANE[,1],),'.',fixed = 1),'[[',1)
-#awk -F',' '{print $1}' ../../nextflow_rnasplice/data/candidate_genes_3.txt | grep -f - MANE.GRCh38.v1.5.refseq_genomic.gtf | awk '{print $14}' | grep 'Ensembl:' | uniq -c
-#awk '{print $14}' MANE.GRCh38.v1.5.refseq_genomic.gtf | grep 'Ensembl:' | uniq -c|
-
-
-#keep longest transncript (or at least the one with the most exons)
 fc_exons = fc_exons[fc_exons$transcriptID %in% MANE[,2],]
-#fc_exons = fc_exons[fc_exons$longestID == 1, -ncol(fc_exons)]
 
 #clean up
 fc_exons = merge(fc_exons,ensembl_geneid,by.x = 'ensemblID',by.y = 'gene_id')
@@ -94,7 +79,6 @@ fc_exons_tpm_ggplot = merge(fc_exons_tpm_ggplot,clinical[,colnames(clinical) %in
 #filter out parents and keep only probands
 fc_exons_tpm = fc_exons_tpm[,colnames(fc_exons_tpm) %in% c('geneID','ensemblID','transcriptID','exonID','Length',gsub('_PAX','',clinical$`Patient ID`[clinical$type =='Proband']))] #filter patients
 fc_exons_raw_ALL = fc_exons_raw_ALL[,colnames(fc_exons_raw_ALL) %in% c('geneID','ensemblID','transcriptID','exonID','Length',gsub('_PAX','',clinical$`Patient ID`[clinical$type =='Proband']))] #filter patients
-
 fc_exons_tpm = fc_exons_tpm[fc_exons_tpm$geneID %in% candidates$geneID, ] #filter ONLY genes of interest
 fc_exons_raw = fc_exons_raw_ALL[fc_exons_raw_ALL$geneID %in% candidates$geneID, ] #filter ONLY genes of interest
 
@@ -103,9 +87,7 @@ fc_genes = merge(fc_genes,ensembl_geneid,by.x = 'Geneid',by.y = 'gene_id')
 ncol = ncol(fc_genes)
 fc_genes_raw = fc_genes[,c(ncol,1,6:(ncol-1))]
 colnames(fc_genes_raw)[1:2] = c('geneID','ensemblID')
-#colnames(fc_genes_raw)[-c(1:3)] = sapply(strsplit(colnames(fc_genes_raw)[-c(1:3)],'/'),'[',8)
 colnames(fc_genes_raw) =  gsub("^.*/", "",colnames(fc_genes_raw))
-#colnames(fc_genes_raw)[-c(1:3)] =  sapply(lapply(strsplit(colnames(fc_genes_raw),'/'),'['),tail,1)[-c(1:3)]
 colnames(fc_genes_raw) = gsub('_sorted.bam','',colnames(fc_genes_raw))
 
 fc_genes_tpm = fc_genes_raw
@@ -135,6 +117,7 @@ write.table(fc_exons_raw_ALL,file.path(params$FCdir,'fc_exons_raw.tsv_ALL'),sep 
 write.table(fc_exons_raw,file.path(params$FCdir,'fc_exons_raw.tsv'),sep = '\t',quote = F)
 write.table(fc_exons_tpm,file.path(params$FCdir,'fc_exons_tpm.tsv'),sep = '\t',quote = F)
 write.table(fc_exons_tpm_ggplot,file.path(params$FCdir,'fc_exons_tpm_ggplot.tsv'), sep = '\t',quote = F)
+write.table(clinical,file.path(params$FCdir,'clinical.tsv'), sep = '\t',quote = T)
 
 print(paste0('Done write table --- ', Sys.time()))
 

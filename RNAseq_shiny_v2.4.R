@@ -34,9 +34,6 @@ for(p in 1:length(packages)) {
 print(paste0("Using the latest data.zip: ",params$zipfile,' unzipping in: ',params$datadir))
 unzip(params$zipfile,exdir = sub('data','.',params$datadir),overwrite=TRUE)
 
-# Create a virtual path "/pdfs" that maps to that directory
-#addResourcePath("pdfs",file.path(params$datadir,'/pdfs'))
-
 #fc_exons
 #source(file.path('~/Desktop/rnaseq_shinyhelper_functions.R'))
 source(file.path(params$datadir,'scripts/rnaseq_shinyhelper_functions.R'))
@@ -130,7 +127,7 @@ ui <- navbarPage(
         h3('OUTRIDER - OUTlier in RNA-Seq fInDER'),
         'Identification of aberrant gene expression in RNA-seq data, Outliers are identified as read counts that significantly deviate from the population',
         br(),
-        '(all probands, including adults)',
+        '(all probands, including some adults from the LC & F0 cohorts)',
         br(),
         width = "100%",
         mainPanel(
@@ -256,12 +253,13 @@ server <- function(input, output, session) {
         fc_exons_tpm_reactive = fc_exons_tpm_reactive[order(fc_exons_tpm_reactive[,4]),]
         
         #OUTRIDER
-        table_OUTRIDER = results_OUTRIDER[results_OUTRIDER$proband == reactive_i,]
+        table_OUTRIDER = results_OUTRIDER[results_OUTRIDER$$sampleID == reactive_i,]
         table_OUTRIDER = table_OUTRIDER[order(table_OUTRIDER$Chr,table_OUTRIDER$start),]
-      #  table_OUTRIDER_candidate = candidates_OUTRIDER[(candidates_OUTRIDER$geneID ==  candidates$geneID[candidates$proband2 ==  input$proband2]) & (candidates_OUTRIDER$proband == reactive_i),]    
         table_OUTRIDER_candidate = candidates_OUTRIDER[candidates_OUTRIDER$sampleID == reactive_i,]    
-        
+        if(!is.na(multigene_sample)) table_OUTRIDER_candidate = table_OUTRIDER_candidate[table_OUTRIDER_candidate$geneID == multigene_sample,]
+
         table_perexons_OUTRIDER_candidate = candidates_perexons_OUTRIDER[candidates_perexons_OUTRIDER$sampleID == reactive_i,]    
+        if(!is.na(multigene_sample)) table_perexons_OUTRIDER_candidate = table_perexons_OUTRIDER_candidate[table_perexons_OUTRIDER_candidate$geneID == multigene_sample,]
         table_perexons_OUTRIDER_candidate = table_perexons_OUTRIDER_candidate[order(table_perexons_OUTRIDER_candidate$exonID),]
         table_perexons_OUTRIDER_candidate = table_perexons_OUTRIDER_candidate[,]
         
@@ -279,14 +277,13 @@ server <- function(input, output, session) {
             fc_exons_ggplot_reactive_child = fc_exons_ggplot_reactive[fc_exons_ggplot_reactive$age <  18,]
             fc_exons_ggplot_reactive_adults = fc_exons_ggplot_reactive[fc_exons_ggplot_reactive$age >=18,]
         
-            #stager the positions
-            fc_exons_ggplot_reactive_child$exonID = fc_exons_ggplot_reactive_child$exonID - (1/max(fc_exons_ggplot_reactive_child$exonID)*2)
-            fc_exons_ggplot_reactive_adults$exonID = fc_exons_ggplot_reactive_adults$exonID + (1/max(fc_exons_ggplot_reactive_adults$exonID)*2)
-        
+            #stagger the positions
+            fc_exons_ggplot_reactive_child$exonID = fc_exons_ggplot_reactive_child$exonID - 0.1
+            fc_exons_ggplot_reactive_adults$exonID = fc_exons_ggplot_reactive_adults$exonID + 0.1
           
-          output = list(transcripts_reactive,table_OUTRIDER,table_OUTRIDER_candidate,fc_exons_ggplot_reactive_child,fc_exons_ggplot_reactive_adults,fc_exons_tpm_reactive,fc_exons_raw_reactive,fc_exons_ggplot_reactive,fc_exons_ggplot_reactive_patient,fc_exons_ggplot_reactive_family,table_perexons_OUTRIDER_candidate)
-          names(output)  = c('transcripts_reactive','table_OUTRIDER','table_OUTRIDER_candidate','fc_exons_ggplot_reactive_child','fc_exons_ggplot_reactive_adults','fc_exons_tpm_reactive','fc_exons_raw_reactive','fc_exons_ggplot_reactive','fc_exons_ggplot_reactive_patient','fc_exons_ggplot_reactive_family','table_perexons_OUTRIDER_candidate')
-          output
+        output = list(transcripts_reactive,table_OUTRIDER,table_OUTRIDER_candidate,fc_exons_ggplot_reactive_child,fc_exons_ggplot_reactive_adults,fc_exons_tpm_reactive,fc_exons_raw_reactive,fc_exons_ggplot_reactive,fc_exons_ggplot_reactive_patient,fc_exons_ggplot_reactive_family,table_perexons_OUTRIDER_candidate)
+        names(output)  = c('transcripts_reactive','table_OUTRIDER','table_OUTRIDER_candidate','fc_exons_ggplot_reactive_child','fc_exons_ggplot_reactive_adults','fc_exons_tpm_reactive','fc_exons_raw_reactive','fc_exons_ggplot_reactive','fc_exons_ggplot_reactive_patient','fc_exons_ggplot_reactive_family','table_perexons_OUTRIDER_candidate')
+        output
     })
   
     #DATA TABLE

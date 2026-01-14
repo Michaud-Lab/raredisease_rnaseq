@@ -2,18 +2,21 @@ library(seqinr)
 library(dplyr)
 
 #Define parameters
-i = as.numeric(commandArgs(trailingOnly=TRUE)[1])
-params = list(workdir = commandArgs(trailingOnly=TRUE)[2])
+args = commandArgs(trailingOnly=TRUE)
+i = as.numeric(args[1])
+params = list(workdir = args[2])
+params$candidates = args[3]
 params$consensus = file.path(params$workdir,'consensus/')
 params$FRASER = file.path(params$workdir,'FRASER')
-params$ref_file =  file.path(params$workdir,'../reference/Homo_sapiens/Homo_sapiensChr.GRCh38.dna.primary_assembly.fa') 
-params$ref_annot =  file.path(params$workdir,'../reference/Homo_sapiens/Homo_sapiens.GRCh38.114.gtf')
+params$fc_exons = args[4]
+params$ref_file = args[5]
+params$ref_annot = args[6]
 
 #candidates
-candidates = read.csv(file.path(params$workdir,'data/candidate_genes_3.txt'))
+candidates = read.csv(params$candidates)
 
 #transcript analysed
-fc_exons_tpm = read.table(file.path(params$workdir,'featureCounts/fc_exons_tpm.tsv'),sep = '\t',check.names = F) 
+fc_exons_tpm = read.table(params$fc_exons,sep = '\t',check.names = F) 
 unique_transcript = unique(fc_exons_tpm[,1:3])
 params$transcript = unique_transcript$transcriptID[unique_transcript$geneID == candidates$geneID[i]]
 
@@ -26,6 +29,8 @@ params$out_dir = paste0(params$FRASER,'/bams_subset/gene',candidates$geneID[i],'
 params$bam_file = paste0(candidates$proband[i],'_sorted_chrN.bam')
 params$gene_variants_annotated = paste0(params$out_dir,'/gene',candidates$geneID[i],'variants_annotated.tsv')
 params$region = paste0('chr',chr,":",candidates$start[i],"-",candidates$stop[i])
+
+if(params$geneID != "") {
 
 #Prepare the bam subsetting BASH script
 command = paste('./consensus.sh',params$geneID, params$transcript,params$ref_file,params$ref_annot, params$out_dir,params$bam_file,params$consensus, params$region)
@@ -108,6 +113,8 @@ print(paste0('length ATL: ',length(alternate_sequence)))
 # Write to a FASTA file
 my_sequences <- list(reference = reference_sequence, alternate = alternate_sequence)
 write.fasta(sequences = my_sequences, names = names(my_sequences),nbchar = 100, file.out = paste0(params$consensus,'gene',params$geneID,'_',candidates$proband[i],".fasta"), open = "w")
+
+}
 
 print(paste0('Done sample ',i, ' ~~~  ', params$geneID,' ~~~ Time is: ',Sys.time()))
 
