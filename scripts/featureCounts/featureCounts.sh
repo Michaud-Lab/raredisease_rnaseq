@@ -8,11 +8,11 @@ workdir=$5
 MANE=$6 
 candidate_genes=$7
 ens_gene=$8
-masterlog$9
+masterlog=$9
 fc_exons=${10} 
-fc_genes${11}
+fc_genes=${11}
 
-$ens_gene $masterlog $fc_exons $fc_genes 
+#$ens_gene $masterlog $fc_exons $fc_genes 
 
 
 

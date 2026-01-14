@@ -22,7 +22,7 @@ ensembl_geneid = read.table(params$ens_gene,header = T)
 candidates = read.csv(params$candidate_genes)
 
 #Clinical data (from Maude)
-clinical = readxl::read_xlsx(params$ensembl_geneid, sheet = 'Suivi - RNAseq',skip = 1)
+clinical = readxl::read_xlsx(params$masterlog, sheet = 'Suivi - RNAseq',skip = 1)
 clinical$type =  "Parent"; clinical$type[!is.na(clinical$Mutation)] = 'Proband' #Parent versus Proband
 clinical = clinical[order(clinical$`Patient ID`),] #Same order as the transript expression data.
 clinical$age = as.numeric(clinical$`Âge (années)`); clinical$age[clinical$`Âge (années)` == '0 (3 mois)'] = 0.25; clinical$age[clinical$`Âge (années)` == '0 (9 mois)'] = 0.75 # Prettify
