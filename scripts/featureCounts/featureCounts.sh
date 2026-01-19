@@ -1,20 +1,16 @@
 #!/bin/bash
 
 cpu=$1
-genome_in=$2
-genome_out=$3
-bamdir=$4
+genome_in=$HOME/$2
+genome_out=$HOME/$3
+bamdir=$5$4
 workdir=$5
-MANE=$6 
+MANE=$HOME/$6 
 candidate_genes=$7
-ens_gene=$8
-masterlog=$9
-fc_exons=${10} 
-fc_genes=${11}
-
-#$ens_gene $masterlog $fc_exons $fc_genes 
-
-
+ens_gene=$5$8
+masterlog=$5$9
+fc_exons=$5"${10}"
+fc_genes=$5"${11}"
 
 mkdir -p $workdir/featureCounts  
 

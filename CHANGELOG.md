@@ -1,6 +1,15 @@
-### 2026-01-09 
-**Changed** 
+### 2026-01-20
 
+**Changed**
+* Parameters are now pulled from a single configs.json file.
+* Added a selector for the OUTRIDER pvalue threshold
+
+**Fixed**
+* Minor refactor to accomodate new genes (even for lncRNA)
+
+### 2026-01-09 
+
+**Changed** 
 * Minor refactor to accomodate new samples
 * Moved parameters as much as possible to the .slurm scripts.
 

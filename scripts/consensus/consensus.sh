@@ -12,8 +12,8 @@ bam_file=$6
 consensus_dir=$7
 region=$8
 
-#1.extract protein_coding exons from gtf.
-awk 'NR==1 || $3 == "exon"' $ref_annot | awk '$24 ~ /protein_coding/' >$bam_dir'exons.gtf'
+#1.extract protein_coding or lncRNA exons from gtf. 
+awk 'NR==1 || $3 == "exon"' $ref_annot | awk '$24 ~ /protein_coding|lncRNA/' >$bam_dir'exons.gtf'
 cut -f1,4,5,9 $bam_dir'exons.gtf' >$bam_dir'exons.bed'
 
 #2extract ONLY the region of interest AND only the transcript of interest
@@ -31,5 +31,5 @@ awk 'BEGIN{OFS="\t"} {print $1, $2, $2, $3, $4, $5}' $bam_dir'variants.tsv' | aw
 bedtools intersect -header -loj -wa -wb -a $bam_dir'variants.bed' -b $bam_dir$transcript'.bed' | awk '{print $1,$3,$4,$5,$6,$15,$19,$21}' OFS="\t" >$bam_dir'gene'$gene'variants_annotated.tsv'
 
 #cleanup
-#rm $bam_dir$transcript'.bed'  $bam_dir'exons.gtf'  $bam_dir'exons.bed'
+rm $bam_dir$transcript'.bed'  $bam_dir'exons.gtf'  $bam_dir'exons.bed'
 

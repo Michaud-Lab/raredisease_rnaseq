@@ -8,8 +8,8 @@ args=commandArgs(trailingOnly=TRUE)
 
 params = list(workdir = args[1])
 params$candidate_genes = args[2]
-params$FCdir = file.path(params$workdir,'/featureCounts/')
-params$datadir = file.path(params$workdir,'data/')
+params$FCdir = file.path(args[1],'featureCounts/')
+params$datadir = file.path(args[1],'data/')
 params$ens_gene = args[3]
 params$masterlog = args[4]
 params$fc_exons = args[5]
@@ -49,6 +49,7 @@ transcripts_summed = fc_exons %>% group_by(ensemblID,transcriptID) %>% summarise
 
 #keep the MANE instead of the longest gene. 
 MANE = read.table(paste0(params$FCdir,"/MANE.tsv"))
+MANE = rbind(MANE,c(7,"ENST00000374555")) #MDS2 not in MANE because it is a lncRNA. But we still have exon data fot it, so lets add it.
 fc_exons = fc_exons[fc_exons$transcriptID %in% MANE[,2],]
 
 #clean up

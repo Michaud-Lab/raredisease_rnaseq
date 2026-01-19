@@ -140,7 +140,10 @@ ui <- navbarPage(
           DTOutput("candidates_OUTRIDER_exons"),
           br(), 
           br(),
-          h4('All significant genes (p < 0.005)'),
+          h4('All significant genes'), 
+          selectInput("pvalue", h4("p-value threshold:"),
+                      choices = c(0.05,0.01,0.005,0.001,0.0005),
+                      selected = 0.005),
           DTOutput("table_OUTRIDER"),
           br(), 
           
@@ -253,7 +256,7 @@ server <- function(input, output, session) {
         fc_exons_tpm_reactive = fc_exons_tpm_reactive[order(fc_exons_tpm_reactive[,4]),]
         
         #OUTRIDER
-        table_OUTRIDER = results_OUTRIDER[results_OUTRIDER$$sampleID == reactive_i,]
+        table_OUTRIDER = results_OUTRIDER[results_OUTRIDER$sampleID == reactive_i,]
         table_OUTRIDER = table_OUTRIDER[order(table_OUTRIDER$Chr,table_OUTRIDER$start),]
         table_OUTRIDER_candidate = candidates_OUTRIDER[candidates_OUTRIDER$sampleID == reactive_i,]    
         if(!is.na(multigene_sample)) table_OUTRIDER_candidate = table_OUTRIDER_candidate[table_OUTRIDER_candidate$geneID == multigene_sample,]
@@ -318,7 +321,7 @@ server <- function(input, output, session) {
     #OUTRIDER TABLE
     output$table_OUTRIDER <- renderDT({
       datatable(
-        reactive_inputs()$table_OUTRIDER,
+        reactive_inputs()$table_OUTRIDER[reactive_inputs()$table_OUTRIDER$pValue < as.numeric(input$pvalue),],
         rownames = FALSE,
         options = list(pageLength = 100)
       )

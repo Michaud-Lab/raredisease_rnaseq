@@ -6,8 +6,8 @@ args = commandArgs(trailingOnly=TRUE)
 i = as.numeric(args[1])
 params = list(workdir = args[2])
 params$candidates = args[3]
-params$consensus = file.path(params$workdir,'consensus/')
-params$FRASER = file.path(params$workdir,'FRASER')
+params$consensus = file.path(args[2],'consensus/')
+params$FRASER = file.path(args[2],'FRASER')
 params$fc_exons = args[4]
 params$ref_file = args[5]
 params$ref_annot = args[6]

@@ -1,0 +1,32 @@
+{
+	"general":
+		{
+			"workdir":"/home/renaut/scratch/raredisease_rnaseq/",
+			"candidate_genes":"/home/renaut/scratch/raredisease_rnaseq/data/candidate_genes_3.txt"
+		},
+	"FRASER":
+		{},
+	"OUTRIDER":
+		{
+			"fc_pergene":"featureCounts/feature_counts_pergene.txt",
+			"fc_perexon":"featureCounts/fc_exons_raw.tsv_ALL"
+		},
+	 "featureCounts":
+                {
+ 			"cpu":"16",
+			"genome_in":"scratch/reference/Homo_sapiens/Homo_sapiens.GRCh38.114.gtf",
+			"genome_out":"scratch/reference/Homo_sapiens/Homo_sapiens.GRCh38.114.exonid_transcriptid.gtf",
+			"bamdir":"results_06_01_2026/star_salmon/",
+			"masterlog":"data/CHUSJ_Master_Linking_Log_modif.xlsx",	
+			"MANE":"scratch/reference/MANE/MANE.GRCh38.v1.5.refseq_genomic.gtf",
+			"ens_gene":"data/ensembl_geneid.tsv",
+			"fc_exons":"featureCounts/feature_counts_perexon_pertranscript.txt",
+			"fc_genes":"featureCounts/feature_counts_pergene.txt"
+                },
+	 "consensus":
+                {
+			"fc_exons":"scratch/raredisease_rnaseq/featureCounts/fc_exons_tpm.tsv",
+			"ref_file":"scratch/reference/Homo_sapiens/Homo_sapiensChr.GRCh38.dna.primary_assembly.fa",
+			"ref_annot":"scratch/reference/Homo_sapiens/Homo_sapiens.GRCh38.114.gtf"
+                }
+}
