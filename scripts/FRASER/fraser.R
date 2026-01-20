@@ -62,6 +62,9 @@ if(geneID != "") {
 
   res_dt <- as.data.table(res)
   res_dt <- res_dt[sampleID == candidates$proband[i],]
+  
+  print('dimension de res_dt')
+  print(dim(res_dt))
 
   #load more annotation packages
   suppressMessages(suppressWarnings(library(TxDb.Hsapiens.UCSC.hg38.knownGene)))
@@ -79,6 +82,9 @@ if(geneID != "") {
   res_dt_candidate_gene$minuslogpval = -log(res_dt_candidate_gene$pValue,10)
   write.csv(res_dt_candidate_gene,paste0(out_dir,"/gene_",candidates$geneID[i],"_",candidates$proband[i],"_res_dt_candidate_gene.csv"))
 
+  print('dimension de res_dt_candidate_gene')
+  print(dim(res_dt_candidate_gene))
+ 
   #fail-safe in case the plotting does not work.
   png(file.path(params$output,paste0('gene_',candidates$geneID[i],'_',candidates$proband[i],'_sashimi.png')),width = 1000,height = 600)
   plot(0, main = 'failed test')

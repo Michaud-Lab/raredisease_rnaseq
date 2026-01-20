@@ -233,6 +233,7 @@ server <- function(input, output, session) {
   
     #SELECTED VARIABLE
     output$selected_var <- renderText({input$proband2})
+    i <- reactive({c(1:nrow(candidates))[candidates$proband2 == input$proband2]})
   
     #REACTIVE INPUT (AS A LIST)
     reactive_inputs <- reactive({
@@ -248,11 +249,11 @@ server <- function(input, output, session) {
         column = c(1:ncol(fc_exons_raw))[colnames(fc_exons_raw) == reactive_i]
         column_not = c(1:ncol(fc_exons_raw))[colnames(fc_exons_raw) != reactive_i]
         column_not = column_not[-c(1,2,3,4,5,length(column_not))] 
-        fc_exons_raw_reactive = fc_exons_raw[fc_exons_raw$geneID == candidates$geneID[candidates$proband2 == input$proband2], c(1,2,3,4,5,column,column_not)]
+        fc_exons_raw_reactive = fc_exons_raw[fc_exons_raw$geneID == candidates$geneID[i()], c(1,2,3,4,5,column,column_not)]
         fc_exons_raw_reactive = fc_exons_raw_reactive[order(fc_exons_raw_reactive[,4]),]
 
         #Exon Counts TPM
-        fc_exons_tpm_reactive = fc_exons_tpm[fc_exons_tpm$geneID == candidates$geneID[candidates$proband2 == input$proband2], c(1,2,3,4,5,column,column_not)]
+        fc_exons_tpm_reactive = fc_exons_tpm[fc_exons_tpm$geneID == candidates$geneID[i()], c(1,2,3,4,5,column,column_not)]
         fc_exons_tpm_reactive = fc_exons_tpm_reactive[order(fc_exons_tpm_reactive[,4]),]
         
         #OUTRIDER
@@ -269,7 +270,7 @@ server <- function(input, output, session) {
         #Plotly family of proband
         fc_exons_ggplot_reactive = fc_exons_tpm_ggplot[fc_exons_tpm_ggplot$proband == reactive_i, ]
         if(!is.na(multigene_sample)) fc_exons_ggplot_reactive = fc_exons_ggplot_reactive[fc_exons_ggplot_reactive$geneID == multigene_sample, ]
-        fc_exons_ggplot_reactive_family = fc_exons_ggplot_reactive[gsub('_0[123]$','',fc_exons_ggplot_reactive$PatientID) == gsub('_03','',reactive_i),]
+        fc_exons_ggplot_reactive_family = fc_exons_ggplot_reactive[gsub('_0[123]$','',fc_exons_ggplot_reactive$PatientID) == gsub('_03$','',reactive_i),]
         
 
         #Plotly
@@ -440,7 +441,7 @@ server <- function(input, output, session) {
     output$Sashimi <- renderImage({
     # Return a list containing the filename and other details
     list(
-      src = paste0(params$datadir,"/sashimis/gene_",candidates$geneID[candidates$proband2 == input$proband2],"_",candidates$proband[candidates$proband2 == input$proband2],'_sashimi.png')[1],   # path to the file
+      src = paste0(params$datadir,"/sashimis/gene_",candidates$geneID[i()],"_",candidates$proband[i()],'_sashimi.png')[1],   # path to the file
       contentType = "image/png",
       width = 900,
       alt = "My Figure"
@@ -462,22 +463,22 @@ server <- function(input, output, session) {
     #DESCRIPTIONS
     output$description <- renderUI({
       print(paste0('Selecting ~~~ ',input$proband2))
-      selected_ensembl <- candidates$ensembl[candidates$proband2 == input$proband2]
-      selected_geneID <- candidates$geneID[candidates$proband2 == input$proband2]
+      selected_ensembl <- candidates$ensembl[i()]
+      selected_geneID <- candidates$geneID[i()]
       url <- paste0("https://useast.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=", selected_ensembl)
       HTML(
         paste0("<b>Gene description for ",selected_geneID,"</b>: <a href='", url, "' target='_self'>", selected_ensembl, "</a>",
                "<br><br><b>Mutations: </b>",clinical$Mutation[clinical$PatientID ==  strsplit(input$proband2,'@')[[1]][1]],
                "<br><br><b>Candidate Gene hypothesis: </b>",clinical$Hypothèse[clinical$PatientID ==  strsplit(input$proband2,'@')[[1]][1]],
                "<br><br><b>HPO terms: </b>",clinical$`HPO terms`[clinical$PatientID ==  strsplit(input$proband2,'@')[[1]][1]],
-               "<br><br><b>Bam file location: </b>",system('echo ${HOME}',intern = T),"/scratch/nextflow_rnasplice/bams/",candidates$proband[candidates$proband2 == input$proband2],".sorted.bam<br><br>")
+               "<br><br><b>Bam file location: </b>",system('echo ${HOME}',intern = T),"/scratch/nextflow_rnasplice/bams/",candidates$proband[i()],".sorted.bam<br><br>")
       )
     })
     
     #Figure legend
     output$Figure_genemodel_legend  <- renderUI({HTML(
       paste0("<b>Figure 2:</b> Visualisation des altérations d’épissage détectées par l'outil FRASER.
-      <br><b>A</b>: Carte des introns/exons du gène ",candidates$geneID[candidates$proband2==input$proband2]," et localisation du/des variant.s (ligne bleue pointillée).
+      <br><b>A</b>: Carte des introns/exons du gène ",candidates$geneID[i()]," et localisation du/des variant.s (ligne bleue pointillée).
       <br><b>B:</b> Évènements d’épissage aberrant pour chaque région détectée (−log₁₀ p-value).
       <br><b>C:</b>  Couverture de séquençage normalisée pour le probant ainsi que 25-75ième percentile de la population de référence (en orange).
    ")
@@ -499,32 +500,33 @@ server <- function(input, output, session) {
     #FASTA sequence
     output$fasta <- renderUI({
       # Read the lines of the uploaded text file
-      lines <- readLines(paste0(params$datadir,"/consensus/","gene",candidates$geneID[candidates$proband2 == input$proband2],'_',candidates$proband[candidates$proband2 == input$proband2],'.fasta'))
+      lines <- readLines(paste0(params$datadir,"/consensus/","gene",candidates$geneID[i()],'_',candidates$proband[i()],'.fasta'))
       #Print the lines to the output
       HTML(paste0("<span style='color: black; font-family: Courier New; font-size: 16px;'>",paste0(lines,collapse = '<br>'),"</span>",collapse = "\n"))
     })
     
     #IGV
     observeEvent(input$addBamLocalFileButton, {
+      gene_dir = paste0(params$datadir,'/bams_subset/gene',candidates$geneID[i()],'_chr',candidates$chromosome[i()],'_',candidates$start[i()]-100000,'_',candidates$stop[i()]+100000,'/')
       color=
-      showGenomicRegion(session, id="igvShiny",paste0("chr",candidates$chromosome[candidates$proband2 == input$proband2],":",candidates$start[candidates$proband2 == input$proband2],"-",candidates$stop[candidates$proband2 == input$proband2]))
-      bamFile <- paste0(params$datadir,'/bams_subset/',candidates$proband[candidates$proband2 == input$proband2],"_sorted_chrN.bam")
+      showGenomicRegion(session, id="igvShiny",paste0("chr",candidates$chromosome[i()],":",candidates$start[i()],"-",candidates$stop[i()]))
+      bamFile <- paste0(gene_dir,candidates$proband[i()],"_sorted_chrN.bam")
       bamAlign <- readGAlignments(bamFile, param = Rsamtools::ScanBamParam(what="seq"))
       loadBamTrackFromLocalData(session, id="igvShiny", trackName=input$proband2, data=bamAlign)
       runjs("document.getElementById('addBamLocalFileButton').style.backgroundColor = 'green';")
       })
-    
+
     #default hg38 view
     output$igvShiny <- renderIgvShiny({
     runjs("document.getElementById('addBamLocalFileButton').style.backgroundColor = 'red';")
-     genomeOptions <- parseAndValidateGenomeSpec('hg38',initialLocus=paste0("chr",candidates$chromosome[candidates$proband2 == input$proband2],":",candidates$start[candidates$proband2 == input$proband2],"-",candidates$stop[candidates$proband2 == input$proband2]))
+     genomeOptions <- parseAndValidateGenomeSpec('hg38',initialLocus=paste0("chr",candidates$chromosome[i()],":",candidates$start[i()],"-",candidates$stop[i()]))
      igvShiny(genomeOptions)
   })
     
     #slider
     output$genemodel_slider <- renderUI({
-      cmin <- floor(candidates$start[candidates$proband2 ==  input$proband2]/1000)
-      cmax <- ceiling(candidates$stop[candidates$proband2  == input$proband2]/1000)
+      cmin <- floor(candidates$start[i()]/1000)
+      cmax <- ceiling(candidates$stop[i()]/1000)
       
       sliderInput(
         inputId = "sliderxlims",
@@ -539,11 +541,12 @@ server <- function(input, output, session) {
     #ggplots for coverage
     output$Figure_genemodel = renderPlot({
       if(is.null(input$sliderxlims)) {genemodel = ggplot() +  theme_void() + geom_text(aes(0,0,label='Plotting in ¨Progress')) + xlab(NULL)} else {
+        gene_dir = paste0(params$datadir,'/bams_subset/gene',candidates$geneID[i()],'_chr',candidates$chromosome[i()],'_',candidates$start[i()]-100000,'_',candidates$stop[i()]+100000,'/')
         genemodel = plotting_coverage(
-          candidate = candidates[candidates$proband2 == input$proband2,],
-          depth_file = paste0(params$datadir,"/gene_statistics/gene_",candidates$geneID[candidates$proband2 == input$proband2],"_",candidates$proband[candidates$proband2 == input$proband2],"_depth5.csv"),
-          res_dt_candidate_gene_file = paste0(params$datadir,"/gene_statistics/gene_",candidates$geneID[candidates$proband2 == input$proband2],"_",candidates$proband[candidates$proband2 == input$proband2],"_res_dt_candidate_gene.csv"),
-          bam_file = paste0(params$datadir,'/gene_statistics/',candidates$proband[candidates$proband2 == input$proband2],"_sorted_chrN.bam"),
+          candidate = candidates[i(),],
+          depth_file = paste0(gene_dir,"gene_",candidates$geneID[i()],"_",candidates$proband[i()],"_depth5.csv"),
+          res_dt_candidate_gene_file = paste0(gene_dir,"gene_",candidates$geneID[i()],"_",candidates$proband[i()],"_res_dt_candidate_gene.csv"),
+          bam_file = paste0(gene_dir,candidates$proband[i()],"_sorted_chrN.bam"),
           colmean_genes_counts_file = paste0(params$datadir,'/colmean_genes_counts.tsv'),
           gene_annotations=gene_annotations,
           xlims = input$sliderxlims)}
