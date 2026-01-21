@@ -1,10 +1,9 @@
-
 #param arguments
 args = commandArgs(trailingOnly=TRUE)
 params = list(OUTRIDER = file.path(args[1],"OUTRIDER/"))
 params$candidate_genes = args[2]
-params$fc_pergene = args[3]
-params$fc_perexon = args[4]
+params$fc_pergene = file.path(args[1],args[3])
+params$fc_perexon = file.path(args[1],args[4])
 
 #library
 suppressMessages(suppressWarnings(library(OUTRIDER)))
@@ -58,7 +57,7 @@ table = as.data.frame(results(ods,padjCutoff=1))
 table$pValue = signif(table$pValue,4)
 table$sampleID = gsub('_PAX','',table$sampleID)
 
-significant_table = table[table$pValue<0.005,]
+significant_table = table[table$pValue<0.05,]
 significant_table$padjust = signif(significant_table$padjust,4)
 colnames(significant_table)[1] = 'ensemblID' 
 significant_table = merge(significant_table,map[,c(2:6,8)],by = 'ensemblID')

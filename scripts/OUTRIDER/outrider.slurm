@@ -8,11 +8,14 @@
 
 module load r
 
-#params
-workdir="$HOME/scratch/raredisease_rnaseq/"
-candidate_genes=$workdir"/data/candidate_genes_3.txt"
-fc_pergene=$workdir"featureCounts/feature_counts_pergene.txt"
-fc_perexon=$workdir"featureCounts/fc_exons_raw.tsv_ALL"
+#read configs.json
+read workdir candidate_genes < <(
+  jq -r '.general | [.workdir, .candidate_genes] | @tsv' ../configs.json
+)
+
+read fc_pergene fc_perexon < <(
+  jq -r '.OUTRIDER | [.fc_pergene, .fc_perexon] | @tsv' ../configs.json
+)
 
 #R script launches the bash script to prepare data and continues with analysis.
 Rscript outrider.R $workdir $candidate_genes $fc_pergene $fc_perexon

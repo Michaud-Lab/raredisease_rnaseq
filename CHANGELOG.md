@@ -1,6 +1,18 @@
-### 2026-01-09 
-**Changed** 
+### 2026-01-20
 
+**Changed**
+* Parameters are now pulled from a single configs.json file.
+* Added a selector for the OUTRIDER pvalue threshold
+* RNAseq_shiny_v2.4.R: refactor to define an 'i' variable reactively.
+
+**Fixed**
+* Minor refactor to accomodate new genes (even for lncRNA)
+* Bug fix that did not show all the .bam alignments when multiple genes present.
+* Bug fix for HSJ_032 gsub('03$') pattern.
+
+### 2026-01-09 
+
+**Changed** 
 * Minor refactor to accomodate new samples
 * Moved parameters as much as possible to the .slurm scripts.
 

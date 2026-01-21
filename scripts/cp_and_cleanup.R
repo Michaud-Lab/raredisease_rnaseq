@@ -45,10 +45,14 @@
 
   #cp the bam subset for data viz
   for(i in 1:nrow(candidates)){
-       dir = paste0(params$workdir, '/FRASER/bams_subset/gene',candidates$geneID[i],'_chr',candidates$chromosome[i],'_',candidates$start[i]-100000,'_',candidates$stop[i]+100000,'/')
-       cp_bamsubset = paste0('cp ',dir,candidates$proband[i],'_sorted_chrN.bam* ',params$datadir,'/bams_subset/.')
-       cp_genedepth = paste0('cp ',dir,'*depth5.csv ',params$datadir,'/gene_statistics/.')
-       cp_res_dt = paste0('cp ',dir,'*_res_dt_candidate_gene.csv ',params$datadir,'/gene_statistics/.')
+       gene_dir = paste0('bams_subset/gene',candidates$geneID[i],'_chr',candidates$chromosome[i],'_',candidates$start[i]-100000,'_',candidates$stop[i]+100000,'/')
+       in_dir = paste0(params$workdir, '/FRASER/',gene_dir)
+       out_dir = paste0(params$datadir,gene_dir)
+
+       dir.create(out_dir,showWarnings = T)
+       cp_bamsubset = paste0('cp ',in_dir,candidates$proband[i],'_sorted_chrN.bam* ',out_dir,'/.')
+       cp_genedepth = paste0('cp ',in_dir,'*depth5.csv ',out_dir,'/.')
+       cp_res_dt = paste0('cp ',in_dir,'*_res_dt_candidate_gene.csv ',out_dir,'/.')
 
        system(cp_bamsubset)
        system(cp_genedepth)

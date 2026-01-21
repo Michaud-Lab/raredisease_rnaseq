@@ -62,7 +62,4 @@ samtools depth -H -a $fraser_perregion/*sorted_chrN.bam -r chr$chromosome:$start
 
 #clean up
 rm -r $fraser_temp_bamdir
-echo 'ALL DONE'
-
-
-
+echo 'DONE fraser.sh'
