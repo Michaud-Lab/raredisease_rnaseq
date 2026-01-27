@@ -7,6 +7,8 @@ plotting_coverage = function(candidate = candidates,
                              xlims = c(10,100),
                              gene_annotations='gene_annotations') {
 
+if(candidate$geneID != ""){
+
 print(paste0('Defined zoom limits: ', xlims[1],' --- ',xlims[2], ' Kb'))
       
 #colmean 
@@ -54,6 +56,7 @@ wh = wh[wh$gene_id == candidate$ensembl,]
       theme(legend.position = 'none',plot.title = element_text(size = 24),axis.title = element_text(size = 18),axis.text = element_text(size = 14))
     
     #plots
+    if(file.exists(res_dt_candidate_gene_file)) {
     res_dt_candidate_gene = read.csv(res_dt_candidate_gene_file,row.names = 1)
     res_dt_candidate_gene$mean = res_dt_candidate_gene$mean/1000
     res_dt_candidate_gene$start = res_dt_candidate_gene$start/1000
@@ -84,7 +87,11 @@ wh = wh[wh$gene_id == candidate$ensembl,]
           xlab(paste0('Chromosome ',merged_exons_df[1,1],' (Kb)')) +
           ggtitle('Aberrant splicing (regions)') +
           theme(legend.position = 'none',plot.title = element_text(size = 24),axis.title = element_text(size = 18),axis.text = element_text(size = 14))
-      }
+      } 
+    } else {
+      signif = ggplot() + geom_blank()
+      print('No FRASER pvalues available. Likely because expression is too low')
+    }
     
     #depth
     depth = read.table(depth_file, header = T, check.names = F,comment.char= '')
@@ -104,9 +111,6 @@ wh = wh[wh$gene_id == candidate$ensembl,]
     
     #pivoted
     depth_pivoted = depth_filtered %>% pivot_longer(cols = c(3:ncol(depth_filtered)), names_to = 'PatientID',values_to = 'Coverage')
-    print('----')
-    print(dim(depth_pivoted))
-    print('----')
     #plot
     plotCov_v2 =
       ggplot(depth_pivoted[depth_pivoted$PatientID != candidate$proband,],aes(x = POS, y = Coverage)) +
@@ -115,11 +119,14 @@ wh = wh[wh$gene_id == candidate$ensembl,]
       geom_vline(xintercept = xintercept,col = 'darkblue',linewidth = 0.5,linetype = "dashed",alpha = ifelse(mutation=='',0,1)) +
       xlim(xlims) +
       ylab('Normalised coverage') +
-      xlab(paste0('Chromosome ',merged_exons_df[1,1], ' Kb')) +
+      xlab(paste0('Chromosome ',merged_exons_df[1,1], ' (Kb)')) +
       ggtitle('Coverage (proband in black, 25-75th reference percentiles in orange)') +
       theme(plot.title = element_text(size = 24),axis.title = element_text(size = 18),axis.text = element_text(size = 14))
     
   #list outputs
   output = list(list((candidate_gene_model/signif/plotCov_v2) + plot_layout(heights = c(1,1,3))))
   output
+  } else {
+  plot(0, main = 'no gene available');print('No gene available for gene model plot')
   }
+}

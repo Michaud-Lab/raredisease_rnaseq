@@ -1,19 +1,6 @@
-#Were is the data.zip located. First check if you specified it as a positional argument. Then, check if it is in the current dir. Then check in my default. Finally error out if you cannnot find it.
-params = list(zipfile = commandArgs(trailingOnly=TRUE)[1])
 
-#create a temp directory to store things everytime.
-tempdir = 'temp'
-tempdata = paste0('temp/temp_',format(Sys.time(), format = "%Y_%m_%d_%H_%M_%S"))
-dir.create(tempdir,showWarnings = FALSE)
-dir.create(tempdata,showWarnings = FALSE)
-params$datadir = file.path(getwd(),tempdata,'data')
-#params$datadir= "/Users/sebastienrenaut/Documents/St-Justine/nextflow_rnasplice/temp/temp_2025_12_12_13_30_23/data"
-
-
-#
-if(is.na(params$zipfile)) params$zipfile = file.path(getwd(),system('ls -t data*zip|head -1', intern = T))
-if(!file.exists(params$zipfile)) {params$zipdir = file.path("/Users/sebastienrenaut/Documents/St-Justine/nextflow_rnasplice/",system('ls -t data*zip|head -1', intern = T));params$datadir = "/Users/sebastienrenaut/Documents/St-Justine/nextflow_rnasplice/data"}
-if(!file.exists(params$zipfile)) stop("Cannnot find the data.zip. Please specify its location")
+#params
+params = list(datadir = file.path(getwd(),'data/')) 
 
 #R libraries that you need
 packages = c('DT','plotly','tidyr','shiny','shinyjs','jsonlite','igvShiny','GenomicAlignments','dplyr','ggtranscript','patchwork','Hmisc')
@@ -28,14 +15,7 @@ for(p in 1:length(packages)) {
     }
 }
 
-######
-#Unzip and load files
-######
-print(paste0("Using the latest data.zip: ",params$zipfile,' unzipping in: ',params$datadir))
-unzip(params$zipfile,exdir = sub('data','.',params$datadir),overwrite=TRUE)
-
-#fc_exons
-#source(file.path('~/Desktop/rnaseq_shinyhelper_functions.R'))
+#load files
 source(file.path(params$datadir,'scripts/rnaseq_shinyhelper_functions.R'))
 fc_exons_raw = read.table(file.path(params$datadir,'fc_exons_raw.tsv'),sep = '\t',check.names = F);fc_exons_raw[,-c(1:5)] = round(fc_exons_raw[,-c(1:5)])
 fc_exons_tpm = read.table(file.path(params$datadir,'fc_exons_tpm.tsv'),sep = '\t',check.names = F)
@@ -238,7 +218,6 @@ server <- function(input, output, session) {
     #REACTIVE INPUT (AS A LIST)
     reactive_inputs <- reactive({
         reactive_i  = strsplit(input$proband2,'@')[[1]][1]
-        multigene_sample = strsplit(input$proband2,'@')[[1]][2]
         column = c(1:ncol(transcripts_named_filtered))[colnames(transcripts_named_filtered) == reactive_i]
         column_not = c(1:ncol(transcripts_named_filtered))[colnames(transcripts_named_filtered) != reactive_i]
         column_not = column_not[-c(1,2,length(column_not))] 
@@ -260,16 +239,16 @@ server <- function(input, output, session) {
         table_OUTRIDER = results_OUTRIDER[results_OUTRIDER$sampleID == reactive_i,]
         table_OUTRIDER = table_OUTRIDER[order(table_OUTRIDER$Chr,table_OUTRIDER$start),]
         table_OUTRIDER_candidate = candidates_OUTRIDER[candidates_OUTRIDER$sampleID == reactive_i,]    
-        if(!is.na(multigene_sample)) table_OUTRIDER_candidate = table_OUTRIDER_candidate[table_OUTRIDER_candidate$geneID == multigene_sample,]
+        table_OUTRIDER_candidate = table_OUTRIDER_candidate[table_OUTRIDER_candidate$geneID == candidates$geneID[i()],]
 
         table_perexons_OUTRIDER_candidate = candidates_perexons_OUTRIDER[candidates_perexons_OUTRIDER$sampleID == reactive_i,]    
-        if(!is.na(multigene_sample)) table_perexons_OUTRIDER_candidate = table_perexons_OUTRIDER_candidate[table_perexons_OUTRIDER_candidate$geneID == multigene_sample,]
+        table_perexons_OUTRIDER_candidate = table_perexons_OUTRIDER_candidate[table_perexons_OUTRIDER_candidate$geneID == candidates$geneID[i()],]
         table_perexons_OUTRIDER_candidate = table_perexons_OUTRIDER_candidate[order(table_perexons_OUTRIDER_candidate$exonID),]
         table_perexons_OUTRIDER_candidate = table_perexons_OUTRIDER_candidate[,]
         
         #Plotly family of proband
         fc_exons_ggplot_reactive = fc_exons_tpm_ggplot[fc_exons_tpm_ggplot$proband == reactive_i, ]
-        if(!is.na(multigene_sample)) fc_exons_ggplot_reactive = fc_exons_ggplot_reactive[fc_exons_ggplot_reactive$geneID == multigene_sample, ]
+        fc_exons_ggplot_reactive = fc_exons_ggplot_reactive[fc_exons_ggplot_reactive$geneID == candidates$geneID[i()], ]
         fc_exons_ggplot_reactive_family = fc_exons_ggplot_reactive[gsub('_0[123]$','',fc_exons_ggplot_reactive$PatientID) == gsub('_03$','',reactive_i),]
         
 
@@ -391,8 +370,8 @@ server <- function(input, output, session) {
                   ) %>%
         layout(
           xaxis = list(title = "Exon Number",
-                       ticktext = 1:(max(reactive_inputs()$fc_exons_ggplot_reactive_patient$exonID)), 
-                       tickvals = as.list(1:(max(reactive_inputs()$fc_exons_ggplot_reactive_patient$exonID))),
+                       ticktext = 1:(max(reactive_inputs()$fc_exons_ggplot_reactive_patient$exonID,1)), 
+                       tickvals = as.list(1:(max(reactive_inputs()$fc_exons_ggplot_reactive_patient$exonID,1))),
                        tickmode = "array"),
           yaxis = list(title = "Normalised Expression (TPM)"),
           title = paste0('Cohort expression (per exon) for ',reactive_inputs()$fc_exons_ggplot_reactive_patient$geneID[1])
@@ -425,8 +404,8 @@ server <- function(input, output, session) {
         ) %>%
         layout(
           xaxis = list(title = "Exon Number",
-                       ticktext = 1:(max(reactive_inputs()$fc_exons_ggplot_reactive_family$exonID)), 
-                       tickvals = as.list(1:(max(reactive_inputs()$fc_exons_ggplot_reactive_family$exonID))),
+                       ticktext = 1:(max(reactive_inputs()$fc_exons_ggplot_reactive_family$exonID,1)), 
+                       tickvals = as.list(1:(max(reactive_inputs()$fc_exons_ggplot_reactive_family$exonID,1))),
                        tickmode = "array"),
           yaxis = list(title = "Normalised Expression (TPM)"),
           title = paste0('Family expression (per exon) for ',reactive_inputs()$fc_exons_ggplot_reactive_patient$geneID[1])
@@ -468,9 +447,9 @@ server <- function(input, output, session) {
       url <- paste0("https://useast.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=", selected_ensembl)
       HTML(
         paste0("<b>Gene description for ",selected_geneID,"</b>: <a href='", url, "' target='_self'>", selected_ensembl, "</a>",
-               "<br><br><b>Mutations: </b>",clinical$Mutation[clinical$PatientID ==  strsplit(input$proband2,'@')[[1]][1]],
-               "<br><br><b>Candidate Gene hypothesis: </b>",clinical$Hypothèse[clinical$PatientID ==  strsplit(input$proband2,'@')[[1]][1]],
-               "<br><br><b>HPO terms: </b>",clinical$`HPO terms`[clinical$PatientID ==  strsplit(input$proband2,'@')[[1]][1]],
+               "<br><br><b>Mutations: </b>",clinical$Mutation[clinical$PatientID == input$proband2],
+               "<br><br><b>Candidate Gene hypothesis: </b>",clinical$Hypothèse[clinical$PatientID == input$proband2],
+               "<br><br><b>HPO terms: </b>",clinical$`HPO terms`[clinical$PatientID == input$proband2],
                "<br><br><b>Bam file location: </b>",system('echo ${HOME}',intern = T),"/scratch/nextflow_rnasplice/bams/",candidates$proband[i()],".sorted.bam<br><br>")
       )
     })
