@@ -1,4 +1,13 @@
-### 2026-01-20
+### 2026-01-22 - error messages
+
+**Changed**
+* Produce default plots when no gene/expression is available. 
+* Removed the unzipping into a temp folder of data, its just cumbersome for now
+
+**fixed** 
+* Several Bug fixes when multiple genes were present.
+
+### 2026-01-20 -  new_genes
 
 **Changed**
 * Parameters are now pulled from a single configs.json file.

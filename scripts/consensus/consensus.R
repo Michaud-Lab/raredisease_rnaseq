@@ -69,6 +69,7 @@ exonic = variant_annotated[variant_annotated$transcript !='intron',]
 exclude_first_and_last = unique(exonic$exon)
 exonic = exonic[exonic$exon %in% exclude_first_and_last[-c(1,length(exclude_first_and_last))],] 
 mean_exonic_depth = mean(exonic$depth)
+if(is.na(mean_exonic_depth)) mean_exonic_depth = 0
 
 
 
