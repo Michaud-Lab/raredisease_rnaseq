@@ -1,4 +1,6 @@
-#plotting
+###
+###plotting coverage
+###
 plotting_coverage = function(candidate = candidates,
                              res_dt_candidate_gene_file = "resdet",
                              depth_file = "depth",
@@ -129,4 +131,100 @@ wh = wh[wh$gene_id == candidate$ensembl,]
   } else {
   plot(0, main = 'no gene available');print('No gene available for gene model plot')
   }
+}
+
+
+
+###
+###this is to do a manhattan plot of the p-values of the splicing test.
+###
+gwFRASER_table = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX'){
+ 
+  #factorize
+  res_dt$chr = factor(res_dt$chr, levels = c(1:22,'X','Y','MT')) 
+  
+  #persample
+  res_dt_sampleID = res_dt[res_dt$sampleID == sample,]
+  
+  #print top10
+  gwFRASER_top = head(res_dt_sampleID[order(res_dt_sampleID$padjust),],20)
+  gwFRASER_top$hgncSymbol[is.na(gwFRASER_top$hgncSymbol)] = 'na'
+  gwFRASER_top = gwFRASER_top[!duplicated(gwFRASER_top$hgncSymbol, incomparables = 'na'),]
+  gwFRASER_top = gwFRASER_top[gwFRASER_top$padjust <0.1,]
+  gwFRASER_top = gwFRASER_top[order(gwFRASER_top$chr),]
+  
+  #return
+  return(gwFRASER_top)
+}
+
+
+###
+###this is to do a manhattan plot of the p-values of the splicing test.
+###
+manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX'){
+  
+  #factorize
+  res_dt$chr = factor(res_dt$chr, levels = c(1:22,'X','Y','MT')) 
+
+  ##calculate cumulative chromosome size
+  chr_size <- res_dt %>% 
+    group_by(chr) %>% 
+    summarise(chr_len=max(end)) %>%
+    mutate(tot=cumsum(as.numeric(chr_len))-as.numeric(chr_len)) %>%
+    select(-chr_len) 
+  
+  #persample
+  res_dt_sampleID = res_dt[res_dt$sampleID == sample,]
+  
+  #color
+  colors = c(brewer.pal(8,'Set2'),brewer.pal(9,'Set1'),brewer.pal(9,'Set3'))
+  colors = colors[c(1,9,2,11,3,10,4,12,5,13,6,14,7,15,8,16,17:25)]
+  
+  ### Add this info to the initial dataset
+  results_subset_forggplot = chr_size %>% 
+    left_join(res_dt_sampleID, ., by=c("chr"="chr")) %>%
+    arrange(chr, pos) %>%
+    mutate( BPcum=pos+tot)
+  
+  ###prepare axis labels.
+  axisdf = results_subset_forggplot %>%
+    group_by(chr) %>%
+    dplyr::summarize(center=( max(BPcum) + min(BPcum)+1 ) / 2 )
+  
+  #define top10
+  gwFRASER_top = head(results_subset_forggplot[order(results_subset_forggplot$padjust),],20)
+  gwFRASER_top$hgncSymbol[is.na(gwFRASER_top$hgncSymbol)] = 'na'
+  gwFRASER_top = gwFRASER_top[!duplicated(gwFRASER_top$hgncSymbol, incomparables = 'na'),]
+  gwFRASER_top = gwFRASER_top[gwFRASER_top$padjust < 0.1,]
+  gwFRASER_top = gwFRASER_top[order(gwFRASER_top$chr),]
+  
+  ###Make the ggplot:
+  man_gplot = ggplot(results_subset_forggplot, aes(x = BPcum, y = -log10(padjust))) +
+    
+    #Labels
+    geom_label_repel(data = gwFRASER_top, aes(label = hgncSymbol, x = BPcum, y = -log10(padjust)), col = 'black',  size = 4,box.padding = 2, max.overlaps = 50) +
+    
+    
+    #Show all points
+    geom_point( aes(color=chr), alpha=1, size=1.6) +
+    scale_color_manual(values = colors) +
+    
+    #Custom X axis:
+    scale_x_continuous(label = axisdf$chr, breaks = axisdf$center, expand = c(0.01,0.01)) +
+    #scale_y_continuous(breaks = c(1,2,3), labels = c(0.1,0.01,0.001), limits = c(1,3.2), expand = c(0.01,0.01))  + #remove space between plot area and x axis
+    xlab('Chromosomes') + 
+    ylab(bquote('-log10 (adjusted '~italic(p)~'- values)')) +
+    
+    #Custom the theme:
+    theme_bw() +
+    
+    theme( 
+      legend.position="none",
+      panel.border = element_blank(),
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor.x = element_blank()) +
+    
+    ggtitle(paste0('Outlier splicing event ~ ',sample))
+  
+  return(man_gplot)
 }

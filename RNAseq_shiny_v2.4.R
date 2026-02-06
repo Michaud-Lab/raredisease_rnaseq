@@ -3,7 +3,7 @@
 params = list(datadir = file.path(getwd(),'data/')) 
 
 # R libraries that you need
-packages = c('DT','plotly','tidyr','shiny','shinyjs','jsonlite','igvShiny','GenomicAlignments','dplyr','ggtranscript','patchwork','Hmisc','bslib')
+packages = c('DT','plotly','tidyr','shiny','shinyjs','jsonlite','igvShiny','GenomicAlignments','dplyr','ggtranscript','patchwork','Hmisc','bslib','RColorBrewer','ggrepel'))
 
 for(p in 1:length(packages)) {
   if(packages[p] %in% installed.packages()) {
@@ -22,7 +22,10 @@ fc_exons_tpm = read.table(file.path(params$datadir,'fc_exons_tpm.tsv'),sep = '\t
 fc_genes_tpm = read.table(file.path(params$datadir,'fc_genes_tpm.tsv'),sep = '\t',check.names = F)
 
 results_OUTRIDER = read.csv(file.path(params$datadir,'results_OUTRIDER.tsv'),sep = '\t',check.names = F)
-results_OUTRIDER$Chr = factor(gsub('chr','',results_OUTRIDER$Chr),levels = c(1:22,'X','Y'))
+results_OUTRIDER$Chr = factor(results_OUTRIDER$Chr,levels = paste0('chr',c(1:22,'X','Y')))
+
+significant_perexons_OUTRIDER = read.csv(file.path(params$datadir,'exons_OUTRIDER.tsv'),sep = '\t',check.names = F)
+significant_perexons_OUTRIDER$Chr = factor(significant_perexons_OUTRIDER$Chr,levels = paste0('chr',c(1:22,'X','Y')))
 
 candidates_OUTRIDER = read.csv(file.path(params$datadir,'candidates_OUTRIDER.tsv'),sep = '\t',check.names = F)
 candidates_perexons_OUTRIDER = read.csv(file.path(params$datadir,'candidates_perexons_OUTRIDER.tsv'),sep = '\t',check.names = F)
@@ -34,6 +37,8 @@ fc_exons_tpm_ggplot = read.csv(file.path(params$datadir,'fc_exons_tpm_ggplot.tsv
 candidates = read.csv(file.path(params$datadir,'candidate_genes_3.txt'))
 clinical = read.csv(file.path(params$datadir,'clinical.tsv'),sep = '\t',check.names = F)
 html_file = file.path(params$datadir,'multiqc_report.html')
+
+gwFRASER = read.csv('~/Desktop/gwFRASER.csv',row.names = 1)
 
 report_version = read_json(file.path(params$datadir,'/VERSION.json'))
 report_version$data = params$zipfile
@@ -52,7 +57,13 @@ theme <- bs_theme(
 #####    
 ui <- page_fluid(
     theme = theme,
-    title = "RNAseq Dashboard",
+   
+    # Dark title header
+    div(
+      class = "bg-dark text-white p-3 mb-4",
+      h2("RNAseq Dashboard")
+    ),
+
     tabsetPanel(
 
       ###  Selection & Info
@@ -113,7 +124,10 @@ ui <- page_fluid(
                   selectInput("pvalue", "Choose a p-value threshold:",
                               choices = c(0.05,0.01,0.005,0.001,0.0005),
                               selected = 0.005),
-                  DTOutput("table_OUTRIDER")
+                  DTOutput("table_OUTRIDER")),
+               card(
+                  h4('All significant exons (p<0.01)'),
+                  DTOutput("significant_OUTRIDER_exons")
                   )
                ),
     
@@ -154,7 +168,19 @@ ui <- page_fluid(
                imageOutput("Sashimi",width = "1200px")
                )
              ),
-    
+        
+    ##genome-wide FRASER
+    tabPanel(
+            "gwFRASER",
+            card(
+              h4('Genome-wide significance values for FRASER'),
+              plotOutput("gwFRASER", width = '1200px', height = "400px")),
+            card(
+              h4('Top 10 splicing events (below adj. p-value < 0.01'),
+              DTOutput("gwFRASER_table")
+              )
+            ),
+
     ### Plot of Structural variation
     tabPanel("fasta",
              card(
@@ -213,6 +239,9 @@ server <- function(input, output, session) {
         table_perexons_OUTRIDER_candidate = candidates_perexons_OUTRIDER[candidates_perexons_OUTRIDER$sampleID == reactive_i,]    
         table_perexons_OUTRIDER_candidate = table_perexons_OUTRIDER_candidate[table_perexons_OUTRIDER_candidate$geneID == candidates$geneID[i()],]
         table_perexons_OUTRIDER_candidate = table_perexons_OUTRIDER_candidate[order(table_perexons_OUTRIDER_candidate$exonID),]
+
+        table_perexons_OUTRIDER_significant = significant_perexons_OUTRIDER[significant_perexons_OUTRIDER$sampleID == reactive_i,]    
+        table_perexons_OUTRIDER_significant = table_perexons_OUTRIDER_significant[order(table_perexons_OUTRIDER_significant$Chr,table_perexons_OUTRIDER_significant$start,table_perexons_OUTRIDER_significant$exonID),]
         
         # Plotly family of proband
         fc_exons_ggplot_reactive = fc_exons_tpm_ggplot[fc_exons_tpm_ggplot$proband == reactive_i, ]
@@ -231,8 +260,8 @@ server <- function(input, output, session) {
             fc_exons_ggplot_reactive_child$exonID = fc_exons_ggplot_reactive_child$exonID - 0.1
             fc_exons_ggplot_reactive_adults$exonID = fc_exons_ggplot_reactive_adults$exonID + 0.1
           
-        output = list(transcripts_reactive,table_OUTRIDER,table_OUTRIDER_candidate,fc_exons_ggplot_reactive_child,fc_exons_ggplot_reactive_adults,fc_exons_tpm_reactive,fc_exons_raw_reactive,fc_exons_ggplot_reactive,fc_exons_ggplot_reactive_patient,fc_exons_ggplot_reactive_family,table_perexons_OUTRIDER_candidate)
-        names(output)  = c('transcripts_reactive','table_OUTRIDER','table_OUTRIDER_candidate','fc_exons_ggplot_reactive_child','fc_exons_ggplot_reactive_adults','fc_exons_tpm_reactive','fc_exons_raw_reactive','fc_exons_ggplot_reactive','fc_exons_ggplot_reactive_patient','fc_exons_ggplot_reactive_family','table_perexons_OUTRIDER_candidate')
+        output = list(transcripts_reactive,table_OUTRIDER,table_OUTRIDER_candidate,fc_exons_ggplot_reactive_child,fc_exons_ggplot_reactive_adults,fc_exons_tpm_reactive,fc_exons_raw_reactive,fc_exons_ggplot_reactive,fc_exons_ggplot_reactive_patient,fc_exons_ggplot_reactive_family,table_perexons_OUTRIDER_candidate,table_perexons_OUTRIDER_significant)
+        names(output)  = c('transcripts_reactive','table_OUTRIDER','table_OUTRIDER_candidate','fc_exons_ggplot_reactive_child','fc_exons_ggplot_reactive_adults','fc_exons_tpm_reactive','fc_exons_raw_reactive','fc_exons_ggplot_reactive','fc_exons_ggplot_reactive_patient','fc_exons_ggplot_reactive_family','table_perexons_OUTRIDER_candidate','table_perexons_OUTRIDER_significant')
         output
     })
   
@@ -291,10 +320,17 @@ server <- function(input, output, session) {
         rownames = FALSE,
         options = list(pageLength = 50)
       )  
+    })   
+  
+    ### OUTRIDER significant exon table 
+    output$significant_OUTRIDER_exons <- renderDT({
+      datatable(
+        reactive_inputs()$table_perexons_OUTRIDER_significant,
+        rownames = FALSE,
+        options = list(pageLength = 50)
+      )  
     })
-    
-  
-  
+   
     ### Plotly
     output$Expression <- renderPlotly({
       #entire cohort
@@ -409,7 +445,7 @@ server <- function(input, output, session) {
                "<br><br><b>Mutations: </b>",clinical$Mutation[clinical$PatientID == input$proband2],
                "<br><br><b>Candidate Gene hypothesis: </b>",clinical$Hypothèse[clinical$PatientID == input$proband2],
                "<br><br><b>HPO terms: </b>",clinical$`HPO terms`[clinical$PatientID == input$proband2],
-               "<br><br><b>Bam file location: </b>",system('echo ${HOME}',intern = T),"/scratch/nextflow_rnasplice/bams/",candidates$proband[i()],".sorted.bam<span>")
+               "<br><br><b>Bam file location (Fir): </b>",system('echo ${HOME}',intern = T),"/scratch/raredisease_rnaseq/results_06_01_2026/star_salmon/",candidates$proband[i()],".sorted.bam<span>")
         )
       })
     
@@ -488,7 +524,18 @@ server <- function(input, output, session) {
       
       genemodel
       })
-    }
+
+    #genome-wide FRASER
+    output$gwFRASER = renderPlot({
+      manhattan_plot(res_dt=gwFRASER,sample = candidates$proband[i()])
+    })
+    
+    output$gwFRASER_table = renderDT({
+      datatable(
+        gwFRASER_table(res_dt=gwFRASER,sample = candidates$proband[i()]),
+        rownames = F,options = list(dom = 'p'))
+    })
+  }
 
 ######shiny app
 app = shinyApp(ui, server, options = list(height = 900))
