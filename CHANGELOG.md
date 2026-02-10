@@ -2,7 +2,7 @@
 
 **Changed**
 * Add results of OUTRIDER for all candidate exons.
-* Add results of FRASER genome-wide (as a Manhattan plot & data.table
+* Add results of FRASER genome-wide (as a Manhattan plot & data.table)
 
 
 ### 2026-01-28

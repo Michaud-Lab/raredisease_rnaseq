@@ -3,7 +3,7 @@
 params = list(datadir = file.path(getwd(),'data/')) 
 
 # R libraries that you need
-packages = c('DT','plotly','tidyr','shiny','shinyjs','jsonlite','igvShiny','GenomicAlignments','dplyr','ggtranscript','patchwork','Hmisc','bslib','RColorBrewer','ggrepel'))
+packages = c('DT','plotly','tidyr','shiny','shinyjs','jsonlite','igvShiny','GenomicAlignments','dplyr','ggtranscript','patchwork','Hmisc','bslib','RColorBrewer','ggrepel')
 
 for(p in 1:length(packages)) {
   if(packages[p] %in% installed.packages()) {
@@ -38,7 +38,7 @@ candidates = read.csv(file.path(params$datadir,'candidate_genes_3.txt'))
 clinical = read.csv(file.path(params$datadir,'clinical.tsv'),sep = '\t',check.names = F)
 html_file = file.path(params$datadir,'multiqc_report.html')
 
-gwFRASER = read.csv('~/Desktop/gwFRASER.csv',row.names = 1)
+gwFRASER = read.csv(file.path(params$datadir,'gwFRASER.csv'),row.names = 1)
 
 report_version = read_json(file.path(params$datadir,'/VERSION.json'))
 report_version$data = params$zipfile
@@ -176,7 +176,7 @@ ui <- page_fluid(
               h4('Genome-wide significance values for FRASER'),
               plotOutput("gwFRASER", width = '1200px', height = "400px")),
             card(
-              h4('Top 10 splicing events (below adj. p-value < 0.01'),
+              h4('Top 10 splicing events (below adj. p-value < 0.1)'),
               DTOutput("gwFRASER_table")
               )
             ),

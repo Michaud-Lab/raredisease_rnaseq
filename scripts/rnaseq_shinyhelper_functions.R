@@ -136,22 +136,22 @@ wh = wh[wh$gene_id == candidate$ensembl,]
 
 
 ###
-###this is to do a manhattan plot of the p-values of the splicing test.
+###this is to generate a table of the top p-values of the splicing test.
 ###
-gwFRASER_table = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX'){
+gwFRASER_table = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=20){
  
   #factorize
   res_dt$chr = factor(res_dt$chr, levels = c(1:22,'X','Y','MT')) 
   
-  #persample
+  #keep sample of interest
   res_dt_sampleID = res_dt[res_dt$sampleID == sample,]
   
-  #print top10
-  gwFRASER_top = head(res_dt_sampleID[order(res_dt_sampleID$padjust),],20)
+  #keep only the top (but remove duplicated splicing events)
+  gwFRASER_top = head(res_dt_sampleID[order(res_dt_sampleID$padjust),],top)
   gwFRASER_top$hgncSymbol[is.na(gwFRASER_top$hgncSymbol)] = 'na'
   gwFRASER_top = gwFRASER_top[!duplicated(gwFRASER_top$hgncSymbol, incomparables = 'na'),]
-  gwFRASER_top = gwFRASER_top[gwFRASER_top$padjust <0.1,]
-  gwFRASER_top = gwFRASER_top[order(gwFRASER_top$chr),]
+  gwFRASER_top = gwFRASER_top[gwFRASER_top$padjust < 0.1,]
+  gwFRASER_top = gwFRASER_top[order(gwFRASER_top$chr),c(1:5,7,9:10,13:14)]
   
   #return
   return(gwFRASER_top)
@@ -161,38 +161,38 @@ gwFRASER_table = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX'){
 ###
 ###this is to do a manhattan plot of the p-values of the splicing test.
 ###
-manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX'){
+manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=20){
   
   #factorize
   res_dt$chr = factor(res_dt$chr, levels = c(1:22,'X','Y','MT')) 
 
-  ##calculate cumulative chromosome size
+  #keep only samples of interest
+  res_dt_sampleID = res_dt[res_dt$sampleID == sample,]
+
+  ##calculate cumulative chromosome sizes
   chr_size <- res_dt %>% 
     group_by(chr) %>% 
     summarise(chr_len=max(end)) %>%
     mutate(tot=cumsum(as.numeric(chr_len))-as.numeric(chr_len)) %>%
     select(-chr_len) 
   
-  #persample
-  res_dt_sampleID = res_dt[res_dt$sampleID == sample,]
-  
-  #color
-  colors = c(brewer.pal(8,'Set2'),brewer.pal(9,'Set1'),brewer.pal(9,'Set3'))
-  colors = colors[c(1,9,2,11,3,10,4,12,5,13,6,14,7,15,8,16,17:25)]
-  
-  ### Add this info to the initial dataset
+  #Add this info to the initial dataset
   results_subset_forggplot = chr_size %>% 
     left_join(res_dt_sampleID, ., by=c("chr"="chr")) %>%
     arrange(chr, pos) %>%
     mutate( BPcum=pos+tot)
+
+  #set colors
+  colors = c(brewer.pal(8,'Set2'),brewer.pal(9,'Set1'),brewer.pal(9,'Set3'))
+  colors = c(colors[c(1,9,2,11,3,10,4,12,5,6,13,7,15,8,16:18,20:26)],'black')
   
   ###prepare axis labels.
   axisdf = results_subset_forggplot %>%
     group_by(chr) %>%
     dplyr::summarize(center=( max(BPcum) + min(BPcum)+1 ) / 2 )
   
-  #define top10
-  gwFRASER_top = head(results_subset_forggplot[order(results_subset_forggplot$padjust),],20)
+  #keep only the top (but remove duplicated splicing events)
+  gwFRASER_top = head(results_subset_forggplot[order(results_subset_forggplot$padjust),],top)
   gwFRASER_top$hgncSymbol[is.na(gwFRASER_top$hgncSymbol)] = 'na'
   gwFRASER_top = gwFRASER_top[!duplicated(gwFRASER_top$hgncSymbol, incomparables = 'na'),]
   gwFRASER_top = gwFRASER_top[gwFRASER_top$padjust < 0.1,]
@@ -202,8 +202,7 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX'){
   man_gplot = ggplot(results_subset_forggplot, aes(x = BPcum, y = -log10(padjust))) +
     
     #Labels
-    geom_label_repel(data = gwFRASER_top, aes(label = hgncSymbol, x = BPcum, y = -log10(padjust)), col = 'black',  size = 4,box.padding = 2, max.overlaps = 50) +
-    
+    geom_label_repel(data = gwFRASER_top, aes(label = hgncSymbol, x = BPcum, y = -log10(padjust)), col = 'black',  size = 4,box.padding = 2, max.overlaps = 50) +    
     
     #Show all points
     geom_point( aes(color=chr), alpha=1, size=1.6) +
@@ -215,15 +214,14 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX'){
     xlab('Chromosomes') + 
     ylab(bquote('-log10 (adjusted '~italic(p)~'- values)')) +
     
-    #Custom the theme:
+    #Customize theme:
     theme_bw() +
-    
     theme( 
       legend.position="none",
       panel.border = element_blank(),
       panel.grid.major.x = element_blank(),
-      panel.grid.minor.x = element_blank()) +
-    
+      panel.grid.minor.x = element_blank(),
+      axis.title = element_text(size = 20)) +
     ggtitle(paste0('Outlier splicing event ~ ',sample))
   
   return(man_gplot)
