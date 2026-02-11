@@ -101,12 +101,20 @@ table$exonID = sapply(strsplit(table$combinedID,'_'),'[',4)
 table$ensemblID_sampleID =  paste0(table$ensemblID,'_',table$sampleID)
 table$pValue = signif(table$pValue,4)
 
-#candidates only
-candidate_table_exon  = table[table$ensemblID_sampleID %in% candidates$ensembl_proband2,]
+#candidates exons only
+colnames_candidate_exon = c("sampleID","geneID","ensemblID","transcriptID","exonID","pValue","zScore","l2fc","rawcounts","meanRawcounts","normcounts","meanCorrected")
+candidate_table_exon = table[table$ensemblID_sampleID %in% candidates$ensembl_proband2,]
+candidate_table_exon = candidate_table_exon[,colnames_candidate_exon]
+
+#all significant exons
+colnames_significant_exon = c("sampleID","geneID","ensemblID","transcriptID","exonID","Chr","start","width","pValue","padjust","zScore","l2fc","rawcounts","meanRawcounts","normcounts","meanCorrected")
+table = table[table$pValue < 0.01,]
+significant_table_exon = merge(table,map[,c(2,4,5,6,8)],by = 'ensemblID')
+significant_table_exon = significant_table_exon[,colnames_significant_exon]
 
 #write the results
-colnames_candidate_exons = c("sampleID","geneID","ensemblID","transcriptID","exonID","pValue","zScore","l2fc","rawcounts","meanRawcounts","normcounts","meanCorrected")
-write.table(candidate_table_exon[,colnames_candidate_exons],file.path(params$OUTRIDER,'candidates_perexons_OUTRIDER.tsv'),sep = '\t',quote = F)
+write.table(significant_table_exon,file.path(params$OUTRIDER,'exons_OUTRIDER.tsv'),sep = '\t',quote = F)
+write.table(candidate_table_exon,file.path(params$OUTRIDER,'candidates_perexons_OUTRIDER.tsv'),sep = '\t',quote = F)
 
 #message
 print(paste0('Done OUTRIDER per exon --- Time is: ',Sys.time()) )

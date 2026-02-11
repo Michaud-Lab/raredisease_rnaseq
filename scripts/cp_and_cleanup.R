@@ -15,6 +15,23 @@
   dir.create(paste0(params$datadir,'gene_statistics'),showWarnings = FALSE)  
   dir.create(paste0(params$datadir,'bams_subset'),showWarnings = FALSE)
 
+  #res_dt FRASER genome-wide	
+  chrs = list.files(file.path(params$workdir,'FRASER/bams_chr_subset/'),full.names = T)
+
+  for(c in 1:length(chrs))
+    {
+    if(file.exists(file.path(chrs[c],'res_dt.csv'))) {
+      gwFRASER_temp = read.csv(file.path(chrs[c],'res_dt.csv'),header = T,row.names = 1)
+      gwFRASER_temp = gwFRASER_temp[gwFRASER_temp$pValue < 0.001,]
+      gwFRASER_temp$sampleID = gsub(paste0("_",gwFRASER_temp$seqnames[1],"$"),"",gwFRASER_temp$sampleID)
+      if(c == 1) gwFRASER = gwFRASER_temp
+      if(c != 1) gwFRASER = rbind(gwFRASER,gwFRASER_temp)
+      } 
+   }
+
+  colnames(gwFRASER)[c(1,20)] = c('chr','pos')
+  write.csv(gwFRASER,file.path(params$datadir,'gwFRASER.csv'))
+
   #cp the scripts for backup
   cp_scripts = paste0('cp -r ', params$workdir,'/scripts ',params$datadir,'/.')
   cp_info = paste0('cp ',paste0(params$workdir,c('/VERSION.json ','/CHANGELOG.md ', '/README.md ', '/RNAseq_shiny_v* ')),params$datadir,'/.')

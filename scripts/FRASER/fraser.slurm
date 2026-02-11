@@ -1,10 +1,10 @@
 #!/bin/bash
 
-#SBATCH --time=02:00:00
-#SBATCH --mem=64G
+#SBATCH --time=08:00:00
+#SBATCH --mem=128G
 #SBATCH --account=def-rallard
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=64
 
 
 module load samtools
@@ -24,3 +24,10 @@ for i in $(seq 1 $count); do
   Rscript fraser.R $i $workdir
   echo $i
 done
+
+
+#fraser genome wide
+cpu=64
+Rscript fraser_gw.R /home/renaut/scratch/raredisease_rnaseq/FRASER/bams_chr_subset/ 16 $cpu
+
+
