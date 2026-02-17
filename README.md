@@ -4,10 +4,10 @@ sebastien.renaut.hsj@ssss.gouv.qc.ca
 ### Summary        
  Typically, one would run analyses one step at a time, starting with `nextflow rnasplice` to produce the QC, trimming and aligment (`.bam files`). Then, run `featureCounts` to quantify gene expression per gene and per exon.  Then, run `Outrider` (aberrant gene expression), `fraser` (aberrant splicing pattterns) and `consensus` (consensus sequences). One these analyses are performed, run `cp_and_cleanup.R` to gather all the necessary results into a single zipped `data` folder. With this zipped `data` folder, we can then produce a Shiny web App with `RNAseq_shiny_v2.4.R` script. Note that:    
 
-* You need a resonnably sized cohort to produce results that are statistically sound. Ten is a probably a bare minimum for Outrider and Fraser.      
-* Paths are either defined as relative or in a few instances at the beginning of a script.       
-* Typically, each analyse is run from a subdirectory by calling a `.slurm` file. The parameters in these files may need to be adjusted according to your HPC set-up. The `.slurm` file will call a  `.R` and `.sh` script. Each analysis requires a number of R libraries to be installed, defined at the beginning of the script.            
-* There is currently no unit test, or example dataset.       
+* You need a resonnably sized cohort to produce results that are statistically sound. Ten is a probably a bare minimum for Outrider and Fraser, alhough >30 is probably more appropriate.      
+* Paths to the required input dataset and/or output directories are typically defined in the configs.json.
+* Typically, each analysis is run from a subdirectory by calling a `.slurm` file. The parameters in these files may need to be adjusted according to your HPC configurationb. The `.slurm` file will call a  `.R` and `.sh` script. Each analysis requires a number of R libraries to be installed, defined at the beginning of the script.            
+* There is currently no unit test, or example dataset. This will be addressed in future updates.       
 
 ### Setup         
 `datadir='${HOME}/scratch/raredisease_rnaseq/data'`     

@@ -138,7 +138,7 @@ wh = wh[wh$gene_id == candidate$ensembl,]
 ###
 ###this is to generate a table of the top p-values of the splicing test.
 ###
-gwFRASER_table = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=20){
+gwFRASER_table = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',pcutoff=0.05,pvalue='padjust', geneID = 'hgncSymbol'){
  
   #factorize
   res_dt$chr = factor(res_dt$chr, levels = c(1:22,'X','Y','MT')) 
@@ -147,10 +147,10 @@ gwFRASER_table = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=20){
   res_dt_sampleID = res_dt[res_dt$sampleID == sample,]
   
   #keep only the top (but remove duplicated splicing events)
-  gwFRASER_top = head(res_dt_sampleID[order(res_dt_sampleID$padjust),],top)
-  gwFRASER_top$hgncSymbol[is.na(gwFRASER_top$hgncSymbol)] = 'na'
-  gwFRASER_top = gwFRASER_top[!duplicated(gwFRASER_top$hgncSymbol, incomparables = 'na'),]
-  gwFRASER_top = gwFRASER_top[gwFRASER_top$padjust < 0.1,]
+  gwFRASER_top = res_dt_sampleID[order(res_dt_sampleID[[pvalue]]),]
+  gwFRASER_top = gwFRASER_top[gwFRASER_top[[pvalue]]<0.05,]
+  gwFRASER_top[[geneID]][is.na(gwFRASER_top[[geneID]])] = 'na'
+  gwFRASER_top = gwFRASER_top[!duplicated(gwFRASER_top[[geneID]], incomparables = 'na'),]
   gwFRASER_top = gwFRASER_top[order(gwFRASER_top$chr),c(1:5,7,9:10,13:14)]
   
   #return
@@ -161,7 +161,7 @@ gwFRASER_table = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=20){
 ###
 ###this is to do a manhattan plot of the p-values of the splicing test.
 ###
-manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=20){
+manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcutoff=0.05, pvalue='padjust', geneID = 'hgncSymbol'){
   
   #factorize
   res_dt$chr = factor(res_dt$chr, levels = c(1:22,'X','Y','MT')) 
@@ -180,7 +180,7 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=20){
   results_subset_forggplot = chr_size %>% 
     left_join(res_dt_sampleID, ., by=c("chr"="chr")) %>%
     arrange(chr, pos) %>%
-    mutate( BPcum=pos+tot)
+    mutate(BPcum=pos+tot)
 
   #set colors
   colors = c(brewer.pal(8,'Set2'),brewer.pal(9,'Set1'),brewer.pal(9,'Set3'))
@@ -192,17 +192,18 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=20){
     dplyr::summarize(center=( max(BPcum) + min(BPcum)+1 ) / 2 )
   
   #keep only the top (but remove duplicated splicing events)
-  gwFRASER_top = head(results_subset_forggplot[order(results_subset_forggplot$padjust),],top)
-  gwFRASER_top$hgncSymbol[is.na(gwFRASER_top$hgncSymbol)] = 'na'
-  gwFRASER_top = gwFRASER_top[!duplicated(gwFRASER_top$hgncSymbol, incomparables = 'na'),]
-  gwFRASER_top = gwFRASER_top[gwFRASER_top$padjust < 0.1,]
-  gwFRASER_top = gwFRASER_top[order(gwFRASER_top$chr),]
+  gw_top = results_subset_forggplot[order(results_subset_forggplot[[pvalue]]),]
+  gw_top = gw_top[gw_top[[pvalue]]<pcutoff,]
+  gw_top[[geneID]][is.na(gw_top[[geneID]])] = 'na'
+  gw_top = gw_top[!duplicated(gw_top[[geneID]], incomparables = 'na'),]  
+  gw_top = head(gw_top,top)
+  gw_top = gw_top[order(gw_top$chr),]
   
   ###Make the ggplot:
-  man_gplot = ggplot(results_subset_forggplot, aes(x = BPcum, y = -log10(padjust))) +
+  man_gplot = ggplot(results_subset_forggplot, aes(x = BPcum, y = -log10(.data[[pvalue]]))) +
     
     #Labels
-    geom_label_repel(data = gwFRASER_top, aes(label = hgncSymbol, x = BPcum, y = -log10(padjust)), col = 'black',  size = 4,box.padding = 2, max.overlaps = 50) +    
+    geom_label_repel(data = gw_top, aes(label = .data[[geneID]], x = BPcum, y = -log10(.data[[pvalue]])), col = 'black',  size = 4,box.padding = 2, max.overlaps = 50) +    
     
     #Show all points
     geom_point( aes(color=chr), alpha=1, size=1.6) +
@@ -212,7 +213,8 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=20){
     scale_x_continuous(label = axisdf$chr, breaks = axisdf$center, expand = c(0.01,0.01)) +
     #scale_y_continuous(breaks = c(1,2,3), labels = c(0.1,0.01,0.001), limits = c(1,3.2), expand = c(0.01,0.01))  + #remove space between plot area and x axis
     xlab('Chromosomes') + 
-    ylab(bquote('-log10 (adjusted '~italic(p)~'- values)')) +
+    ylab(paste('-log10 (',pvalue,')')) +
+    ylim(0,NA) +
     
     #Customize theme:
     theme_bw() +

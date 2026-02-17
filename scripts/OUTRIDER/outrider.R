@@ -17,8 +17,8 @@ register(MulticoreParam(ncores, ncores*2, progressbar = TRUE))
 #candidate genes
 candidates = read.csv(params$candidate_genes)
 #candidates$ensembl = sapply(strsplit(candidates$ensembl,'.',fixed = T),"[[",1)
-candidates$ensembl_proband2 = apply(candidates[,colnames(candidates) %in% c('ensembl','proband2')],1,paste0,collapse ='_')
-candidates$ensembl_proband2 = sapply(strsplit(candidates$ensembl_proband2,'@'),'[[',1)
+candidates$ensembl_proband = apply(candidates[,colnames(candidates) %in% c('ensembl','proband')],1,paste0,collapse ='_')
+#candidates$ensembl_proband2 = sapply(strsplit(candidates$ensembl_proband2,'@'),'[[',1)
 
 ##mapping genes
 map <- select(org.Hs.eg.db, keys=keys(TxDb.Hsapiens.UCSC.hg38.knownGene, keytype = "GENEID"),
@@ -31,7 +31,9 @@ gene_locations = genes(TxDb.Hsapiens.UCSC.hg38.knownGene,single.strand.genes.onl
 gene_locations = as.data.table(gene_locations)
 gene_locations = gene_locations[nchar(as.character(gene_locations$seqnames))<6,]
 map = merge(map, gene_locations, by.y = 'group_name', by.x = 'ENTREZID')
-colnames(map)[c(2,3,5)] = c('ensemblID','geneID','Chr')
+colnames(map)[c(2,3,5)] = c('ensemblID','geneID','chr')
+map$pos = (map$start+map$end)/2
+map$chr = gsub('chr','',map$chr)
 
 ###from featurecount gene expression data
 genes_counts = read.table(params$fc_pergene,sep = '\t',header = T,comment.char = '#',check.names = F)
@@ -55,21 +57,21 @@ dim(ods)
 #Result table
 table = as.data.frame(results(ods,padjCutoff=1))
 table$pValue = signif(table$pValue,4)
-table$sampleID = gsub('_PAX','',table$sampleID)
+#table$sampleID = gsub('_PAX','',table$sampleID)
 
 significant_table = table[table$pValue<0.05,]
 significant_table$padjust = signif(significant_table$padjust,4)
 colnames(significant_table)[1] = 'ensemblID' 
-significant_table = merge(significant_table,map[,c(2:6,8)],by = 'ensemblID')
+significant_table = merge(significant_table,map,by = 'ensemblID')
 table$ensemblID_sampleID =  paste0(table$geneID,'_',table$sampleID)
 
 #candidate only
-candidate_table  = table[table$ensemblID_sampleID %in% candidates$ensembl_proband2,]
+candidate_table  = table[table$ensemblID_sampleID %in% candidates$ensembl_proband,]
 colnames(candidate_table)[1] = 'ensemblID'
-candidate_table = merge(candidate_table,map[,c(2:6,8)],by = 'ensemblID')
+candidate_table = merge(candidate_table,map,by = 'ensemblID')
 
 #write the results
-colnames_ALL = c("sampleID","geneID","ensemblID","Chr","start","width","pValue","padjust","zScore","l2fc","rawcounts","meanRawcounts","normcounts","meanCorrected")
+colnames_ALL = c("sampleID","geneID","ensemblID","chr","start","end","pos","width","pValue","padjust","zScore","l2fc","rawcounts","meanRawcounts","normcounts","meanCorrected")
 colnames_candidate_genes = c("sampleID","geneID","ensemblID","pValue","zScore","l2fc","rawcounts","meanRawcounts","normcounts","meanCorrected")
 write.table(significant_table[,colnames_ALL],file.path(params$OUTRIDER,'results_OUTRIDER.tsv'),sep = '\t',quote = F)
 write.table(candidate_table[,colnames_candidate_genes],file.path(params$OUTRIDER,'candidates_OUTRIDER.tsv'),sep = '\t',quote = F)
@@ -80,11 +82,13 @@ print(paste0('Done OUTRIDER --- Time is: ',Sys.time()) )
 ####PER EXON
 #from featurecount gene expression data
 fc_exons_raw_ALL = read.table(params$fc_perexon,sep = '\t',check.names = F)
+colnames(fc_exons_raw_ALL)[grep('HSJ',colnames(fc_exons_raw_ALL))] = paste0(colnames(fc_exons_raw_ALL)[grep('HSJ',colnames(fc_exons_raw_ALL))],'_PAX')#this is ugly and I should fix this. It's there because HSJ samples have two names, one with '_PAX', one without.
 rownames(fc_exons_raw_ALL) = paste0(fc_exons_raw_ALL$geneID,"_",fc_exons_raw_ALL$ensemblID,"_",fc_exons_raw_ALL$transcriptID,"_",fc_exons_raw_ALL$exonID)
 
 #filter dataset to remove very low expression genes
 genes_counts = fc_exons_raw_ALL[,-c(1:5)]
 genes_counts = genes_counts[rowMeans(genes_counts) > 1,]
+#genes_counts = genes_counts[1:10000,]
 
 #OUTRIDER
 ods <- OutriderDataSet(countData=genes_counts)
@@ -103,13 +107,13 @@ table$pValue = signif(table$pValue,4)
 
 #candidates exons only
 colnames_candidate_exon = c("sampleID","geneID","ensemblID","transcriptID","exonID","pValue","zScore","l2fc","rawcounts","meanRawcounts","normcounts","meanCorrected")
-candidate_table_exon = table[table$ensemblID_sampleID %in% candidates$ensembl_proband2,]
+candidate_table_exon = table[table$ensemblID_sampleID %in% candidates$ensembl_proband,]
 candidate_table_exon = candidate_table_exon[,colnames_candidate_exon]
 
 #all significant exons
-colnames_significant_exon = c("sampleID","geneID","ensemblID","transcriptID","exonID","Chr","start","width","pValue","padjust","zScore","l2fc","rawcounts","meanRawcounts","normcounts","meanCorrected")
+colnames_significant_exon = c("sampleID","geneID","ensemblID","transcriptID","exonID","chr","start","end","pos","width","pValue","padjust","zScore","l2fc","rawcounts","meanRawcounts","normcounts","meanCorrected")
 table = table[table$pValue < 0.01,]
-significant_table_exon = merge(table,map[,c(2,4,5,6,8)],by = 'ensemblID')
+significant_table_exon = merge(table,map[,-3],by = 'ensemblID')
 significant_table_exon = significant_table_exon[,colnames_significant_exon]
 
 #write the results

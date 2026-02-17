@@ -12,6 +12,10 @@ params$fc_exons = args[4]
 params$ref_file = args[5]
 params$ref_annot = args[6]
 
+
+print(i)
+print(params)
+
 #candidates
 candidates = read.csv(params$candidates)
 
@@ -22,8 +26,8 @@ params$transcript = unique_transcript$transcriptID[unique_transcript$geneID == c
 
 #Define parameters
 chr = candidates$chromosome[i]
-start = candidates$start[i] - 100000; if(start <= 0) start = 1
-stop = candidates$stop[i] + 100000
+start = candidates$start[i] - 5000; if(start <= 0) start = 1
+stop = candidates$stop[i] + 5000
 params$geneID = candidates$geneID[i]
 params$out_dir = paste0(params$FRASER,'/bams_subset/gene',candidates$geneID[i],'_chr',chr,'_',start,'_',stop,'/')
 params$bam_file = paste0(candidates$proband[i],'_sorted_chrN.bam')
@@ -71,8 +75,6 @@ exonic = exonic[exonic$exon %in% exclude_first_and_last[-c(1,length(exclude_firs
 mean_exonic_depth = mean(exonic$depth)
 if(is.na(mean_exonic_depth)) mean_exonic_depth = 0
 
-
-
 #code the retention event if the whole intron is expressed at more than 30% the exon level..
 variant_annotated$retention_event = 0
 
@@ -80,31 +82,14 @@ for(r in 1:nrow(mean_intronic_depth)){
     if(mean_intronic_depth$mean[r] > (mean_exonic_depth*0.3) ) variant_annotated$retention_event[variant_annotated$exon == mean_intronic_depth$exon[r]] = 1
 }
 
-#variant_annotated$retention_event[variant_annotated$depth > (mean_exonic_depth*0.3)] = 1
-#variant_annotated$retention_event[variant_annotated$transcript != 'intron'] = 0 
-
 #tolower the retention and the SNPs / '---' the retention in the reference
-#variant_annotated$alternate[variant_annotated$reference != variant_annotated$alternate] = tolower(variant_annotated$alternate[variant_annotated$reference != variant_annotated$alternate])
 variant_annotated$alternate[variant_annotated$reference != variant_annotated$alternate] = paste0("<b>",variant_annotated$alternate[variant_annotated$reference != variant_annotated$alternate],"</b>")
 variant_annotated$alternate[variant_annotated$retention_event == 1] = tolower(variant_annotated$alternate[variant_annotated$retention_event == 1])
 variant_annotated$reference[variant_annotated$retention_event == 1] = '-'
 
 #sequences
 reference_sequence = variant_annotated$reference[variant_annotated$transcript != 'intron' | variant_annotated$retention_event == 1]
-#reference_sequence = variant_annotated$reference[variant_annotated$transcript != 'intron']
 alternate_sequence = variant_annotated$alternate[variant_annotated$transcript != 'intron' | variant_annotated$retention_event == 1]
-
-#Annotation of IUPAC mutations
-#iupac = data.frame(symbol = c('r','y','m','k','s','w'), A = c('A','C','A','G','C','A'), B = c('G','T','C','T','G','T'));iupac$AB = paste0(iupac$A,iupac$B)
-#for(m in 1:nrow(variant_annotated)){
-#  if(variant_annotated$reference[m] != variant_annotated$alternate[m]) {
-#    print(variant_annotated[m,])
-#    variable_site = paste0(sort(as.character(variant_annotated[m,4:5])),collapse = '')
-#    variable_iupac = iupac$symbol[iupac$AB == variable_site]
-#    if(length(variable_iupac)==0) variable_iupac = 'N'
-#    variant_annotated$alternate[m] = variable_iupac
-#  }
-#}
 
 #check the retention events and sequence lengths
 rle(variant_annotated$retention_event)

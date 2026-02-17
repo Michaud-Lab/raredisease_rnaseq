@@ -4,7 +4,7 @@
 #SBATCH --mem=32G
 #SBATCH --account=def-rallard
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=16
 
 module load r
 
@@ -20,4 +20,4 @@ read fc_pergene fc_perexon < <(
 #R script launches the bash script to prepare data and continues with analysis.
 Rscript outrider.R $workdir $candidate_genes $fc_pergene $fc_perexon
 
-
+#echo  $workdir $candidate_genes $fc_pergene $fc_perexon
