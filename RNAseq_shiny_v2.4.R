@@ -1,4 +1,3 @@
-
 # params
 params = list(datadir = file.path(getwd(),'data/')) 
 
@@ -70,10 +69,11 @@ ui <- page_fluid(
       tabPanel('Proband Selection',
                card(
                  selectInput(
-                    inputId = "proband2",
-                    label = h2("Select a patient:"),
-                    choices = candidates$proband2,
-                    selected = 'HSJ_001_03'),
+                    inputId = "proband",
+                    label = h4("Select a proband:"), 
+                    choices = sort(unique(candidates$proband)),
+                    selected = 'HSJ_001_03_PAX'),
+                 uiOutput("geneID_list"),
                  div(
                    imageOutput("mainimage"),
                    class = "text-center" 
@@ -124,7 +124,7 @@ ui <- page_fluid(
                   DTOutput("candidates_OUTRIDER_exons")),
                card(
                   h4('All significant genes'), 
-                  selectInput("pvalue", "Choose a p-value threshold:",
+                  selectInput("pvalue", "Select a p-value threshold:",
                               choices = c(0.05,0.01,0.005,0.001,0.0005),
                               selected = 0.005),
                   DTOutput("table_OUTRIDER")),
@@ -210,12 +210,21 @@ ui <- page_fluid(
 server <- function(input, output, session) {
   
     ### Selected variable i
-    output$selected_var <- renderText({input$proband2})
-    i <- reactive({c(1:nrow(candidates))[candidates$proband2 == input$proband2]})
+    geneID <- reactive({
+      candidates$geneID[candidates$proband == input$proband]
+    })
+    
+    # Update column selectors dynamically
+    output$geneID_list <- renderUI({
+      selectInput("gene_selection",h4("Select a gene:"), selected = 'MCM5',choices = geneID())
+    })
+
+    #reactive i()
+    i <- reactive({c(1:nrow(candidates))[(candidates$proband == input$proband) & (candidates$geneID == input$gene_selection)]})
   
     ### Reactive list
     reactive_inputs <- reactive({
-        reactive_i  = strsplit(input$proband2,'@')[[1]][1]
+        reactive_i  = gsub('_PAX','',input$proband)
         column = c(1:ncol(transcripts_named_filtered))[colnames(transcripts_named_filtered) == reactive_i]
         column_not = c(1:ncol(transcripts_named_filtered))[colnames(transcripts_named_filtered) != reactive_i]
         column_not = column_not[-c(1,2,length(column_not))] 
@@ -437,7 +446,7 @@ server <- function(input, output, session) {
     
     ### Description
     output$description <- renderUI({
-      print(paste0('Selecting ~~~ ',input$proband2))
+      print(paste0('Selecting ~~~ ',input$proband,' ~~~ ',input$gene_selection,' ~~~ ',i()))
       selected_ensembl <- candidates$ensembl[i()]
       selected_geneID <- candidates$geneID[i()]
       #url = paste0("https://useast.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=", selected_ensembl)
@@ -445,9 +454,9 @@ server <- function(input, output, session) {
       url = paste0("https://www.proteinatlas.org/", selected_ensembl)
       HTML(
         paste0("<span><b>Gene description for ",selected_geneID,": </b> <a href='", url, "' target='_self'>",selected_ensembl,"</a>",
-               "<br><br><b>Mutations: </b>",clinical$Mutation[clinical$PatientID == input$proband2],
-               "<br><br><b>Candidate Gene hypothesis: </b>",clinical$Hypothèse[clinical$PatientID == input$proband2],
-               "<br><br><b>HPO terms: </b>",clinical$`HPO terms`[clinical$PatientID == input$proband2],
+               "<br><br><b>Mutations: </b>",clinical$Mutation[clinical$PatientID == input$proband],
+               "<br><br><b>Candidate Gene hypothesis: </b>",clinical$Hypothèse[clinical$PatientID == input$proband],
+               "<br><br><b>HPO terms: </b>",clinical$`HPO terms`[clinical$PatientID == input$proband],
                "<br><br><b>Bam file location (Fir): </b>",system('echo ${HOME}',intern = T),"/scratch/raredisease_rnaseq/results_06_01_2026/star_salmon/",candidates$proband[i()],".sorted.bam<span>")
         )
       })
@@ -476,8 +485,10 @@ server <- function(input, output, session) {
     
     ### FASTA
     output$fasta <- renderUI({
-      lines <- readLines(paste0(params$datadir,"/consensus/","gene",candidates$geneID[i()],'_',candidates$proband[i()],'.fasta'))
+      fasta.file = paste0(params$datadir,"/consensus/","gene",candidates$geneID[i()],'_',candidates$proband[i()],'.fasta')
+      if(file.exists(fasta.file)) {lines = readLines(fasta.file)} else {lines = 'No gene specified'}
       HTML(paste0("<span style='color: black; font-family: Courier New; font-size: 16px;'>",paste0(lines,collapse = '<br>'),"</span>",collapse = "\n"))
+
     })
     
     ### IGV
@@ -548,4 +559,3 @@ server <- function(input, output, session) {
 ######shiny app
 app = shinyApp(ui, server, options = list(height = 900))
 runApp(app, launch.browser = TRUE)
-

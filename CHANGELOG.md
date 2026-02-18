@@ -1,3 +1,9 @@
+### 2026-02-18 - main
+
+**Changed**
+* Split the selector into a gene and a sample specific selector.
+
+
 ### 2026-02-17 - gwFRASER_minorfix
 
 **Changed**
