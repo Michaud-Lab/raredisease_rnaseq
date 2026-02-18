@@ -1,11 +1,23 @@
-### 2026-01-29
+### 2026-02-17 - gwFRASER_minorfix
+
+**Changed**
+* Add a plot of gwOUTRIDER (and modify the manhattan plot function accordingly)
+* Modify the output of outrider to standardise column names
+* Subset only +/5Kb of candidate genes to save space.
+
+**fixed**
+* readme.md
+* how many genes to show on gwFRASER
+
+
+### 2026-01-29 - Outrider perexon
 
 **Changed**
 * Add results of OUTRIDER for all candidate exons.
 * Add results of FRASER genome-wide (as a Manhattan plot & data.table)
 
 
-### 2026-01-28
+### 2026-01-28 -feat: a modern UI to Shiny App
 
 **Changed**
 * Use bslib to provide a modern UI to Shiny using bootstrap 5.0.  

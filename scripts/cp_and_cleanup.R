@@ -62,7 +62,7 @@
 
   #cp the bam subset for data viz
   for(i in 1:nrow(candidates)){
-       gene_dir = paste0('bams_subset/gene',candidates$geneID[i],'_chr',candidates$chromosome[i],'_',candidates$start[i]-100000,'_',candidates$stop[i]+100000,'/')
+       gene_dir = paste0('bams_subset/gene',candidates$geneID[i],'_chr',candidates$chromosome[i],'_',candidates$start[i]-5000,'_',candidates$stop[i]+5000,'/')
        in_dir = paste0(params$workdir, '/FRASER/',gene_dir)
        out_dir = paste0(params$datadir,gene_dir)
 

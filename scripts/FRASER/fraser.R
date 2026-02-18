@@ -25,8 +25,8 @@ params$output = paste0(args[2],'/FRASER/results/output_FRASER_',candidates$proba
 
 #prepare the bam subsetting BASH script
 chr = candidates$chromosome[i]
-start = candidates$start[i] - 100000; if(start <= 0) start = 1
-stop = candidates$stop[i] + 100000
+start = candidates$start[i] - 5000; if(start <= 0) start = 1
+stop = candidates$stop[i] + 5000
 geneID = candidates$geneID[i]
 proband = candidates$proband[i]
 
@@ -55,7 +55,11 @@ if(geneID != "") {
   fds <- countRNAData(settings,recount=TRUE)
   fds <- calculatePSIValues(fds)
   fds <- annotateRanges(fds,GRCh=38)
-  fds <- FRASER(fds, q=c(jaccard=2))
+  #fds <- FRASER(fds, q=c(jaccard=2))
+  fds <- fit(fds, q=c(jaccard=2))
+  fds = calculatePvalues(fds)
+  fds = calculatePadjValues(fds,method = 'none',geneLevel=F)
+  fds = calculateZscore(fds)  
 
   res <- results(fds, all=TRUE, padjCutoff=NA, deltaPsiCutoff=NA)
   sort(unique(res$hgncSymbol))
@@ -101,5 +105,5 @@ if(geneID != "") {
 
 }
 
-print(paste0('Done sample ~~~ ', i))
+print(paste0('Done sample ~~~ ',i,' ~~~ Time is: ',Sys.time()))
 

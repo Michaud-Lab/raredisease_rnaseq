@@ -21,11 +21,11 @@ fc_exons_raw = read.table(file.path(params$datadir,'fc_exons_raw.tsv'),sep = '\t
 fc_exons_tpm = read.table(file.path(params$datadir,'fc_exons_tpm.tsv'),sep = '\t',check.names = F)
 fc_genes_tpm = read.table(file.path(params$datadir,'fc_genes_tpm.tsv'),sep = '\t',check.names = F)
 
-results_OUTRIDER = read.csv(file.path(params$datadir,'results_OUTRIDER.tsv'),sep = '\t',check.names = F)
-results_OUTRIDER$Chr = factor(results_OUTRIDER$Chr,levels = paste0('chr',c(1:22,'X','Y')))
+gwOUTRIDER = read.csv(file.path(params$datadir,'results_OUTRIDER.tsv'),sep = '\t',check.names = F)
+gwOUTRIDER$chr = factor(gwOUTRIDER$chr,levels = c(1:22,'X','Y','MT'))
 
 significant_perexons_OUTRIDER = read.csv(file.path(params$datadir,'exons_OUTRIDER.tsv'),sep = '\t',check.names = F)
-significant_perexons_OUTRIDER$Chr = factor(significant_perexons_OUTRIDER$Chr,levels = paste0('chr',c(1:22,'X','Y')))
+significant_perexons_OUTRIDER$chr = factor(significant_perexons_OUTRIDER$chr,levels = c(1:22,'X','Y','MT'))
 
 candidates_OUTRIDER = read.csv(file.path(params$datadir,'candidates_OUTRIDER.tsv'),sep = '\t',check.names = F)
 candidates_perexons_OUTRIDER = read.csv(file.path(params$datadir,'candidates_perexons_OUTRIDER.tsv'),sep = '\t',check.names = F)
@@ -109,8 +109,11 @@ ui <- page_fluid(
       tabPanel("OUTRIDER",
                card(
                  h3('OUTRIDER - OUTlier in RNA-Seq fInDER'),
-                'Identification of aberrant gene expression in RNA-seq data, Outliers are identified as read counts that significantly deviate from the population',
-                '(all probands, including some adults from the LC & F0 cohorts)'),
+                 'Identification of aberrant gene expression in RNA-seq data, Outliers are identified as read counts that significantly deviate from the population',
+                 '(all probands, including some adults from the LC & F0 cohorts)'),
+               card(
+                 h4('Genome-wide significance'),
+                 plotOutput("gwOUTRIDER", width = '1200px', height = "400px")),
                card(
                   fill=F, 
                   height='200px',
@@ -168,7 +171,7 @@ ui <- page_fluid(
                imageOutput("Sashimi",width = "1200px")
                )
              ),
-        
+     
     ##genome-wide FRASER
     tabPanel(
             "gwFRASER",
@@ -176,7 +179,7 @@ ui <- page_fluid(
               h4('Genome-wide significance values for FRASER'),
               plotOutput("gwFRASER", width = '1200px', height = "400px")),
             card(
-              h4('Top 10 splicing events (below adj. p-value < 0.1)'),
+              h4('Significant splicing events (below adj. p-value < 0.05)'),
               DTOutput("gwFRASER_table")
               )
             ),
@@ -231,17 +234,17 @@ server <- function(input, output, session) {
         fc_exons_tpm_reactive = fc_exons_tpm_reactive[order(fc_exons_tpm_reactive[,4]),]
         
         # OUTRIDER
-        table_OUTRIDER = results_OUTRIDER[results_OUTRIDER$sampleID == reactive_i,]
-        table_OUTRIDER = table_OUTRIDER[order(table_OUTRIDER$Chr,table_OUTRIDER$start),]
-        table_OUTRIDER_candidate = candidates_OUTRIDER[candidates_OUTRIDER$sampleID == reactive_i,]    
+        table_OUTRIDER = gwOUTRIDER[gwOUTRIDER$sampleID == candidates$proband[i()],]
+        table_OUTRIDER = table_OUTRIDER[order(table_OUTRIDER$chr,table_OUTRIDER$pos),]
+        table_OUTRIDER_candidate = candidates_OUTRIDER[candidates_OUTRIDER$sampleID == candidates$proband[i()],]    
         table_OUTRIDER_candidate = table_OUTRIDER_candidate[table_OUTRIDER_candidate$geneID == candidates$geneID[i()],]
 
-        table_perexons_OUTRIDER_candidate = candidates_perexons_OUTRIDER[candidates_perexons_OUTRIDER$sampleID == reactive_i,]    
+        table_perexons_OUTRIDER_candidate = candidates_perexons_OUTRIDER[candidates_perexons_OUTRIDER$sampleID == candidates$proband[i()],]    
         table_perexons_OUTRIDER_candidate = table_perexons_OUTRIDER_candidate[table_perexons_OUTRIDER_candidate$geneID == candidates$geneID[i()],]
         table_perexons_OUTRIDER_candidate = table_perexons_OUTRIDER_candidate[order(table_perexons_OUTRIDER_candidate$exonID),]
 
-        table_perexons_OUTRIDER_significant = significant_perexons_OUTRIDER[significant_perexons_OUTRIDER$sampleID == reactive_i,]    
-        table_perexons_OUTRIDER_significant = table_perexons_OUTRIDER_significant[order(table_perexons_OUTRIDER_significant$Chr,table_perexons_OUTRIDER_significant$start,table_perexons_OUTRIDER_significant$exonID),]
+        table_perexons_OUTRIDER_significant = significant_perexons_OUTRIDER[significant_perexons_OUTRIDER$sampleID == candidates$proband[i()],]    
+        table_perexons_OUTRIDER_significant = table_perexons_OUTRIDER_significant[order(table_perexons_OUTRIDER_significant$chr,table_perexons_OUTRIDER_significant$pos,table_perexons_OUTRIDER_significant$exonID),]
         
         # Plotly family of proband
         fc_exons_ggplot_reactive = fc_exons_tpm_ggplot[fc_exons_tpm_ggplot$proband == reactive_i, ]
@@ -479,7 +482,7 @@ server <- function(input, output, session) {
     
     ### IGV
     observeEvent(input$addBamLocalFileButton, {
-      gene_dir = paste0(params$datadir,'/bams_subset/gene',candidates$geneID[i()],'_chr',candidates$chromosome[i()],'_',candidates$start[i()]-100000,'_',candidates$stop[i()]+100000,'/')
+      gene_dir = paste0(params$datadir,'/bams_subset/gene',candidates$geneID[i()],'_chr',candidates$chromosome[i()],'_',candidates$start[i()]-5000,'_',candidates$stop[i()]+5000,'/')
       color=
       showGenomicRegion(session, id="igvShiny",paste0("chr",candidates$chromosome[i()],":",candidates$start[i()],"-",candidates$stop[i()]))
       bamFile <- paste0(gene_dir,candidates$proband[i()],"_sorted_chrN.bam")
@@ -512,7 +515,7 @@ server <- function(input, output, session) {
     ### Coverage ggplots
     output$Figure_genemodel = renderPlot({
       if(is.null(input$sliderxlims)) {genemodel = ggplot() +  theme_void() + geom_text(aes(0,0,label='Plotting in ¨Progress')) + xlab(NULL)} else {
-        gene_dir = paste0(params$datadir,'/bams_subset/gene',candidates$geneID[i()],'_chr',candidates$chromosome[i()],'_',candidates$start[i()]-100000,'_',candidates$stop[i()]+100000,'/')
+        gene_dir = paste0(params$datadir,'/bams_subset/gene',candidates$geneID[i()],'_chr',candidates$chromosome[i()],'_',candidates$start[i()]-5000,'_',candidates$stop[i()]+5000,'/')
         genemodel = plotting_coverage(
           candidate = candidates[i(),],
           depth_file = paste0(gene_dir,"gene_",candidates$geneID[i()],"_",candidates$proband[i()],"_depth5.csv"),
@@ -525,6 +528,11 @@ server <- function(input, output, session) {
       genemodel
       })
 
+    #genome-wide OUTRIDER
+    output$gwOUTRIDER = renderPlot({
+      manhattan_plot(res_dt=gwOUTRIDER,sample = candidates$proband[i()],geneID = 'geneID', pvalue = 'pValue',pcutoff = 0.001)
+    })
+    
     #genome-wide FRASER
     output$gwFRASER = renderPlot({
       manhattan_plot(res_dt=gwFRASER,sample = candidates$proband[i()])
