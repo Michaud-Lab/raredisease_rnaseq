@@ -541,7 +541,7 @@ server <- function(input, output, session) {
 
     #genome-wide OUTRIDER
     output$gwOUTRIDER = renderPlot({
-      manhattan_plot(res_dt=gwOUTRIDER,sample = candidates$proband[i()],geneID = 'geneID', pvalue = 'pValue',pcutoff = 0.001)
+      manhattan_plot(res_dt=gwOUTRIDER,sample = candidates$proband[i()],geneID = 'geneID',pvalue = 'pValue',pcutoff = 0.001,shape = T)
     })
     
     #genome-wide FRASER

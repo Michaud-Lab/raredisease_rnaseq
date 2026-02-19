@@ -161,8 +161,12 @@ gwFRASER_table = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',pcutoff=0.05
 ###
 ###this is to do a manhattan plot of the p-values of the splicing test.
 ###
-manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcutoff=0.05, pvalue='padjust', geneID = 'hgncSymbol'){
+manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcutoff=0.05, pvalue='padjust', geneID = 'hgncSymbol',shape = FALSE){
   
+  #shape factor 
+  res_dt$shape = 'splicing'
+  if(shape) res_dt$shape = ifelse(res_dt$l2fc >0,'over','under')
+
   #factorize
   res_dt$chr = factor(res_dt$chr, levels = c(1:22,'X','Y','MT')) 
 
@@ -208,10 +212,10 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
     #Show all points
     geom_point( aes(color=chr), alpha=1, size=1.6) +
     scale_color_manual(values = colors) +
+    scale_shape_manual(values = c("over"=17, "under"=6, "splicing"=19)) +
     
     #Custom X axis:
     scale_x_continuous(label = axisdf$chr, breaks = axisdf$center, expand = c(0.01,0.01)) +
-    #scale_y_continuous(breaks = c(1,2,3), labels = c(0.1,0.01,0.001), limits = c(1,3.2), expand = c(0.01,0.01))  + #remove space between plot area and x axis
     xlab('Chromosomes') + 
     ylab(paste('-log10 (',pvalue,')')) +
     ylim(0,NA) +
@@ -224,7 +228,7 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
       panel.grid.major.x = element_blank(),
       panel.grid.minor.x = element_blank(),
       axis.title = element_text(size = 20)) +
-    ggtitle(paste0('Outlier splicing event ~ ',sample))
+    ggtitle(paste0('Outlier events ~ ',sample))
   
   return(man_gplot)
 }
