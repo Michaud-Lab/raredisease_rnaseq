@@ -1,3 +1,11 @@
+
+
+### 2026-02-19 - manhattan_expression
+
+**Fixed**
+* Shape as a function of Foldchange in genome-wide OUTrider 
+
+
 ### 2026-02-18 - main
 
 **Changed**
@@ -11,7 +19,7 @@
 * Modify the output of outrider to standardise column names
 * Subset only +/5Kb of candidate genes to save space.
 
-**fixed**
+**Fixed**
 * readme.md
 * how many genes to show on gwFRASER
 

@@ -449,14 +449,12 @@ server <- function(input, output, session) {
       print(paste0('Selecting ~~~ ',input$proband,' ~~~ ',input$gene_selection,' ~~~ ',i()))
       selected_ensembl <- candidates$ensembl[i()]
       selected_geneID <- candidates$geneID[i()]
-      #url = paste0("https://useast.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=", selected_ensembl)
-      #url <- paste0("https://www.genecards.org/cgi-bin/carddisp.pl?gene=", selected_geneID)
       url = paste0("https://www.proteinatlas.org/", selected_ensembl)
       HTML(
         paste0("<span><b>Gene description for ",selected_geneID,": </b> <a href='", url, "' target='_self'>",selected_ensembl,"</a>",
-               "<br><br><b>Mutations: </b>",clinical$Mutation[clinical$PatientID == input$proband],
-               "<br><br><b>Candidate Gene hypothesis: </b>",clinical$Hypothèse[clinical$PatientID == input$proband],
-               "<br><br><b>HPO terms: </b>",clinical$`HPO terms`[clinical$PatientID == input$proband],
+               "<br><br><b>Mutations: </b>",clinical$Mutation[clinical$`Patient ID` == input$proband],
+               "<br><br><b>Candidate Gene hypothesis: </b>",clinical$Hypothèse[clinical$`Patient ID` == input$proband],
+               "<br><br><b>HPO terms: </b>",clinical$`HPO terms`[clinical$`Patient ID` == input$proband],
                "<br><br><b>Bam file location (Fir): </b>",system('echo ${HOME}',intern = T),"/scratch/raredisease_rnaseq/results_06_01_2026/star_salmon/",candidates$proband[i()],".sorted.bam<span>")
         )
       })
@@ -541,7 +539,7 @@ server <- function(input, output, session) {
 
     #genome-wide OUTRIDER
     output$gwOUTRIDER = renderPlot({
-      manhattan_plot(res_dt=gwOUTRIDER,sample = candidates$proband[i()],geneID = 'geneID', pvalue = 'pValue',pcutoff = 0.001)
+      manhattan_plot(res_dt=gwOUTRIDER,sample = candidates$proband[i()],geneID = 'geneID',pvalue = 'pValue',pcutoff = 0.001,shape = T)
     })
     
     #genome-wide FRASER
