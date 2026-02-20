@@ -1,3 +1,10 @@
+### 2026-02-20 - gene_prior
+
+**Changed**
+* Add a gene prioritisation table based on the HPO & the FRASER, OUTRIDER gene lists. 
+
+**Fixed**
+* Minor improvments to dashboard
 
 
 ### 2026-02-19 - manhattan_expression

@@ -79,10 +79,10 @@ ui <- page_fluid(
                    class = "text-center" 
                  )),
                card(
-                 h2("Information"),
+                 card_header("Information"),
                  htmlOutput("description")),
                card(
-                 h2("Software Version"),
+                 card_header("Software Version"),
                  DTOutput("Version")
                  )
                ),  
@@ -90,7 +90,6 @@ ui <- page_fluid(
       ### Data table
       tabPanel("Expression",
                card(
-                h3('Gene expression per exon'),
                 'Reference transcript based on Matched Annotation from NCBI and EMBL-EBI (MANE)',
                 selectInput("table_choice", "Choose an expression metric: ",
                   choices = c("Normalised expression", "Raw counts","Isoform-specific expression"),
@@ -108,28 +107,28 @@ ui <- page_fluid(
     ### Data table
       tabPanel("OUTRIDER",
                card(
-                 h3('OUTRIDER - OUTlier in RNA-Seq fInDER'),
+                 card_header(strong('OUTlier in RNA-Seq fInDER')),
                  'Identification of aberrant gene expression in RNA-seq data, Outliers are identified as read counts that significantly deviate from the population',
                  '(all probands, including some adults from the LC & F0 cohorts)'),
                card(
-                 h4('Genome-wide significance'),
+                 card_header(strong('Genome-wide significance')),
                  plotOutput("gwOUTRIDER", width = '1200px', height = "400px")),
                card(
                   fill=F, 
                   height='200px',
-                  h4('Candidate gene'),
+                  card_header(strong('Candidate gene')),
                   DTOutput("candidates_OUTRIDER")),
                card(
-                  h4('Candidate exons'),
+                  card_header(strong('Candidate exons')),
                   DTOutput("candidates_OUTRIDER_exons")),
                card(
-                  h4('All significant genes'), 
+                  card_header(strong('All significant genes')), 
                   selectInput("pvalue", "Select a p-value threshold:",
                               choices = c(0.05,0.01,0.005,0.001,0.0005),
                               selected = 0.005),
                   DTOutput("table_OUTRIDER")),
                card(
-                  h4('All significant exons (p<0.01)'),
+                  card_header(strong('All significant exons (p<0.01)')),
                   DTOutput("significant_OUTRIDER_exons")
                   )
                ),
@@ -137,7 +136,7 @@ ui <- page_fluid(
     ### Plot of Expression
     tabPanel("Gene model",
              card(
-              h3('Gene model and significance values for FRASER'),
+              card_header(strong('Gene model and splicing significance values from FRASER')),
               column(width = 12,align = "center",uiOutput("genemodel_slider"))),
              card(
                plotOutput("Figure_genemodel", width = '1200px', height = "800px")),
@@ -149,7 +148,7 @@ ui <- page_fluid(
     ### Plot of Structural variation
     tabPanel("IGV",
              card(
-              h3('Integrative Genome Viewer'), 
+              card_header(strong('Integrative Genome Viewer')), 
               useShinyjs(), # Initialize shinyjs
               actionButton("addBamLocalFileButton",
                             "Show gene alignment",
@@ -163,7 +162,17 @@ ui <- page_fluid(
     tabPanel(
              "FRASER",
              card(
-               h3('FRASER: Find RAre Splicing Events in RNAseq Data'),
+               card_header(strong('Find RAre Splicing Events in RNAseq Data')),
+               'Identification of aberrant splicing events from RNA-seq. Outliers are identified intron retention / exon skipping events that significantly deviate from the population'),
+             card(
+               card_header(strong('Genome-wide significance')),
+               plotOutput("gwFRASER", width = '1200px', height = "400px")),
+             card(
+               card_header(strong('Significant splicing events (below adj. p-value < 0.05)')),
+               DTOutput("gwFRASER_table")
+             ),
+             card(
+               card_header(strong('Splice site map')),
                'Splice site map on top, with new exons and junctions in proband in yellow or red line.',
                'Splice site map generated in an annotation-free fashion based on RNA-seq coverage of split reads.',
                'As such, introns/exons may differ from actual genome annotation.',
@@ -171,23 +180,24 @@ ui <- page_fluid(
                imageOutput("Sashimi",width = "1200px")
                )
              ),
-     
-    ##genome-wide FRASER
+    
+    ### gene prioritisation
     tabPanel(
-            "gwFRASER",
-            card(
-              h4('Genome-wide significance values for FRASER'),
-              plotOutput("gwFRASER", width = '1200px', height = "400px")),
-            card(
-              h4('Significant splicing events (below adj. p-value < 0.05)'),
-              DTOutput("gwFRASER_table")
-              )
-            ),
+      "Gene Prioritization",
+        card(card_header(strong("Gene prioritization")),
+             fileInput(
+               inputId = "custom_genes",
+               label = "Add custom gene list (.txt, optional)",
+               accept = c(".csv", ".tsv", ".txt")
+             ),
+             DTOutput("gp"))
+    ),
+    
 
     ### Plot of Structural variation
     tabPanel("fasta",
              card(
-               h3('Transcribed sequences: reference / alternate'),
+               card_header(strong('Transcribed sequences: reference / alternate')),
                em('dashes (---) correspond to intron retention events, variants in ',strong('bold')),
                htmlOutput("fasta")
                )
@@ -507,7 +517,7 @@ server <- function(input, output, session) {
       igvShiny(genomeOptions)
       })
     
-    #Reative slider
+    ### Reactive slider
     output$genemodel_slider <- renderUI({
       cmin <- floor(candidates$start[i()]/1000)
       cmax <- ceiling(candidates$stop[i()]/1000)
@@ -537,12 +547,23 @@ server <- function(input, output, session) {
       genemodel
       })
 
-    #genome-wide OUTRIDER
+    ### gene prioritization Table
+    custom_genes = reactive({
+      if(is.null(input$custom_genes)) {return("")}
+      read.table(input$custom_genes$datapath)
+      })
+    
+    output$gp = renderDT({
+      datatable(gene_prioritization(sample = candidates$proband[i()],top=25,hpo_sample=clinical,hpo_all=file.path(params$datadir,'genes_to_phenotype.txt'),fraser=gwFRASER,outrider=gwOUTRIDER,custom_genes=custom_genes()),
+        rownames = T,options = list(columnDefs = list(list(className = 'dt-center', targets = "_all"))))
+    })
+    
+    ### genome-wide OUTRIDER
     output$gwOUTRIDER = renderPlot({
       manhattan_plot(res_dt=gwOUTRIDER,sample = candidates$proband[i()],geneID = 'geneID',pvalue = 'pValue',pcutoff = 0.001,shape = T)
     })
     
-    #genome-wide FRASER
+    ### genome-wide FRASER
     output$gwFRASER = renderPlot({
       manhattan_plot(res_dt=gwFRASER,sample = candidates$proband[i()])
     })

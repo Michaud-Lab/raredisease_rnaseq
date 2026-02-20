@@ -210,7 +210,7 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
     geom_label_repel(data = gw_top, aes(label = .data[[geneID]], x = BPcum, y = -log10(.data[[pvalue]])), col = 'black',  size = 4,box.padding = 2, max.overlaps = 50) +    
     
     #Show all points
-    geom_point( aes(color=chr), alpha=1, size=1.6) +
+    geom_point( aes(color=chr,shape=shape), alpha=1, size=1.6) +
     scale_color_manual(values = colors) +
     scale_shape_manual(values = c("over"=17, "under"=6, "splicing"=19)) +
     
@@ -231,4 +231,57 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
     ggtitle(paste0('Outlier events ~ ',sample))
   
   return(man_gplot)
+}
+
+
+#
+###
+###Genereate a gene prioritisation data.frame based on gene lists (HPO, outrider, fraser) 
+###
+gene_prioritization = function(sample = 'HSJ_001_03_PAX',fraser_padjust=0.05,outrider_pvalue=0.01,top=100,hpo_sample=clinical,hpo_all=file.path(params$datadir,'genes_to_phenotype.txt'),fraser="",outrider="",custom_genes=""){
+  
+  #hpo 
+  if(!file.exists(hpo_all)) {download.file(url='https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/genes_to_phenotype.txt',dest=file.path(hpo_all))} else {print(paste0('file ', hpo_all,'exists'))}
+  if(!exists('hpo')) hpo = read.delim(hpo_all)
+  
+  #generate a named list that contains all the genes in all the HPO terms.    
+  temp = strsplit(hpo_sample$`HPO terms`[hpo_sample$`Patient ID` == sample],split = '||',fixed = T)[[1]]
+  temp = unlist(strsplit(temp,split = ': '))
+  temp = temp[grepl('HP:',temp)]
+
+
+  if(length(temp)>0) {
+  hpo_terms = gsub(' ','',temp)
+  hpo_genes = as.list(hpo_terms)
+  names(hpo_genes) = hpo_terms
+  for(h in 1:length(hpo_terms)){hpo_genes[[h]] = unique(hpo$gene_symbol[hpo$hpo_id == hpo_terms[h]])}} else hpo_genes = list(hp_NULL='none')
+  
+  #add outrider
+  if(!is.null(dim(outrider))) {
+    hpo_genes$outrider = outrider$geneID[outrider$sampleID==sample & outrider$pValue < outrider_pvalue]
+    hpo_genes$outrider = hpo_genes$outrider[!is.na(hpo_genes$outrider)]    
+  }
+  
+  #add fraser
+  if(!is.null(dim(fraser))) {
+    hpo_genes$fraser = fraser$hgncSymbol[fraser$sampleID==sample & fraser$padjust < fraser_padjust]
+    hpo_genes$fraser = hpo_genes$fraser[!is.na(hpo_genes$fraser)]    
+  }
+  
+  #add custom
+  if(!is.null(dim(custom_genes))) {
+    hpo_genes$custom_genes = custom_genes[,1]
+  }
+  
+  #generate a big table stating which gene is listed where.
+  all_genes = unique(unlist(hpo_genes))
+  table = sapply(hpo_genes, function(x) all_genes %in% x)
+  table = as.data.frame(table)
+  rownames(table) = all_genes
+  table = data.frame(gene_score = rowSums(table),table, check.names = F)
+  table = table[order(table$gene_score,decreasing = T),]
+  table = table[,c(1,ncol(table):2)]*1
+
+  #return top hist
+  return(head(table,top))
 }
