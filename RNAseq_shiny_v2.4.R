@@ -20,7 +20,7 @@ fc_exons_raw = read.table(file.path(params$datadir,'fc_exons_raw.tsv'),sep = '\t
 fc_exons_tpm = read.table(file.path(params$datadir,'fc_exons_tpm.tsv'),sep = '\t',check.names = F)
 fc_genes_tpm = read.table(file.path(params$datadir,'fc_genes_tpm.tsv'),sep = '\t',check.names = F)
 
-gwOUTRIDER = read.csv(file.path(params$datadir,'results_OUTRIDER.tsv'),sep = '\t',check.names = F)
+gwOUTRIDER = read.csv(file.path(params$datadir,'gw_OUTRIDER.tsv'),sep = '\t',check.names = F)
 gwOUTRIDER$chr = factor(gwOUTRIDER$chr,levels = c(1:22,'X','Y','MT'))
 
 significant_perexons_OUTRIDER = read.csv(file.path(params$datadir,'exons_OUTRIDER.tsv'),sep = '\t',check.names = F)
@@ -185,14 +185,10 @@ ui <- page_fluid(
     tabPanel(
       "Gene Prioritization",
         card(card_header(strong("Gene prioritization")),
-             fileInput(
-               inputId = "custom_genes",
-               label = "Add custom gene list (.txt, optional)",
-               accept = c(".csv", ".tsv", ".txt")
-             ),
-             DTOutput("gp"))
+             DTOutput("gp"),height = "600px")
+             )
     ),
-    
+        
 
     ### Plot of Structural variation
     tabPanel("fasta",
@@ -548,14 +544,9 @@ server <- function(input, output, session) {
       })
 
     ### gene prioritization Table
-    custom_genes = reactive({
-      if(is.null(input$custom_genes)) {return("")}
-      read.table(input$custom_genes$datapath)
-      })
-    
     output$gp = renderDT({
-      datatable(gene_prioritization(sample = candidates$proband[i()],top=25,hpo_sample=clinical,hpo_all=file.path(params$datadir,'genes_to_phenotype.txt'),fraser=gwFRASER,outrider=gwOUTRIDER,custom_genes=custom_genes()),
-        rownames = T,options = list(columnDefs = list(list(className = 'dt-center', targets = "_all"))))
+      datatable(gene_prioritization(sample = candidates$proband[i()],top=100,hpo_sample=clinical,hpo_all=file.path(params$datadir,'genes_to_phenotype.txt'),fraser=gwFRASER,outrider=gwOUTRIDER,custom_genes=custom_genes()),
+        rownames = T,options = list(dom = 'p',columnDefs = list(list(className = 'dt-center', targets = "_all"))))
     })
     
     ### genome-wide OUTRIDER

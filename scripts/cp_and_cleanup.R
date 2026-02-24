@@ -12,7 +12,6 @@
 
   #cp the data dir and create a new one with current date
   dir.create(params$datadir,showWarnings = FALSE)
-  dir.create(paste0(params$datadir,'gene_statistics'),showWarnings = FALSE)  
   dir.create(paste0(params$datadir,'bams_subset'),showWarnings = FALSE)
 
   #res_dt FRASER genome-wide	
@@ -34,7 +33,7 @@
 
   #cp the scripts for backup
   cp_scripts = paste0('cp -r ', params$workdir,'/scripts ',params$datadir,'/.')
-  cp_info = paste0('cp ',paste0(params$workdir,c('/VERSION.json ','/CHANGELOG.md ', '/README.md ', '/RNAseq_shiny_v* ')),params$datadir,'/.')
+  cp_info = paste0('cp ',paste0(params$workdir,c('/VERSION.json ','/CHANGELOG.md ', '/README.md ', '/RNAseq_shiny_v* '),collapse = ''),params$datadir,'/.')
   system(cp_scripts);system(cp_info)
 
   #featureCounts (per gene and per exons)

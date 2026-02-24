@@ -1,3 +1,9 @@
+### 2026-02-24 - main
+
+**Fixed**
+* Minor changes to the info in the gen prior table
+* pass more info to the gw_OUTRIDER (min pvalue per exon and max zScore )
+
 ### 2026-02-20 - gene_prior
 
 **Changed**
