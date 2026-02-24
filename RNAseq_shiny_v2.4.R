@@ -186,7 +186,6 @@ ui <- page_fluid(
       "Gene Prioritization",
         card(card_header(strong("Gene prioritization")),
              DTOutput("gp"),height = "600px")
-             )
     ),
         
 
