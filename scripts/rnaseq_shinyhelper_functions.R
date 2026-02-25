@@ -240,7 +240,7 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
 gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clinical,hpo_all=file.path(params$datadir,'genes_to_phenotype.txt'),fraser="",outrider="",custom_genes=""){
   
   #hpo 
-  if(!file.exists(hpo_all)) {download.file(url='https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/genes_to_phenotype.txt',dest=file.path(hpo_all))} else {print(paste0('file ', hpo_all,'exists'))}
+  if(!file.exists(hpo_all)) {download.file(url='https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/genes_to_phenotype.txt',dest=file.path(hpo_all))} else {print(paste0('file ', hpo_all,' exists'))}
   if(!exists('hpo')) hpo = read.delim(hpo_all)
   
   #generate a named list that contains all the genes in all the HPO terms.    
@@ -259,14 +259,14 @@ gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clin
   if(!is.null(dim(outrider))) {
    outrider_temp = outrider[outrider$sampleID==sample,colnames(outrider) %in% c('geneID','pValue','zScore','exon_zScore','exon_pValue')]
    outrider_temp = outrider_temp[!is.na(outrider_temp$geneID),]    
-   colnames(outrider_temp) = c('geneID','OUTRIDER_pValue','OUTRIDER_zScore','OUTRIDER_exon_pValue','OUTRIDER_exon_zScore')
+   colnames(outrider_temp) = c('geneID','OUTRIDER gene pValue','OUTRIDER gene zScore','OUTRIDER exon pValue','OUTRIDER exon zScore')
   }
   
   #add fraser
   if(!is.null(dim(fraser))) {
     fraser_temp = fraser[fraser$sampleID==sample,colnames(fraser) %in% c('hgncSymbol','pValue')]
     fraser_temp = fraser_temp[!is.na(fraser_temp$hgncSymbol),]    
-    colnames(fraser_temp) = c('geneID','FRASER_pValue')
+    colnames(fraser_temp) = c('geneID','FRASER gene pValue')
     fraser_temp = fraser_temp[!duplicated(fraser_temp$geneID),]
   }
   
@@ -279,12 +279,13 @@ gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clin
   table = data.frame(gene_score = rowSums(table),table*1, check.names = F)
   table$geneID = all_genes
   table = merge(table,outlier_temp,by= 'geneID',all.x= T, sort=F)
-  table$OUTRIDER_pValue[is.na(table$OUTRIDER_pValue)] = 'ns'
-  table$OUTRIDER_zScore[is.na(table$OUTRIDER_zScore)] = 'ns'
-  table$OUTRIDER_exon_pValue[is.na(table$OUTRIDER_exon_pValue)] = 'ns'
-  table$OUTRIDER_exon_zScore[is.na(table$OUTRIDER_exon_zScore)] = 'ns'
-  table$FRASER_padjust[is.na(table$FRASER_padjust)] = 'ns'
+  table$`OUTRIDER gene pValue`[is.na(table$`OUTRIDER gene pValue`)] = 'ns'
+  table$`OUTRIDER gene zScore`[is.na(table$`OUTRIDER gene zScore`)] = 'ns'
+  table$`OUTRIDER exon pValue`[is.na(table$`OUTRIDER exon pValue`)] = 'ns'
+  table$`OUTRIDER exon zScore`[is.na(table$`OUTRIDER exon zScore`)] = 'ns'
+  table$`FRASER gene pValue`[is.na(table$`FRASER gene pValue`)] = 'ns'
   table = table[,c(1:2,ncol(table):3)]
+  table = table[,c(1,2,5,6,7,3,4,8:ncol(table))]
   table = table[order(table$gene_score,decreasing = T),]
  
 
