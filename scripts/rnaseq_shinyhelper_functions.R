@@ -242,19 +242,24 @@ gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clin
   #hpo 
   if(!file.exists(hpo_all)) {download.file(url='https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/genes_to_phenotype.txt',dest=file.path(hpo_all))} else {print(paste0('file ', hpo_all,' exists'))}
   if(!exists('hpo')) hpo = read.delim(hpo_all)
+
+  #unique hpo terms
+  hpo_un = hpo[!duplicated(hpo$hpo_name),]
+  hpo_un$hpo_name_shortened = substring(hpo_un$hpo_name,1,29)
+  hpo_un$hpo_name_shortened[nchar(hpo_un$hpo_name_shortened)!=nchar(hpo_un$hpo_name)] = paste0(hpo_un$hpo_name_shortened[nchar(hpo_un$hpo_name_shortened)!=nchar(hpo_un$hpo_name)],'.')
   
   #generate a named list that contains all the genes in all the HPO terms.    
   temp = strsplit(hpo_sample$`HPO terms`[hpo_sample$`Patient ID` == sample],split = '||',fixed = T)[[1]]
   temp = unlist(strsplit(temp,split = ': '))
   temp = temp[grepl('HP:',temp)]
 
-
   if(length(temp)>0) {
-  hpo_terms = gsub(' ','',temp)
-  hpo_genes = as.list(hpo_terms)
-  names(hpo_genes) = hpo_terms
-  for(h in 1:length(hpo_terms)){hpo_genes[[h]] = unique(hpo$gene_symbol[hpo$hpo_id == hpo_terms[h]])}} else hpo_genes = list(hp_NULL='none')
-  
+   temp = gsub(' ','',temp)
+   hpo_genes = as.list(temp)
+   hpo_terms = hpo_un[hpo_un$hpo_id %in% temp,]
+   names(hpo_genes) = paste0(hpo_terms$hpo_id," ",hpo_terms$hpo_name_shortened)
+   for(h in 1:length(hpo_genes)){hpo_genes[[h]] = unique(hpo$gene_symbol[hpo$hpo_id == hpo_terms[h,3]])}} else hpo_genes = list(hp_NULL='none')
+
   #add outrider
   if(!is.null(dim(outrider))) {
    outrider_temp = outrider[outrider$sampleID==sample,colnames(outrider) %in% c('geneID','pValue','zScore','exon_zScore','exon_pValue')]
@@ -276,7 +281,7 @@ gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clin
   #generate a big table stating which gene is listed where.
   all_genes = unique(unlist(hpo_genes))
   table = sapply(hpo_genes, function(x) all_genes %in% x)
-  table = data.frame(gene_score = rowSums(table),table*1, check.names = F)
+  table = data.frame('gene score' = rowSums(table),table*1, check.names = F)
   table$geneID = all_genes
   table = merge(table,outlier_temp,by= 'geneID',all.x= T, sort=F)
   table$`OUTRIDER gene pValue`[is.na(table$`OUTRIDER gene pValue`)] = 'ns'
@@ -286,7 +291,7 @@ gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clin
   table$`FRASER gene pValue`[is.na(table$`FRASER gene pValue`)] = 'ns'
   table = table[,c(1:2,ncol(table):3)]
   table = table[,c(1,2,5,6,7,3,4,8:ncol(table))]
-  table = table[order(table$gene_score,decreasing = T),]
+  table = table[order(table$`gene score`,decreasing = T),]
  
 
   #return top hist
