@@ -237,10 +237,14 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
 ###
 ###Generate a gene prioritisation data.frame based on gene lists (HPO, outrider, fraser) 
 ###
-gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clinical,hpo_all=file.path(params$datadir,'genes_to_phenotype.txt'),fraser="",outrider="",custom_genes=""){
+gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clinical,hpo_all='genes_to_phenotype.txt',fraser="",outrider="",custom_genes=""){
   
   #hpo 
-  if(!file.exists(hpo_all)) {download.file(url='https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/genes_to_phenotype.txt',dest=file.path(hpo_all))} else {print(paste0('file ', hpo_all,' exists'))}
+  hpo_all = file.path("temp",hpo_all)
+  if(!file.exists(hpo_all)) {
+        dir.create("temp",showWarnings = T)
+        download.file(url='https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/genes_to_phenotype.txt',dest=hpo_all)        
+        } else {print(paste0('file ', hpo_all,' exists'))}
   if(!exists('hpo')) hpo = read.delim(hpo_all)
 
   #unique hpo terms
