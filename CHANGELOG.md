@@ -1,3 +1,8 @@
+
+### 2026-02-26 - gene_prior_table
+**Fixed**
+* Added the HPO name to the table for gene_prior
+
 ### 2026-02-24 - main
 
 **Fixed**
