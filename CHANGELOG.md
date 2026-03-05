@@ -1,3 +1,8 @@
+### 2026-05-26
+
+**Changed***
+* Allele specific expression module
+
 
 ### 2026-02-26 - gene_prior_table
 **Fixed**
