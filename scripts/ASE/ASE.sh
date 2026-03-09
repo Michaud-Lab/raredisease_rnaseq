@@ -5,16 +5,13 @@
 REF="/home/renaut/scratch/reference/Homo_sapiens/Homo_sapiens.GRCh38.dna.toplevel.fa"
 GTF="/home/renaut/scratch/reference/Homo_sapiens/Homo_sapiens.GRCh38.114.gtf"
 BAM_DIR="/home/renaut/scratch/raredisease_rnaseq/ASE/bam_subset/"
+BAM_DIR="/home/renaut/scratch/raredisease_rnaseq/results_06_01_2026/star_salmon/"
+
 VCF_DIR="/home/renaut/scratch/raredisease_rnaseq/ASE/vcf_subset/"
 ASE="/home/renaut/scratch/raredisease_rnaseq/ASE/"
 
-THREADS=4
-
-samples=(HSJ_001_03_PAX HSJ_003_03_PAX HSJ_004_03_PAX HSJ_006_03_PAX HSJ_007_03_PAX HSJ_014_03_PAX HSJ_015_03_PAX HSJ_016_03_PAX HSJ_017_03_PAX HSJ_018_03_PAX HSJ_019_03_PAX)
-
 mkdir -p $ASE/temp/ase
 mkdir -p $ASE/temp/bed
-#mkdir -p $ASE/temp/matrix
 
 ############################
 # STEP 0
@@ -27,7 +24,7 @@ mkdir -p $ASE/temp/bed
 #gatk CreateSequenceDictionary -R Homo_sapiens.GRCh38.dna.toplevel.fa -O Homo_sapiens.GRCh38.dna.toplevel.dict
 #gatk IndexFeatureFile -I SNPs_16.vcf.gz 
 
-#merge vcf / drop genotypes / bi-allelic SNPs/ rename 'chr1' to '1'
+#merge vcf /  bi-allelic SNPs/ rename 'chr1' to '1'
 #bcftools merge p0*_chr16.vcf.gz -Oz | bcftools view -G -Oz | bcftools view -m2 -M2 -v snps -Oz | bcftools annotate --rename-chrs chr_map.txt -Oz -o biallelic_sites.vcf.gz
 
 #index
@@ -44,7 +41,7 @@ for s in $(cat ${ASE}/samples.txt);
   do
     gatk ASEReadCounter \
        -R $REF \
-       -I ${BAM_DIR}/${s}_sorted_chr16.bam \
+       -I ${BAM_DIR}/${s}_sorted.bam \
        -V ${VCF_DIR}/biallelic_sites.vcf.gz \
        -O ${ASE}/temp/ase/${s}.ase.tsv \
        --min-depth 4 \
@@ -81,9 +78,9 @@ awk '$3=="gene"' $GTF |
 awk 'BEGIN{OFS="\t"}{
 match($0,/gene_id "([^"]+)"/,a);
 print $1,$4-1,$5,a[1]
-}' > ${ASE}/temp/bed/genes.bed
+}' > ${ASE}/temp/bed/genes.BED
 
-sort -k1,1 -k2,2n ${ASE}/temp/bed/genes.bed > ${ASE}/temp/bed/genes.sorted.bed
+sort -k1,1 -k2,2n ${ASE}/temp/bed/genes.BED > ${ASE}/temp/bed/genes.sorted.BED
 
 echo "DONE ~~~ Extract genes from GTF"
 
@@ -105,7 +102,7 @@ echo "DONE ~~~ Merge all SNPs"
 bedtools intersect \
 -a ${ASE}/temp/bed/all_snps.sorted.BED \
 -b ${ASE}/temp/bed/genes.sorted.BED \
--wa -wb > ${ASE}/temp/bed/overlaps.tsv
+-wa -wb > ${ASE}/overlaps.tsv
 
 echo "DONE ~~~ Bedtools intersect"
 
@@ -131,17 +128,15 @@ for (k in refSum)
 split(k,a,SUBSEP)
 print a[1],a[2],refSum[k],altSum[k]
 }
-}' ${ASE}/temp/bed/overlaps.tsv > ${ASE}/temp/gene_counts.tsv
+}' ${ASE}/overlaps.tsv > ${ASE}/gene_counts.tsv
 
 
 echo "DONE ~~~ Aggregate counts per gene per sample"
-
-
 
 #####
 #Deseq2
 #####
 
-Rscript  ./ASE.R
+Rscript  ./ASE2.R ${ASE}/overlaps.tsv
 
 echo "Pipeline finished"

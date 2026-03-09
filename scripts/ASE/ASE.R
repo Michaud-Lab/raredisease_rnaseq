@@ -4,7 +4,7 @@ suppressMessages(suppressWarnings(library(DESeq2)))
 suppressMessages(suppressWarnings(library(dplyr)))
 suppressMessages(suppressWarnings(library(tidyr)))
 
-data <- read.table("../temp/gene_counts.tsv",header=FALSE)
+data <- read.table("/home/renaut/scratch/raredisease_rnaseq/ASE/overlaps.tsv",header=FALSE)
 
 colnames(data) <- c("sample","gene","ref","alt")
 
