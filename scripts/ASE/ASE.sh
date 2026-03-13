@@ -1,10 +1,9 @@
 ############################
 # INPUTS
 ############################
-
-REF="/home/renaut/scratch/reference/Homo_sapiens/Homo_sapiens.GRCh38.dna.toplevel.fa"
+REF="/home/renaut/scratch/reference/Homo_sapiens_autosomesXYMT/Homo_sapiens.GRCh38.dna.autosomesXYMT.fa"
 GTF="/home/renaut/scratch/reference/Homo_sapiens/Homo_sapiens.GRCh38.114.gtf"
-BAM_DIR="/home/renaut/scratch/raredisease_rnaseq/ASE/bam_subset/"
+#BAM_DIR="/home/renaut/scratch/raredisease_rnaseq/ASE/bam_subset/"
 BAM_DIR="/home/renaut/scratch/raredisease_rnaseq/results_06_01_2026/star_salmon/"
 
 VCF_DIR="/home/renaut/scratch/raredisease_rnaseq/ASE/vcf_subset/"
@@ -12,6 +11,7 @@ ASE="/home/renaut/scratch/raredisease_rnaseq/ASE/"
 
 mkdir -p $ASE/temp/ase
 mkdir -p $ASE/temp/bed
+mkdir -p $ASE/temp/plots
 
 ############################
 # STEP 0
@@ -24,32 +24,56 @@ mkdir -p $ASE/temp/bed
 #gatk CreateSequenceDictionary -R Homo_sapiens.GRCh38.dna.toplevel.fa -O Homo_sapiens.GRCh38.dna.toplevel.dict
 #gatk IndexFeatureFile -I SNPs_16.vcf.gz 
 
+#*joint.GRCh38.small_variants.phased.norm.slivar.vcf.gz 
+
+
 #merge vcf /  bi-allelic SNPs/ rename 'chr1' to '1'
-#bcftools merge p0*_chr16.vcf.gz -Oz | bcftools view -G -Oz | bcftools view -m2 -M2 -v snps -Oz | bcftools annotate --rename-chrs chr_map.txt -Oz -o biallelic_sites.vcf.gz
+#bcftools merge p0*_chr16.vcf.gz -Oz | bcftools view -Oz | bcftools view -m2 -M2 -v snps -Oz | bcftools annotate --rename-chrs ../chr_map.txt -Oz |  bcftools norm -d all -o biallelic_sites.vcf.gz
+if [ ! -f "${VCF_DIR}/biallelic_sites.vcf.gz" ]; then
+  bcftools merge ${VCF_DIR}/*joint*gz -Oz | bcftools view -Oz | bcftools view -m2 -M2 -v snps -Oz | bcftools annotate --rename-chrs ${ASE}/chr_map.txt -Oz |  bcftools norm -d all -o ${VCF_DIR}/biallelic_sites.vcf.gz
+  echo 'File'${VCF_DIR}'/biallelic_sites.vcf.gz does not exists. Lets create it'
+else
+  echo 'File'${VCF_DIR}'/biallelic_sites.vcf.gz already exists.'
+fi
+
 
 #index
-#gatk IndexFeatureFile -I biallelic_sites.vcf.gz
+gatk IndexFeatureFile -I ${VCF_DIR}/biallelic_sites.vcf.gz
 
 ############################
 # STEP 1
 # ASEReadCounter
 ############################
-
 echo "START ~~~ ASEReadCounter"
 
-for s in $(cat ${ASE}/samples.txt);
-  do
-    gatk ASEReadCounter \
-       -R $REF \
-       -I ${BAM_DIR}/${s}_sorted.bam \
-       -V ${VCF_DIR}/biallelic_sites.vcf.gz \
-       -O ${ASE}/temp/ase/${s}.ase.tsv \
-       --min-depth 4 \
-       --min-mapping-quality 20 \
-       --min-base-quality 10
+cat /home/renaut/scratch/raredisease_rnaseq/ASE/samples.txt | parallel -j 5 'gatk ASEReadCounter \
+-R /home/renaut/scratch/reference/Homo_sapiens_autosomesXYMT/Homo_sapiens.GRCh38.dna.autosomesXYMT.fa \
+-I /home/renaut/scratch/raredisease_rnaseq/results_06_01_2026/star_salmon/{}_sorted.bam \
+-V /home/renaut/scratch/raredisease_rnaseq/ASE/vcf_subset/biallelic_sites.vcf.gz \
+-O /home/renaut/scratch/raredisease_rnaseq/ASE/temp/ase/{}.ase.tsv \
+--java-options '-Xmx60G' \
+--max-depth-per-sample 1000 \
+--min-depth 20 \
+--min-mapping-quality 20 \
+--min-base-quality 10 \
+'
 
-   echo 'Done ~~~ '$s
- done
+
+#for s in $(cat ${ASE}/samples_small.txt);
+#  do
+#    gatk ASEReadCounter \
+#       -R $REF \
+#       -I ${BAM_DIR}/${s}_sorted.bam \
+#       -V ${VCF_DIR}/biallelic_sites.vcf.gz \
+#       -O ${ASE}/temp/ase/${s}.ase.tsv \
+#       --java-options '-Xmx100G' \
+#       --max-depth-per-sample 1000 \
+#       --min-depth 20 \
+#       --min-mapping-quality 20 \
+#       --min-base-quality 10
+#
+#   echo 'Done ~~~ '$s
+# done
 
 echo "DONE ~~~ ASE counting"
 
@@ -58,7 +82,7 @@ echo "DONE ~~~ ASE counting"
 # Convert ASE tables → BED
 ############################
 
-for s in $(cat ${ASE}/samples.txt);
+for s in $(cat ${ASE}/samples_small.txt);
   do
     awk -v sample=$s 'BEGIN{OFS="\t"}
     NR>1{
@@ -128,7 +152,7 @@ for (k in refSum)
 split(k,a,SUBSEP)
 print a[1],a[2],refSum[k],altSum[k]
 }
-}' ${ASE}/overlaps.tsv > ${ASE}/gene_counts.tsv
+}' ${ASE}/overlaps.tsv > ${ASE}/temp/gene_counts.tsv
 
 
 echo "DONE ~~~ Aggregate counts per gene per sample"
@@ -137,6 +161,6 @@ echo "DONE ~~~ Aggregate counts per gene per sample"
 #Deseq2
 #####
 
-Rscript  ./ASE2.R ${ASE}/overlaps.tsv
+Rscript ./ASE2.R ${ASE}/overlaps.tsv ${VCF_DIR}/biallelic_sites.vcf.gz
 
 echo "Pipeline finished"
