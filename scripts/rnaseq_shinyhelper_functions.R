@@ -237,7 +237,7 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
 ###
 ###Generate a gene prioritisation data.frame based on gene lists (HPO, outrider, fraser) 
 ###
-gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clinical,hpo_all='genes_to_phenotype.txt',fraser="",outrider="",custom_genes=""){
+gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clinical,hpo_all='genes_to_phenotype.txt',fraser="",outrider=""){
   
   #hpo 
   hpo_all = file.path("temp",hpo_all)
@@ -295,6 +295,7 @@ gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clin
   table$`FRASER gene pValue`[is.na(table$`FRASER gene pValue`)] = 'ns'
   table = table[,c(1:2,ncol(table):3)]
   table = table[,c(1,2,5,6,7,3,4,8:ncol(table))]
+  table = table[table[,3] != 'ns' | table[,4] != 'ns' | table[,5] != 'ns' | table[,6] != 'ns' | table[,7] != 'ns',]
   table = table[order(table$`gene score`,decreasing = T),]
  
 
