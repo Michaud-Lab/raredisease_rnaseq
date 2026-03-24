@@ -12,7 +12,12 @@
 
   #cp the data dir and create a new one with current date
   dir.create(params$datadir,showWarnings = FALSE)
+  dir.create(paste0(params$datadir,'ASE'),showWarnings = FALSE)
   dir.create(paste0(params$datadir,'bams_subset'),showWarnings = FALSE)
+
+  #ASE
+  cp_ASE = paste0('cp ', params$workdir,'/ASE/ase_sign_table.tsv ',params$datadir,'/ASE/.')
+  system(cp_ASE)
 
   #res_dt FRASER genome-wide	
   chrs = list.files(file.path(params$workdir,'FRASER/bams_chr_subset/'),full.names = T)
