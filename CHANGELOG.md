@@ -3,6 +3,9 @@
 **Changed***
 * Allele specific expression module
 
+### 2026-03-16 - gene_prior
+**Fixed**
+* Gene prior table fix & update to logic.
 
 ### 2026-02-26 - gene_prior_table
 **Fixed**

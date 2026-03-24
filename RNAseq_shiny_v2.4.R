@@ -544,8 +544,8 @@ server <- function(input, output, session) {
 
     ### gene prioritization Table
     output$gp = renderDT({
-      datatable(gene_prioritization(sample = candidates$proband[i()],top=100,hpo_sample=clinical,hpo_all='genes_to_phenotype.txt',fraser=gwFRASER,outrider=gwOUTRIDER,custom_genes=custom_genes()),
-        rownames = T,options = list(dom = 'p',pageLength = 100,columnDefs = list(list(className = 'dt-center', targets = "_all"))))
+      datatable(gene_prioritization(sample = candidates$proband[i()],top=100,hpo_sample=clinical,hpo_all='genes_to_phenotype.txt',fraser=gwFRASER,outrider=gwOUTRIDER),
+        rownames = T,options = list(dom = 'p',columnDefs = list(list(className = 'dt-center', targets = "_all"))))
     })
     
     ### genome-wide OUTRIDER
