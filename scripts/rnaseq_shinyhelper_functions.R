@@ -9,9 +9,9 @@ plotting_coverage = function(candidate = candidates,
                              xlims = c(10,100),
                              gene_annotations='gene_annotations') {
 
-if(candidate$geneID != ""){
+if(candidate$geneID != "" & file.exists(res_dt_candidate_gene_file) && R.utils::countLines(res_dt_candidate_gene_file)>1){
 
-print(paste0('Defined zoom limits: ', xlims[1],' --- ',xlims[2], ' Kb'))
+print(paste0('Defining zoom limits: ', xlims[1],' --- ',xlims[2], ' Kb'))
       
 #colmean 
 colmean_genes_counts = read.table(colmean_genes_counts_file) 
@@ -58,7 +58,7 @@ wh = wh[wh$gene_id == candidate$ensembl,]
       theme(legend.position = 'none',plot.title = element_text(size = 24),axis.title = element_text(size = 18),axis.text = element_text(size = 14))
     
     #plots
-    if(file.exists(res_dt_candidate_gene_file)) {
+    if(file.exists(res_dt_candidate_gene_file) && R.utils::countLines(res_dt_candidate_gene_file)>1) {    
     res_dt_candidate_gene = read.csv(res_dt_candidate_gene_file,row.names = 1)
     res_dt_candidate_gene$mean = res_dt_candidate_gene$mean/1000
     res_dt_candidate_gene$start = res_dt_candidate_gene$start/1000
@@ -96,6 +96,7 @@ wh = wh[wh$gene_id == candidate$ensembl,]
     }
     
     #depth
+    if(file.exists(depth_file) && R.utils::countLines(depth_file)>1) {
     depth = read.table(depth_file, header = T, check.names = F,comment.char= '')
     depth$POS = depth$POS / 1000
     colmean_genes_counts = colmean_genes_counts
@@ -123,7 +124,9 @@ wh = wh[wh$gene_id == candidate$ensembl,]
       ylab('Normalised coverage') +
       xlab(paste0('Chromosome ',merged_exons_df[1,1], ' (Kb)')) +
       ggtitle('Coverage (proband in black, 25-75th reference percentiles in orange)') +
-      theme(plot.title = element_text(size = 24),axis.title = element_text(size = 18),axis.text = element_text(size = 14))
+      theme(plot.title = element_text(size = 24),axis.title = element_text(size = 18),axis.text = element_text(size = 14))} else {
+        plotCov_v2 = ggplot() + geom_blank()
+      }
     
   #list outputs
   output = list(list((candidate_gene_model/signif/plotCov_v2) + plot_layout(heights = c(1,1,3))))
