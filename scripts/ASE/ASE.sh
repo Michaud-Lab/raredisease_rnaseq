@@ -6,7 +6,7 @@ GTF="/home/renaut/scratch/reference/Homo_sapiens/Homo_sapiens.GRCh38.114.gtf"
 #BAM_DIR="/home/renaut/scratch/raredisease_rnaseq/ASE/bam_subset/"
 BAM_DIR="/home/renaut/scratch/raredisease_rnaseq/results_06_01_2026/star_salmon/"
 
-VCF_DIR="/home/renaut/scratch/raredisease_rnaseq/ASE/vcf_subset/"
+VCF_DIR="/home/renaut/scratch/raredisease_rnaseq/ASE/vcf/"
 ASE="/home/renaut/scratch/raredisease_rnaseq/ASE/"
 
 mkdir -p $ASE/temp/ase
@@ -26,11 +26,18 @@ mkdir -p $ASE/temp/plots
 
 #*joint.GRCh38.small_variants.phased.norm.slivar.vcf.gz 
 
+for vcf_file in ${VCF_DIR}/*slivar.vcf.gz
+  do
+    bcftools view -m2 -M2 -v snps --force-samples -e 'GT="mis"' -s ^samples_to_keep.txt -Oz ${vcf_file} | \
+    bcftools annotate --rename-chrs ${ASE}/chr_map.txt -Oz | \
+    bcftools norm -d all -O b -o ${vcf_file}.temp
+  done
 
 #merge vcf /  bi-allelic SNPs/ rename 'chr1' to '1'
 #bcftools merge p0*_chr16.vcf.gz -Oz | bcftools view -Oz | bcftools view -m2 -M2 -v snps -Oz | bcftools annotate --rename-chrs ../chr_map.txt -Oz |  bcftools norm -d all -o biallelic_sites.vcf.gz
 if [ ! -f "${VCF_DIR}/biallelic_sites.vcf.gz" ]; then
-  bcftools merge ${VCF_DIR}/*joint*gz -Oz | bcftools view -Oz | bcftools view -m2 -M2 -v snps -Oz | bcftools annotate --rename-chrs ${ASE}/chr_map.txt -Oz |  bcftools norm -d all -o ${VCF_DIR}/biallelic_sites.vcf.gz
+  #bcftools merge ${VCF_DIR}/*joint*gz -Oz | bcftools view -Oz | bcftools view -m2 -M2 -v snps -Oz | bcftools annotate --rename-chrs ${ASE}/chr_map.txt -Oz |  bcftools norm -d all -o ${VCF_DIR}/biallelic_sites.vcf.gz
+  bcftools merge ${VCF_DIR}/*temp -Oz -o ${VCF_DIR}/biallelic_sites.vcf.gz
   echo 'File'${VCF_DIR}'/biallelic_sites.vcf.gz does not exists. Lets create it'
 else
   echo 'File'${VCF_DIR}'/biallelic_sites.vcf.gz already exists.'

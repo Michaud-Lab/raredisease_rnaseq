@@ -1,8 +1,6 @@
 ########################################
 # ASE analysis from ASEReadCounter files
 ########################################
-
-
 library(dplyr)
 library(tidyr)
 library(DESeq2)
@@ -20,14 +18,14 @@ params = list(overlap = args[1])
 params$vcf = args[2]
 params$workdir = dirname(params$overlap)
 ase <- read.table(params$overlap,header=FALSE)
-colnames(ase) <- c("SNPchr","SNPstart","POS","sample",'ref','alt','chr','START','STOP','ensemblID')
+colnames(ase) <- c("SNPchr","SNPstart","POS","sampleID",'ref','alt','chr','START','STOP','ensemblID')
 
-ase$sample_vcf = gsub('_PAX','',ase$sample)
+ase$sample_vcf = gsub('_PAX','',ase$sampleID)
 ase$POS = as.character(ase$POS)
 ase$binom_pval = NA
 
 ase <- ase %>%
-  mutate(total = ref + alt, ref_fraction_observed = ref / total)
+  mutate(total = ref + alt, REF_observed = signif(ref / total,4))
 
 #get the actual chromosome names from the ase file
 aes_rle = rle(ase$SNPchr)
@@ -54,7 +52,7 @@ names(vcf_per_chr) = aes_rle$values
 ########################################
 # 3. Calculate expected count and do a binomial test for the 0.5 HET variants.
 ########################################
-ase$ref_fraction_expected = 1
+ase$REF_expected = 1
 
 for(i in 1:nrow(ase)){
   #temp vcf file per chromosome and genotype
@@ -63,24 +61,24 @@ for(i in 1:nrow(ase)){
 
   if(length(temp_geno) > 0) {
     geno = strsplit(temp_geno, ':')[[1]][1]
-    if(geno == ".|." | geno == "./.") ase$ref_fraction_expected[i] = 1 #missing so ref
+    if(geno == ".|." | geno == "./.") ase$REF_expected[i] = 1 #missing so ref
     
-    if(geno == "0|0" | geno == "0/0") ase$ref_fraction_expected[i] = 1 #homo ref
+    if(geno == "0|0" | geno == "0/0") ase$REF_expected[i] = 1 #homo ref
     
     if(geno == "0|1" | geno == "0/1" | geno == "1|0" | geno == "1/0" ) {
-      ase$ref_fraction_expected[i] = 0.5 #het
-      ase$binom_pval[i] = binom.test(ase$ref[i],ase$total[i], p=0.5)$p.value} #binomial test for ASE
+      ase$REF_expected[i] = 0.5 #het
+      ase$binom_pval[i] = signif(binom.test(ase$ref[i],ase$total[i], p=0.5)$p.value,4)} #binomial test for ASE
 
-    if(geno == "1|1" | geno == "1/1") ase$ref_fraction_expected[i] = 0 #homo alt
+    if(geno == "1|1" | geno == "1/1") ase$REF_expected[i] = 0 #homo alt
     
-    } else ase$ref_fraction_expected[i] = NA #sample not present in the .vcf
+    } else ase$REF_expected[i] = NA #sample not present in the .vcf
   
   if (i %% 10000 == 0) print(paste0('Done ',i,' of ',nrow(ase), ' ~~~ Time is: ',Sys.time()))
 }
 
 #filter results.
-ase_signif = ase[!is.na(ase$ref_fraction_expected),]
-ase_signif = ase_signif[ase_signif$ref_fraction_expected == 0.5,]
+ase_signif = ase[!is.na(ase$REF_expected),]
+ase_signif = ase_signif[ase_signif$REF_expected == 0.5,]
 ase_signif = ase_signif[ase_signif$binom_pval<0.05,]
 
 ########################################
@@ -105,7 +103,9 @@ map$chr = gsub('chr','',map$chr)
 # 5. Save
 ########################################
 signif_map = merge(ase_signif,map,by = 'ensemblID',all.x = T)
-signif_map_ASE = signif_map[,c(1,17,2,4,5,6,7,14,15,12)]
+signif_map_ASE = signif_map[,c(5,17,1,2,4,6,7,14,15,12)]
+colnames(signif_map_ASE)[4] = 'chr'
+
 write.table(signif_map_ASE, file.path(params$workdir,"ase_sign_table.tsv"))
 
 
