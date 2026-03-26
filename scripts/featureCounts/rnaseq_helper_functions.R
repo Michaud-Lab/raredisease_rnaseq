@@ -25,8 +25,8 @@ gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcript
                 ensembl_id = genes$ensembl_gene_id)
   
   # Preview result
-  wh = gr[gr$symbol %in% candidates$geneID]
-  wh = wh[wh@seqnames@values %in% paste0('chr',candidates$chromosome),]
+  wh = gr[gr$symbol %in% candidates$geneID[candidates$geneID !=""]]
+  wh = wh[wh@seqnames %in% paste0('chr',candidates$chromosome),]
 
   #genemodel
   exons_df <- getBM(

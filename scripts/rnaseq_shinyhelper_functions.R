@@ -9,7 +9,7 @@ plotting_coverage = function(candidate = candidates,
                              xlims = c(10,100),
                              gene_annotations='gene_annotations') {
 
-if(candidate$geneID != "" & file.exists(res_dt_candidate_gene_file) && R.utils::countLines(res_dt_candidate_gene_file)>1){
+if(candidate$geneID != "" & file.exists(res_dt_candidate_gene_file)){
 
 print(paste0('Defining zoom limits: ', xlims[1],' --- ',xlims[2], ' Kb'))
       
@@ -181,7 +181,7 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
     group_by(chr) %>% 
     summarise(chr_len=max(end)) %>%
     mutate(tot=cumsum(as.numeric(chr_len))-as.numeric(chr_len)) %>%
-    select(-chr_len) 
+    dplyr::select(-chr_len) 
   
   #Add this info to the initial dataset
   results_subset_forggplot = chr_size %>% 

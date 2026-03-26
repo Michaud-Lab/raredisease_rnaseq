@@ -20,7 +20,7 @@ count=$((temp - 1))
 
 #R script launches the bash script to prepare data (i.e. subset the big bam files) and continues with FRASER analysis and plots.
 #Can add new genes specified in candidate_genes_3.txt to the for loop below:
-for i in $(seq 124 $count); do
+for i in $(seq 89 90); do
   Rscript fraser.R $i $workdir
   echo $i
 done

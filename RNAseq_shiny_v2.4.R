@@ -2,7 +2,7 @@
 params = list(datadir = file.path(getwd(),'data/')) 
 
 # R libraries that you need
-packages = c('DT','plotly','tidyr','shiny','shinyjs','jsonlite','igvShiny','GenomicAlignments','dplyr','ggtranscript','patchwork','Hmisc','bslib','RColorBrewer','ggrepel')
+packages = c('DT','plotly','tidyr','shiny','shinyjs','jsonlite','igvShiny','GenomicAlignments','dplyr','ggtranscript','patchwork','Hmisc','bslib','RColorBrewer','ggrepel','R.utils')
 
 for(p in 1:length(packages)) {
   if(packages[p] %in% installed.packages()) {

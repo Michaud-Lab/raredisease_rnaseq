@@ -1,6 +1,12 @@
 ### 2026-05-26
 
 **Changed***
+* Bug fixes. Mainly due to MT genes. 
+
+
+### 2026-05-24
+
+**Changed***
 * Allele specific expression module
 
 ### 2026-03-16 - gene_prior

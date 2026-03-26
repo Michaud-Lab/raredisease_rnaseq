@@ -50,6 +50,9 @@ transcripts_summed = fc_exons %>% group_by(ensemblID,transcriptID) %>% summarise
 #keep the MANE instead of the longest gene. 
 MANE = read.table(paste0(params$FCdir,"/MANE.tsv"))
 MANE = rbind(MANE,c(7,"ENST00000374555")) #MDS2 not in MANE because it is a lncRNA. But we still have exon data fot it, so lets add it.
+MT = fc_exons$transcriptID[fc_exons$Chr == 'MT']
+MANE = rbind(MANE,data.frame(V1 = rep(1,length(MT)),V2 = MT)) #add the MT genes
+
 fc_exons = fc_exons[fc_exons$transcriptID %in% MANE[,2],]
 
 #clean up
@@ -99,12 +102,13 @@ fc_genes_tpm[,-c(1:3)] =  round(fc_genes_tpm[,-c(1:3)],2)
 fc_genes_tpm = fc_genes_tpm[,colnames(fc_genes_tpm) %in% c('geneID','ensemblID','exonID','Length',clinical$`Patient ID`[clinical$type =='Proband'])] #filter ONLY patients of interest
 fc_genes_raw = fc_genes_raw[,colnames(fc_genes_raw) %in% c('geneID','ensemblID','exonID','Length',clinical$`Patient ID`[clinical$type =='Proband'])] #filter ONLY patients of interest
 
-fc_genes_tpm = fc_genes_tpm[fc_genes_tpm$geneID %in% candidates$geneID, ] #filter ONLY genes of interest
-fc_genes_raw = fc_genes_raw[fc_genes_raw$geneID %in% candidates$geneID, ] #filter ONLY genes of interest
-
 colnames(fc_genes_raw) = gsub('_PAX','',colnames(fc_genes_raw))
 colnames(fc_genes_tpm) = gsub('_PAX','',colnames(fc_genes_tpm))
 
+write.table(fc_genes_raw,file.path(params$FCdir,'fc_genes_raw_ALL.tsv'),sep = '\t',quote = F)
+
+fc_genes_tpm = fc_genes_tpm[fc_genes_tpm$geneID %in% candidates$geneID, ] #filter ONLY genes of interest
+fc_genes_raw = fc_genes_raw[fc_genes_raw$geneID %in% candidates$geneID, ] #filter ONLY genes of interest
 
 #gene annotation
 source(file.path(params$workdir,'scripts/featureCounts/rnaseq_helper_functions.R'))
