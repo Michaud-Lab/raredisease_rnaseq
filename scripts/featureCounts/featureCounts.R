@@ -49,9 +49,12 @@ transcripts_summed = fc_exons %>% group_by(ensemblID,transcriptID) %>% summarise
 
 #keep the MANE instead of the longest gene. 
 MANE = read.table(paste0(params$FCdir,"/MANE.tsv"))
+MANE = MANE %>% group_by(V2) %>% slice_max(V1, n = 1, with_ties = FALSE)
+MANE = as.data.frame(MANE[,c(1,3)])
+
 MANE = rbind(MANE,c(7,"ENST00000374555")) #MDS2 not in MANE because it is a lncRNA. But we still have exon data fot it, so lets add it.
 MT = fc_exons$transcriptID[fc_exons$Chr == 'MT']
-MANE = rbind(MANE,data.frame(V1 = rep(1,length(MT)),V2 = MT)) #add the MT genes
+MANE = rbind(MANE,data.frame(V1 = rep(1,length(MT)),V3 = MT)) #add the MT genes
 
 fc_exons = fc_exons[fc_exons$transcriptID %in% MANE[,2],]
 

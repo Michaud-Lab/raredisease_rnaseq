@@ -35,7 +35,7 @@ fi
 
 #get the MANE
 if [ ! -f "$workdir/featureCounts/MANE.tsv" ]; then
-  awk '{print $14}' $MANE | grep 'Ensembl:ENST' | awk '{gsub(/Ensembl:|;|\.[0-9]+/,""); print}'| uniq -c >$workdir/featureCounts/MANE.tsv
+   awk '{print $10,$14}' $MANE | grep 'Ensembl:ENST' | awk '{gsub(/Ensembl:|;|\.[0-9]+/,""); print}'| uniq -c >$workdir/featureCounts/MANE.tsv
 else
   echo "~~~ File $workdir/featureCounts/MANE.tsv already exists. No action taken ~~~"
 fi

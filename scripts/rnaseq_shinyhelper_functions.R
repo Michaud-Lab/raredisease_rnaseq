@@ -63,6 +63,11 @@ wh = wh[wh$gene_id == candidate$ensembl,]
     res_dt_candidate_gene$mean = res_dt_candidate_gene$mean/1000
     res_dt_candidate_gene$start = res_dt_candidate_gene$start/1000
     res_dt_candidate_gene$end = res_dt_candidate_gene$end/1000
+
+    #min pvalue and max deltaPSI in region of interest.
+    temp = res_dt_candidate_gene[res_dt_candidate_gene$mean >= xlims[1] & res_dt_candidate_gene$mean <= xlims[2], ]
+    pval = signif(min(temp$pValue),2)
+    deltaPSI = temp$deltaPsi[abs(temp$deltaPsi) == max(abs(temp$deltaPsi))]  
       
     signif = ggplot(res_dt_candidate_gene,aes(x = mean, y = minuslogpval,color = minuslogpval)) +
       geom_point() +
@@ -71,7 +76,7 @@ wh = wh[wh$gene_id == candidate$ensembl,]
       ylab(bquote(-log[10]~(italic(p-value)))) +
       xlab(paste0('Chromosome ',merged_exons_df[1,1],' (Kb)')) +    
       scale_color_continuous(palette = c('black','red')) +
-      ggtitle('Aberrant splicing') +
+      ggtitle(paste0('Aberrant splicing (min. pvalue = ',pval,', max deltaPSI = ',deltaPSI,')')) +
       theme(legend.position = 'none',plot.title = element_text(size = 24),axis.title = element_text(size = 18),axis.text = element_text(size = 14))
     
     
@@ -87,7 +92,7 @@ wh = wh[wh$gene_id == candidate$ensembl,]
           ylab(bquote(-log[10]~(italic(p-value))))+
           scale_color_continuous(palette = c('black','red'),limits = c(0,max(res_dt_candidate_gene$minuslogpval))) +
           xlab(paste0('Chromosome ',merged_exons_df[1,1],' (Kb)')) +
-          ggtitle('Aberrant splicing (regions)') +
+          ggtitle(paste0('Aberrant splicing (min. p-value = ',pval,', max. deltaPSI = ',deltaPSI,')')) +
           theme(legend.position = 'none',plot.title = element_text(size = 24),axis.title = element_text(size = 18),axis.text = element_text(size = 14))
       } 
     } else {
@@ -240,7 +245,7 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
 ###
 ###Generate a gene prioritisation data.frame based on gene lists (HPO, outrider, fraser) 
 ###
-gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clinical,hpo_all='genes_to_phenotype.txt',fraser="",outrider=""){
+gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clinical,hpo_all='genes_to_phenotype.txt',fraser="",outrider="",geneprior_rm = "gene score"){
   
   #hpo 
   hpo_all = file.path("temp",hpo_all)
@@ -291,16 +296,16 @@ gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clin
   table = data.frame('gene score' = rowSums(table),table*1, check.names = F)
   table$geneID = all_genes
   table = merge(table,outlier_temp,by= 'geneID',all.x= T, sort=F)
-  table$`OUTRIDER gene pValue`[is.na(table$`OUTRIDER gene pValue`)] = 'ns'
-  table$`OUTRIDER gene zScore`[is.na(table$`OUTRIDER gene zScore`)] = 'ns'
-  table$`OUTRIDER exon pValue`[is.na(table$`OUTRIDER exon pValue`)] = 'ns'
-  table$`OUTRIDER exon zScore`[is.na(table$`OUTRIDER exon zScore`)] = 'ns'
-  table$`FRASER gene pValue`[is.na(table$`FRASER gene pValue`)] = 'ns'
+  table$`OUTRIDER gene pValue`[is.na(table$`OUTRIDER gene pValue`)] = NA
+  table$`OUTRIDER gene zScore`[is.na(table$`OUTRIDER gene zScore`)] = NA
+  table$`OUTRIDER exon pValue`[is.na(table$`OUTRIDER exon pValue`)] = NA
+  table$`OUTRIDER exon zScore`[is.na(table$`OUTRIDER exon zScore`)] = NA
+  table$`FRASER gene pValue`[is.na(table$`FRASER gene pValue`)] = NA
   table = table[,c(1:2,ncol(table):3)]
   table = table[,c(1,2,5,6,7,3,4,8:ncol(table))]
-  table = table[table[,3] != 'ns' | table[,4] != 'ns' | table[,5] != 'ns' | table[,6] != 'ns' | table[,7] != 'ns',]
+  table = table[!is.na(table[,3]) | !is.na(table[,4]) | !is.na(table[,5]) | !is.na(table[,6]) | !is.na(table[,7]),]
   table = table[order(table$`gene score`,decreasing = T),]
- 
+  table = table[!is.na(table[,colnames(table) == geneprior_rm]),]
 
   #return top hist
   return(head(table,top))

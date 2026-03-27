@@ -1,11 +1,13 @@
-### 2026-05-26
+### 2026-03_27 bugfixes_FT_dataviz
+**Fixed**
+* Bug fix to MANE (duplicates can exist)
+* geneoprior table, FRASER stats
 
+### 2026-03-26
 **Changed***
 * Bug fixes. Mainly due to MT genes. 
 
-
-### 2026-05-24
-
+### 2026-03-24
 **Changed***
 * Allele specific expression module
 
