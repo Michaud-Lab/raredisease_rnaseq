@@ -185,6 +185,9 @@ ui <- page_fluid(
     tabPanel(
       "Gene Prioritization",
         card(card_header(strong("Gene prioritization")),
+	     selectInput("geneprior_rm", "Remove missing data in column:",
+                         choices = c('gene score','OUTRIDER gene zScore','OUTRIDER gene pValue','FRASER gene pValue','OUTRIDER exon zScore','OUTRIDER exon pValue'),
+                         selected = 'gene score'),
              DTOutput("gp"),height = "600px")
     ),
         
@@ -469,7 +472,7 @@ server <- function(input, output, session) {
       HTML(
         paste0("<span><b>Figure 2:</b> Visualisation des altérations d’épissage détectées par l'outil FRASER.
         <br><b>A:</b> Carte des introns/exons du gène ",candidates$geneID[i()]," et localisation du/des variant.s (ligne bleue pointillée).
-        <br><b>B:</b> Évènements d’épissage aberrant pour chaque région détectée (−log₁₀ p-value).
+        <br><b>B:</b> Évènements d’épissage aberrant pour chaque région détectée (−log₁₀ p-value, min. p-value: pvaleur la plus basse dans la région couverte, max. deltaPSI: proportion d'épissage observé moins attendu).
         <br><b>C:</b>  Couverture de séquençage normalisée pour le probant ainsi que 25-75ième percentile de la population de référence (en orange).</span>")
         )
       })
@@ -544,8 +547,8 @@ server <- function(input, output, session) {
 
     ### gene prioritization Table
     output$gp = renderDT({
-      datatable(gene_prioritization(sample = candidates$proband[i()],top=100,hpo_sample=clinical,hpo_all='genes_to_phenotype.txt',fraser=gwFRASER,outrider=gwOUTRIDER),
-        rownames = T,options = list(dom = 'p',columnDefs = list(list(className = 'dt-center', targets = "_all"))))
+      datatable(gene_prioritization(sample = candidates$proband[i()],top=100,hpo_sample=clinical,hpo_all='genes_to_phenotype.txt',fraser=gwFRASER,outrider=gwOUTRIDER,geneprior_rm = input$geneprior_rm)),
+        rownames = T,options = list(pageLength = 100,columnDefs = list(list(className = 'dt-center', targets = "_all"))))
     })
     
     ### genome-wide OUTRIDER

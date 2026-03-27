@@ -22,5 +22,5 @@ read fc_exons fc_genes cpu genome_in genome_out bamdir MANE ens_gene masterlog  
 
 #run
 ./featureCounts.sh $cpu $genome_in $genome_out $bamdir $workdir $MANE $candidate_genes $ens_gene $masterlog $fc_exons $fc_genes
-echo 'Done featureCounts.sh'
+#echo 'Done featureCounts.sh'
 
