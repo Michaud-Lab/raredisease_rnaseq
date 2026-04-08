@@ -1,3 +1,10 @@
+### 2026-03_27 geneeprior_download
+**Changed**
+* Added a button to download gene prior table.
+
+**Fixed**
+* Bug fix edge cases
+
 ### 2026-03_27 bugfixes_FT_dataviz
 **Fixed**
 * Bug fix to MANE (duplicates can exist)

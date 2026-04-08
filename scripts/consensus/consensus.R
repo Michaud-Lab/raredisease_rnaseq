@@ -78,8 +78,10 @@ if(is.na(mean_exonic_depth)) mean_exonic_depth = 0
 #code the retention event if the whole intron is expressed at more than 30% the exon level..
 variant_annotated$retention_event = 0
 
-for(r in 1:nrow(mean_intronic_depth)){
-    if(mean_intronic_depth$mean[r] > (mean_exonic_depth*0.3) ) variant_annotated$retention_event[variant_annotated$exon == mean_intronic_depth$exon[r]] = 1
+if(nrow(mean_intronic_depth) > 0) {
+  for(r in 1:nrow(mean_intronic_depth)){
+      if(mean_intronic_depth$mean[r] > (mean_exonic_depth*0.3) ) variant_annotated$retention_event[variant_annotated$exon == mean_intronic_depth$exon[r]] = 1
+  }
 }
 
 #tolower the retention and the SNPs / '---' the retention in the reference

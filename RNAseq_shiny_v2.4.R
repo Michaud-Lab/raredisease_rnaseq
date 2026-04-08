@@ -2,7 +2,7 @@
 params = list(datadir = file.path(getwd(),'data/')) 
 
 # R libraries that you need
-packages = c('DT','plotly','tidyr','shiny','shinyjs','jsonlite','igvShiny','GenomicAlignments','dplyr','ggtranscript','patchwork','Hmisc','bslib','RColorBrewer','ggrepel','R.utils')
+packages = c('DT','plotly','tidyr','shiny','shinyjs','jsonlite','igvShiny','GenomicAlignments','dplyr','ggtranscript','patchwork','Hmisc','bslib','RColorBrewer','ggrepel','R.utils','logger')
 
 for(p in 1:length(packages)) {
   if(packages[p] %in% installed.packages()) {
@@ -185,6 +185,7 @@ ui <- page_fluid(
     tabPanel(
       "Gene Prioritization",
         card(card_header(strong("Gene prioritization")),
+             downloadButton("gp_download", "Download CSV"), 
 	     selectInput("geneprior_rm", "Remove missing data in column:",
                          choices = c('gene score','OUTRIDER gene zScore','OUTRIDER gene pValue','FRASER gene pValue','OUTRIDER exon zScore','OUTRIDER exon pValue'),
                          selected = 'gene score'),
@@ -454,7 +455,7 @@ server <- function(input, output, session) {
     
     ### Description
     output$description <- renderUI({
-      print(paste0('Selecting ~~~ ',input$proband,' ~~~ ',input$gene_selection,' ~~~ ',i()))
+      log_info(paste0('Selecting ~~~ ',input$proband,' ~~~ ',input$gene_selection,' ~~~ ',i()))
       selected_ensembl <- candidates$ensembl[i()]
       selected_geneID <- candidates$geneID[i()]
       url = paste0("https://www.proteinatlas.org/", selected_ensembl)
@@ -545,11 +546,22 @@ server <- function(input, output, session) {
       genemodel
       })
 
+    #reactive gene_prioritization_data
+    gene_prioritization_data <- reactive({
+      gene_prioritization(sample = candidates$proband[i()],top=100,hpo_sample=clinical,hpo_all='genes_to_phenotype.txt',fraser=gwFRASER,outrider=gwOUTRIDER,geneprior_rm = input$geneprior_rm)
+    })
+    
     ### gene prioritization Table
     output$gp = renderDT({
-      datatable(gene_prioritization(sample = candidates$proband[i()],top=100,hpo_sample=clinical,hpo_all='genes_to_phenotype.txt',fraser=gwFRASER,outrider=gwOUTRIDER,geneprior_rm = input$geneprior_rm)),
+      datatable(gene_prioritization_data(),
         rownames = T,options = list(pageLength = 100,columnDefs = list(list(className = 'dt-center', targets = "_all"))))
     })
+    
+    ### DOWNLOAD gene prioritization Table
+    output$gp_download <- downloadHandler(
+      filename = function() {paste0("gene_prioritization_", candidates$geneID[i()],'_',candidates$proband[i()], ".csv")},
+      content = function(file) {write.csv(gene_prioritization_data(),file,row.names = F)}
+    )
     
     ### genome-wide OUTRIDER
     output$gwOUTRIDER = renderPlot({

@@ -32,7 +32,7 @@ ref_annot=$HOME/$ref_annot
 
 #R script launches the bash script to annotated variant file and continues with consensus.R to produce the reference sequence.
 #Can add new genes here too.
-for i in $(seq 85 $count); do
+for i in $(seq 1 $count); do
   Rscript consensus.R $i $workdir $candidate_genes $fc_exons $ref_file $ref_annot
 done
 
