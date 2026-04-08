@@ -26,10 +26,10 @@ for bam_in in $rnasplice_bamdir/*sorted.bam
     ###Down sample region of interest if necessary
     nreads=$(samtools view -c $rnasplice_bamdir'HSJ_001_03_PAX_sorted.bam' $chromosome:$start-$stop)
 
-    if [ "$nreads" -gt 10000000 ]; then
-       echo "Very high coverage ($nreads reads) → 1%"
+    if [ "$nreads" -gt 2000000 ]; then
+       echo "Very high coverage ($nreads reads) → 0.1%"
        echo "$bam_in"
-       frac="0.01"
+       frac="0.001"
     elif [ "$nreads" -gt 1000000 ]; then
        echo "High coverage ($nreads reads) → 10%"
        echo "$bam_in"
@@ -87,4 +87,4 @@ samtools depth -H -a $fraser_perregion/*sorted_chrN.bam -r chr$chromosome:$start
 
 #clean up
 rm -r $fraser_temp_bamdir
-echo 'DONE fraser.sh'
+echo 'DONE fraser.sh' $fraser_perregion

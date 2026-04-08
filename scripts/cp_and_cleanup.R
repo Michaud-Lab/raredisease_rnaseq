@@ -37,7 +37,7 @@
   write.csv(gwFRASER,file.path(params$datadir,'gwFRASER.csv'))
 
   #cp the scripts for backup
-  cp_scripts = paste0('cp -r ', params$workdir,'/scripts ',params$datadir,'/.')
+  cp_scripts = paste0("rsync -av --exclude='.*' --exclude='slurm*' ",params$workdir,"/scripts ",params$datadir,"/.")
   cp_info = paste0('cp ',paste0(params$workdir,c('/VERSION.json ','/CHANGELOG.md ', '/README.md ', '/RNAseq_shiny_v* '),collapse = ''),params$datadir,'/.')
   system(cp_scripts);system(cp_info)
 
