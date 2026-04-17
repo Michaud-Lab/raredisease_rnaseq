@@ -14,12 +14,18 @@ params$ens_gene = args[3]
 params$masterlog = args[4]
 params$fc_exons = args[5]
 params$fc_genes = args[6]
+params$candidate_genes_LR = args[7]
 
 #Ensembl - GeneID correspondance file
 ensembl_geneid = read.table(params$ens_gene,header = T)
 
 #candidate genes
 candidates = read.csv(params$candidate_genes)
+candidates_LR = read.csv(params$candidate_genes_LR)
+candidates_LR = candidates_LR[,c(2,3,10,4,5,6,7,8,9)]
+colnames(candidates_LR) = colnames(candidates)
+candidates = rbind(candidates,candidates_LR)
+
 
 #Clinical data (from Maude)
 clinical = readxl::read_xlsx(params$masterlog, sheet = 'Suivi - RNAseq',skip = 1)
@@ -27,6 +33,7 @@ clinical$type =  "Parent"; clinical$type[!is.na(clinical$Mutation)] = 'Proband' 
 clinical = clinical[order(clinical$`Patient ID`),] #Same order as the transript expression data.
 clinical$age = as.numeric(clinical$`Âge (années)`); clinical$age[clinical$`Âge (années)` == '0 (3 mois)'] = 0.25; clinical$age[clinical$`Âge (années)` == '0 (9 mois)'] = 0.75 # Prettify
 clinical$PatientID = gsub('_PAX','',clinical$`Patient ID`)
+clinical$Notes[is.na(clinical$Notes)] = ''
 
 #featureCounts (per gene and per exons)
 fc_exons = read.table(params$fc_exons,sep = '\t',header = T,comment.char = '#',check.names = F)
@@ -37,6 +44,7 @@ colsum_genes_counts = colSums(fc_genes[,7:ncol(fc_genes)])
 colmean_genes_counts = colsum_genes_counts / mean(colsum_genes_counts)
 names(colmean_genes_counts) = gsub("^.*/", "",names(colmean_genes_counts))
 names(colmean_genes_counts) = gsub('_sorted.bam','',names(colmean_genes_counts)) 
+colmean_genes_counts = colmean_genes_counts[order(names(colmean_genes_counts))]
 write.table(colmean_genes_counts,file.path(params$FCdir,'colmean_genes_counts.tsv'))
 
 #EXONS rawcounts and TPM both for genes and exons

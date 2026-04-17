@@ -2,6 +2,7 @@
 args = commandArgs(trailingOnly=TRUE)
 params = list(OUTRIDER = file.path(args[1],"OUTRIDER/"))
 params$candidate_genes = args[2]
+params$candidate_genes_LR = args[5]
 params$fc_pergene = file.path(args[1],args[3])
 params$fc_perexon = file.path(args[1],args[4])
 
@@ -17,6 +18,10 @@ register(MulticoreParam(ncores, ncores*2, progressbar = TRUE))
 
 #candidate genes
 candidates = read.csv(params$candidate_genes)
+#candidates_LR = read.csv(params$candidate_genes_LR)
+#candidates_LR = candidates_LR[,c(2,3,10,4,5,6,7,8,9)]
+#colnames(candidates_LR) = colnames(candidates)
+#candidates = rbind(candidates,candidates_LR)
 candidates$ensembl_proband = apply(candidates[,colnames(candidates) %in% c('ensembl','proband')],1,paste0,collapse ='_')
 
 ##mapping genes
@@ -65,7 +70,7 @@ significant_table = merge(significant_table,map,by = 'ensemblID')
 table_genes$ensemblID_sampleID =  paste0(table_genes$geneID,'_',table_genes$sampleID)
 
 #candidate only
-candidate_table  = table_genes[table_genes$ensemblID_sampleID %in% candidates$ensembl_proband,]
+candidate_table = table_genes[table_genes$ensemblID_sampleID %in% candidates$ensembl_proband,]
 colnames(candidate_table)[1] = 'ensemblID'
 candidate_table = merge(candidate_table,map,by = 'ensemblID')
 
@@ -81,6 +86,8 @@ print(paste0('Done OUTRIDER --- Time is: ',Sys.time()) )
 ###
 #from featurecount gene expression data
 fc_exons_raw_ALL = read.table(params$fc_perexon,sep = '\t',check.names = F)
+fc_exons_raw_ALL = fc_exons_raw_ALL[, grepl('^bc',colnames(fc_exons_raw_ALL))==F]
+
 colnames(fc_exons_raw_ALL)[grep('HSJ',colnames(fc_exons_raw_ALL))] = paste0(colnames(fc_exons_raw_ALL)[grep('HSJ',colnames(fc_exons_raw_ALL))],'_PAX')#this is ugly and I should fix this. It's there because HSJ samples have two names, one with '_PAX', one without.
 rownames(fc_exons_raw_ALL) = paste0(fc_exons_raw_ALL$geneID,"_",fc_exons_raw_ALL$ensemblID,"_",fc_exons_raw_ALL$transcriptID,"_",fc_exons_raw_ALL$exonID)
 

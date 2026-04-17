@@ -7,6 +7,7 @@ bamdir=$5$4
 workdir=$5
 MANE=$HOME/$6 
 candidate_genes=$7
+candidate_genes_LR="${12}"
 ens_gene=$5$8
 masterlog=$5$9
 fc_exons=$5"${10}"
@@ -40,22 +41,42 @@ else
   echo "~~~ File $workdir/featureCounts/MANE.tsv already exists. No action taken ~~~"
 fi
 
-#list all the bams
+#list all the bams SR
 ls -1 $bamdir*bam >bamlist
-bams=$(tr '\n' ' ' < "bamlist")
+bams_SR=$(tr '\n' ' ' < "bamlist")
 rm bamlist
 
 #per gene and exon
-if [ ! -f "$workdir/featureCounts/feature_counts_pergene.txt" ]; then
-  featureCounts -a $genome_in -o $workdir/featureCounts/feature_counts_pergene.txt -T $cpu -p -B -C -g gene_id -t exon -O --fraction $bams
-  featureCounts -a $genome_out -o $workdir/featureCounts/feature_counts_perexon_pertranscript.txt -T $cpu  -p -B -C -g exon_id -t exon -O $bams
+if [ ! -f "$workdir/featureCounts/feature_counts_pergene_SR.txt" ]; then
+  featureCounts -a $genome_in -o $workdir/featureCounts/feature_counts_pergene_SR.txt -T $cpu -p -B -C -g gene_id -t exon -O --fraction $bams_SR
+  featureCounts -a $genome_out -o $workdir/featureCounts/feature_counts_perexon_pertranscript_SR.txt -T $cpu  -p -B -C -g exon_id -t exon -O $bams_SR
 else
-  echo "~~~ File $workdir/featureCounts/feature_counts_pergene.txt already exists. No action taken ~~~"
+  echo "~~~ File $workdir/featureCounts/feature_counts_pergene_SR.txt already exists. No action taken ~~~"
 fi 
 
+
+###LONG READ DATA
+###list all the bams LR
+ls -1 $bamdir/long_read/*bam >bamlist
+bams_LR=$(tr '\n' ' ' < "bamlist")
+rm bamlist
+
+#per gene and exon
+if [ ! -f "$workdir/featureCounts/feature_counts_pergene_LR.txt" ]; then
+  featureCounts -a $genome_in -o $workdir/featureCounts/feature_counts_pergene_LR.txt -T $cpu -L -g gene_id -t exon -O --fraction $bams_LR
+  featureCounts -a $genome_out -o $workdir/featureCounts/feature_counts_perexon_pertranscript_LR.txt -T $cpu  -L -g exon_id -t exon -O $bams_LR
+else
+  echo "~~~ File $workdir/featureCounts/feature_counts_pergene_LR.txt already exists. No action taken ~~~"
+fi 
+
+
+#add the expression values of LR files to SR dataset
+paste $workdir/featureCounts/feature_counts_pergene_SR.txt  <(cut -f7-  $workdir/featureCounts/feature_counts_pergene_LR.txt) >$workdir/featureCounts/feature_counts_pergene.txt
+paste $workdir/featureCounts/feature_counts_perexon_pertranscript_SR.txt  <(cut -f7-  $workdir/featureCounts/feature_counts_perexon_pertranscript_LR.txt) >$workdir/featureCounts/feature_counts_perexon_pertranscript.txt
+
 #Rscript for data clean-up
-Rscript featureCounts.R $workdir $candidate_genes $ens_gene $masterlog $fc_exons $fc_genes
+Rscript featureCounts.R $workdir $candidate_genes $ens_gene $masterlog $fc_exons $fc_genes $candidate_genes_LR
 
-
+echo $workdir $candidate_genes $ens_gene $masterlog $fc_exons $fc_genes $candidate_genes_LR
 echo 'Done featureCounts.R Rscript'
 

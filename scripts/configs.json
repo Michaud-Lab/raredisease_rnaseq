@@ -2,7 +2,9 @@
 	"general":
 		{
 			"workdir":"/home/renaut/scratch/raredisease_rnaseq/",
-			"candidate_genes":"/home/renaut/scratch/raredisease_rnaseq/data/candidate_genes_3.txt"
+ 			"workdir_LR":"/home/renaut/scratch/longread_rnaseq/",
+			"candidate_genes":"/home/renaut/scratch/raredisease_rnaseq/data/candidate_genes_3.txt",
+                        "candidate_genes_LR":"/home/renaut/scratch/raredisease_rnaseq/data/candidate_genes_LR.txt"
 		},
 	"FRASER":
 		{},
