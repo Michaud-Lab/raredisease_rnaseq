@@ -6,18 +6,9 @@ options(scipen = 999)
 
 #Load required packages
 suppressMessages(suppressWarnings(library(dplyr)))
-suppressMessages(suppressWarnings(library(ggtranscript)))
 suppressMessages(suppressWarnings(library(patchwork)))
 suppressMessages(suppressWarnings(library(FRASER)))
 suppressMessages(suppressWarnings(library(tidyr)))
-
-
-#fc_exons and genes
-fc_exons = read.table(file.path(params$FRASER,'../featureCounts/fc_exons_raw.tsv'),check.names = F)
-unique_transcript_id = unique(fc_exons$transcriptID)
-
-#mean gene count
-colmean_genes_counts = read.table(file.path(params$FRASER,'../featureCounts/colmean_genes_counts.tsv'))
 
 #candidates
 candidates = read.csv(file.path(params$FRASER,'../data/candidate_genes_3.txt'))

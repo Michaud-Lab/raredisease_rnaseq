@@ -46,7 +46,7 @@ for bam_in in $rnasplice_bamdir/*sorted.bam
     fi
 
     file_out=${bam_chr_out//'temp_'}
-    file_out=${file_out//$fraser_bamdir/$fraser_perregion}  
+    file_out=${file_out//$fraser_bamdir/$fraser_perregion}
 
     #2. Convert BAM to SAM
     if [ ! -f "$file_out" ];
@@ -83,7 +83,7 @@ for bam_in in $rnasplice_bamdir/*sorted.bam
 
 #run coverage once all bam files have been generated for a particular gene
 [ "$chromosome" = "MT" ] && chromosome="M"
-samtools depth -H -a $fraser_perregion/*sorted_chrN.bam -r chr$chromosome:$start-$stop | awk 'NR % 5 == 1' >"$fraser_perregion"/gene_"$geneID"_"$proband"_depth5.csv
+samtools depth -H -a $(ls $fraser_perregion/*sorted_chrN.bam | grep -v 'bc0') -r chr$chromosome:$start-$stop | awk 'NR % 5 == 1' >"$fraser_perregion"/gene_"$geneID"_"$proband"_depth5.csv
 
 #clean up
 rm -r $fraser_temp_bamdir

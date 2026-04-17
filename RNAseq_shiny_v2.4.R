@@ -34,6 +34,14 @@ transcripts_named_filtered_ggplot = read.csv(file.path(params$datadir,'transcrip
 
 fc_exons_tpm_ggplot = read.csv(file.path(params$datadir,'fc_exons_tpm_ggplot.tsv'),sep = '\t',check.names = F)
 candidates = read.csv(file.path(params$datadir,'candidate_genes_3.txt'))
+
+if(file.exists(file.path(params$datadir,'candidate_genes_LR.txt'))){
+  candidates_LR = read.csv(file.path(params$datadir,'candidate_genes_LR.txt'))
+  candidates_LR = candidates_LR[,c(2,3,10,4,5,6,7,8,9)]
+  colnames(candidates_LR) = colnames(candidates)
+  candidates = rbind(candidates,candidates_LR) 
+}
+
 clinical = read.csv(file.path(params$datadir,'clinical.tsv'),sep = '\t',check.names = F)
 html_file = file.path(params$datadir,'multiqc_report.html')
 
@@ -154,7 +162,7 @@ ui <- page_fluid(
                             "Show gene alignment",
                             style = "background-color: red; color: white; border-color: darkorchid;")),
             card(
-              igvShinyOutput('igvShiny',width = "1200px")
+              igvShinyOutput('igvShiny',width = "100%")
              )
             ),
   
@@ -460,7 +468,8 @@ server <- function(input, output, session) {
       selected_geneID <- candidates$geneID[i()]
       url = paste0("https://www.proteinatlas.org/", selected_ensembl)
       HTML(
-        paste0("<span><b>Gene description for ",selected_geneID,": </b> <a href='", url, "' target='_self'>",selected_ensembl,"</a>",
+        paste0("<span><b>Notes: </b>",clinical$Notes[clinical$`Patient ID` == input$proband],
+               "<br><br><b>Gene description for ",selected_geneID,": </b> <a href='", url, "' target='_self'>",selected_ensembl,"</a>",
                "<br><br><b>Mutations: </b>",clinical$Mutation[clinical$`Patient ID` == input$proband],
                "<br><br><b>Candidate Gene hypothesis: </b>",clinical$Hypothèse[clinical$`Patient ID` == input$proband],
                "<br><br><b>HPO terms: </b>",clinical$`HPO terms`[clinical$`Patient ID` == input$proband],
@@ -505,7 +514,7 @@ server <- function(input, output, session) {
       showGenomicRegion(session, id="igvShiny",paste0("chr",candidates$chromosome[i()],":",candidates$start[i()],"-",candidates$stop[i()]))
       bamFile <- paste0(gene_dir,candidates$proband[i()],"_sorted_chrN.bam")
       bamAlign <- readGAlignments(bamFile, param = Rsamtools::ScanBamParam(what="seq"))
-      loadBamTrackFromLocalData(session, id="igvShiny", trackName=input$proband2, data=bamAlign)
+      loadBamTrackFromLocalData(session, id="igvShiny", trackName=input$proband, data=bamAlign)
       runjs("document.getElementById('addBamLocalFileButton').style.backgroundColor = 'green';")
       })
 

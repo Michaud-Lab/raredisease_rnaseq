@@ -63,6 +63,10 @@
 
   #candidate genes
   candidates = read.csv(file.path(params$datadir,'candidate_genes_3.txt'))
+  candidates_LR = read.csv(file.path(params$datadir,'candidate_genes_LR.txt'))
+  candidates_LR = candidates_LR[,c(2,3,10,4,5,6,7,8,9)]
+  colnames(candidates_LR) = colnames(candidates)
+  candidates = rbind(candidates,candidates_LR)
 
   #cp the bam subset for data viz
   for(i in 1:nrow(candidates)){

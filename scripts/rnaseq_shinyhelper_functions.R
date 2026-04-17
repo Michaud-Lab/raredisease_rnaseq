@@ -104,13 +104,12 @@ wh = wh[wh$gene_id == candidate$ensembl,]
     if(file.exists(depth_file) && R.utils::countLines(depth_file)>1) {
     depth = read.table(depth_file, header = T, check.names = F,comment.char= '')
     depth$POS = depth$POS / 1000
-    colmean_genes_counts = colmean_genes_counts
     colnames(depth) = gsub("^.*/", "",colnames(depth))
     colnames(depth) = gsub('_sorted_chrN.bam','',colnames(depth))
     
-    for(d in 1:nrow(colmean_genes_counts)){
-      depth[,d+2] = depth[,d+2]/colmean_genes_counts[d,1]
-    }
+    for(d in 3:ncol(depth)){
+       depth[,d] = depth[,d] / colmean_genes_counts[rownames(colmean_genes_counts) == colnames(depth)[d],1]
+     }
     
     depth_filtered = depth %>% filter(POS >= min(xlims),POS < max(xlims))
     if(nrow(depth_filtered) == 0) depth_filtered = head(depth,100)
