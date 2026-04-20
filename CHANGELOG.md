@@ -1,3 +1,8 @@
+### 2026-03-27 lr_quant
+**Changed**
+*  Long Read RNAseq analyses in scripts/lr_quant/
+*  This pipeline is based on the [PacBio Isoseq reference pipeline](https://isoseq.how/getting-started.html)
+
 ### 2026-03_27 geneeprior_download
 **Changed**
 * Added a button to download gene prior table.
