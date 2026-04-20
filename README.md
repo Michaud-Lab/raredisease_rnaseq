@@ -30,6 +30,7 @@ sebastien.renaut.hsj@ssss.gouv.qc.ca
 ### Usage
 * Nextflow pipeline & post-processing:    
 `nextflow run rnasplice -params-file data/params.json -c data/config.json -resume -bg`      
+`sbatch $scriptsdir/lr_quant/lr_quant.slurm`  
 `sbatch $scriptsdir/featureCounts/featureCounts.slurm`      
 `sbatch $scriptsdir/OUTRIDER/outrider.slurm`        
 `sbatch $scriptsdir/FRASER/fraser.slurm`        
@@ -43,4 +44,5 @@ sebastien.renaut.hsj@ssss.gouv.qc.ca
 * OUTRIDER: Brechtmann, Felix, et al. "OUTRIDER: a statistical method for detecting aberrantly expressed genes in RNA sequencing data." The American Journal of Human Genetics 103.6 (2018): 907-917.       
 * Mertes, Christian, et al. "Detection of aberrant splicing events in RNA-seq data using FRASER." Nature communications 12.1 (2021): 529.       
 * Liao, Yang, Gordon K. Smyth, and Wei Shi. "featureCounts: an efficient general purpose program for assigning sequence reads to genomic features." Bioinformatics 30.7 (2014): 923-930.        
+* [PacBio Isoseq reference pipeline](https://isoseq.how/getting-started.html)
 * [Nextflow rnasplice:](https://zenodo.org/records/15194198)
