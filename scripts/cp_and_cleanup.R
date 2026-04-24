@@ -1,7 +1,7 @@
   #directory were the files are located
   params = list(workdir = "/home/renaut/scratch/raredisease_rnaseq")
   params$datadir = file.path(params$workdir,'/data/')
-  params$resultdir = file.path(params$workdir,'/results_07_10_2025/')
+  params$resultdir = file.path(params$workdir,'/results_06_01_2026/')
 
   #r, libraries
   library(readxl)
@@ -12,11 +12,10 @@
 
   #cp the data dir and create a new one with current date
   dir.create(params$datadir,showWarnings = FALSE)
-  dir.create(paste0(params$datadir,'ASE'),showWarnings = FALSE)
   dir.create(paste0(params$datadir,'bams_subset'),showWarnings = FALSE)
 
   #ASE
-  cp_ASE = paste0('cp ', params$workdir,'/ASE/ase_sign_table.tsv ',params$datadir,'/ASE/.')
+  cp_ASE = paste0('cp ', params$workdir,'/ASE/gwASE.tsv ',params$datadir,'/.')
   system(cp_ASE)
 
   #res_dt FRASER genome-wide	

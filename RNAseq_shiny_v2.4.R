@@ -3,10 +3,11 @@ params = list(datadir = file.path(getwd(),'data/'))
 
 # R libraries that you need
 packages = c('DT','plotly','tidyr','shiny','shinyjs','jsonlite','igvShiny','GenomicAlignments','dplyr','ggtranscript','patchwork','Hmisc','bslib','RColorBrewer','ggrepel','R.utils','logger')
+logger::log_info('Loading required packages')
 
 for(p in 1:length(packages)) {
   if(packages[p] %in% installed.packages()) {
-    library(packages[p],character.only = TRUE)
+    suppressMessages(suppressWarnings(library(packages[p],character.only = TRUE)))
     } else if (packages[p] == 'ggtranscript'){
       stop('Install ggtranscript with : remotes::install_github("dzhang32/ggtranscript")')
     } else {
@@ -15,6 +16,7 @@ for(p in 1:length(packages)) {
 }
 
 # load files
+logger::log_info('Loading required input files')
 source(file.path(params$datadir,'scripts/rnaseq_shinyhelper_functions.R'))
 fc_exons_raw = read.table(file.path(params$datadir,'fc_exons_raw.tsv'),sep = '\t',check.names = F);fc_exons_raw[,-c(1:5)] = round(fc_exons_raw[,-c(1:5)])
 fc_exons_tpm = read.table(file.path(params$datadir,'fc_exons_tpm.tsv'),sep = '\t',check.names = F)
@@ -22,6 +24,9 @@ fc_genes_tpm = read.table(file.path(params$datadir,'fc_genes_tpm.tsv'),sep = '\t
 
 gwOUTRIDER = read.csv(file.path(params$datadir,'gw_OUTRIDER.tsv'),sep = '\t',check.names = F)
 gwOUTRIDER$chr = factor(gwOUTRIDER$chr,levels = c(1:22,'X','Y','MT'))
+
+gwASE = read.csv(file.path(params$datadir,'gwASE.tsv'),row.names = 1,sep = '\t')
+gwASE$chr = factor(gwASE$chr,levels = c(1:22,'X','Y','MT'))
 
 significant_perexons_OUTRIDER = read.csv(file.path(params$datadir,'exons_OUTRIDER.tsv'),sep = '\t',check.names = F)
 significant_perexons_OUTRIDER$chr = factor(significant_perexons_OUTRIDER$chr,levels = c(1:22,'X','Y','MT'))
@@ -61,14 +66,16 @@ theme <- bs_theme(
 
 #####
 #####UI
-#####    
+#####
+logger::log_info('Defining UI')    
 ui <- page_fluid(
     theme = theme,
    
     # Dark title header
+    title = "RNAseq dashboard",
     div(
       class = "bg-dark text-white p-3 mb-4",
-      h2("RNAseq Dashboard")
+      uiOutput("dynamic_title")
     ),
 
     tabsetPanel(
@@ -108,8 +115,8 @@ ui <- page_fluid(
     
       ### Plot of Expression
       tabPanel("Plot",
-               card(plotlyOutput("Expression",width = "1200px")),
-               card(plotlyOutput("Expression_perfamily",width = "1200px"))
+               card(plotlyOutput("Expression",width = "1500px")),
+               card(plotlyOutput("Expression_perfamily",width = "1500px"))
               ),
     
     ### Data table
@@ -120,7 +127,7 @@ ui <- page_fluid(
                  '(all probands, including some adults from the LC & F0 cohorts)'),
                card(
                  card_header(strong('Genome-wide significance')),
-                 plotOutput("gwOUTRIDER", width = '1200px', height = "400px")),
+                 plotOutput("gwOUTRIDER", width = '1500px', height = "600px")),
                card(
                   fill=F, 
                   height='200px',
@@ -147,7 +154,7 @@ ui <- page_fluid(
               card_header(strong('Gene model and splicing significance values from FRASER')),
               column(width = 12,align = "center",uiOutput("genemodel_slider"))),
              card(
-               plotOutput("Figure_genemodel", width = '1200px', height = "800px")),
+               plotOutput("Figure_genemodel", width = '1500px', height = "800px")),
              card(
                htmlOutput('Figure_genemodel_legend'))
              ),
@@ -171,10 +178,10 @@ ui <- page_fluid(
              "FRASER",
              card(
                card_header(strong('Find RAre Splicing Events in RNAseq Data')),
-               'Identification of aberrant splicing events from RNA-seq. Outliers are identified intron retention / exon skipping events that significantly deviate from the population'),
+               'Identification of aberrant splicing events from RNAseq. Outliers are identified intron retention / exon skipping events that significantly deviate from the population.'),
              card(
                card_header(strong('Genome-wide significance')),
-               plotOutput("gwFRASER", width = '1200px', height = "400px")),
+               plotOutput("gwFRASER", width = '1500px', height = "600px")),
              card(
                card_header(strong('Significant splicing events (below adj. p-value < 0.05)')),
                DTOutput("gwFRASER_table")
@@ -200,12 +207,26 @@ ui <- page_fluid(
              DTOutput("gp"),height = "600px")
     ),
         
+    ### ASE
+    tabPanel(
+      "ASE",
+      card(
+       card_header(strong('Allele Specific Expression')),
+         'Identification of Allele Specific Expression based on SNV genotypes (.vcf) called from WGS Long Read WGS, and RNAseq alignement (.bam) files.
+Called with GATK - ASEReadCounter. Significance tested with binomial t-tests. Visualised as Manhattan plots and dynamic table.'),
+       card(
+        card_header(strong('Genome-wide significance')),
+        plotOutput("gwASE", width = '1500px', height = "600px")),
+      card(card_header(strong("Significant ASE table")), 
+           DTOutput("gwASE_table"),height = "600px")
+    ),
+
 
     ### Plot of Structural variation
     tabPanel("fasta",
              card(
                card_header(strong('Transcribed sequences: reference / alternate')),
-               em('dashes (---) correspond to intron retention events, variants in ',strong('bold')),
+               em('dashes (---) in reference/alternate correspond to intron retention/exon skipping events, respectively, variants in ',strong('bold')),               
                htmlOutput("fasta")
                )
              ),
@@ -224,6 +245,7 @@ ui <- page_fluid(
 #####
 #####server
 #####
+logger::log_info('Defining back-end server')
 server <- function(input, output, session) {
   
     ### Selected variable i
@@ -271,6 +293,11 @@ server <- function(input, output, session) {
 
         table_perexons_OUTRIDER_significant = significant_perexons_OUTRIDER[significant_perexons_OUTRIDER$sampleID == candidates$proband[i()],]    
         table_perexons_OUTRIDER_significant = table_perexons_OUTRIDER_significant[order(table_perexons_OUTRIDER_significant$chr,table_perexons_OUTRIDER_significant$pos,table_perexons_OUTRIDER_significant$exonID),]
+
+        #ASE
+        gwASE_table = gwASE[gwASE$sampleID == candidates$proband[i()],]
+        gwASE_table = gwASE_table[gwASE_table$binom_pval<0.01,]
+        gwASE_table = gwASE_table[order(gwASE_table$chr,gwASE_table$pos,gwASE_table$geneID),]
         
         # Plotly family of proband
         fc_exons_ggplot_reactive = fc_exons_tpm_ggplot[fc_exons_tpm_ggplot$proband == reactive_i, ]
@@ -289,8 +316,8 @@ server <- function(input, output, session) {
             fc_exons_ggplot_reactive_child$exonID = fc_exons_ggplot_reactive_child$exonID - 0.1
             fc_exons_ggplot_reactive_adults$exonID = fc_exons_ggplot_reactive_adults$exonID + 0.1
           
-        output = list(transcripts_reactive,table_OUTRIDER,table_OUTRIDER_candidate,fc_exons_ggplot_reactive_child,fc_exons_ggplot_reactive_adults,fc_exons_tpm_reactive,fc_exons_raw_reactive,fc_exons_ggplot_reactive,fc_exons_ggplot_reactive_patient,fc_exons_ggplot_reactive_family,table_perexons_OUTRIDER_candidate,table_perexons_OUTRIDER_significant)
-        names(output)  = c('transcripts_reactive','table_OUTRIDER','table_OUTRIDER_candidate','fc_exons_ggplot_reactive_child','fc_exons_ggplot_reactive_adults','fc_exons_tpm_reactive','fc_exons_raw_reactive','fc_exons_ggplot_reactive','fc_exons_ggplot_reactive_patient','fc_exons_ggplot_reactive_family','table_perexons_OUTRIDER_candidate','table_perexons_OUTRIDER_significant')
+        output = list(transcripts_reactive,table_OUTRIDER,table_OUTRIDER_candidate,fc_exons_ggplot_reactive_child,fc_exons_ggplot_reactive_adults,fc_exons_tpm_reactive,fc_exons_raw_reactive,fc_exons_ggplot_reactive,fc_exons_ggplot_reactive_patient,fc_exons_ggplot_reactive_family,table_perexons_OUTRIDER_candidate,table_perexons_OUTRIDER_significant,gwASE_table)
+        names(output)  = c('transcripts_reactive','table_OUTRIDER','table_OUTRIDER_candidate','fc_exons_ggplot_reactive_child','fc_exons_ggplot_reactive_adults','fc_exons_tpm_reactive','fc_exons_raw_reactive','fc_exons_ggplot_reactive','fc_exons_ggplot_reactive_patient','fc_exons_ggplot_reactive_family','table_perexons_OUTRIDER_candidate','table_perexons_OUTRIDER_significant','gwASE_table')
         output
     })
   
@@ -360,6 +387,19 @@ server <- function(input, output, session) {
       )  
     })
    
+    ### genome-wide ASE table
+    output$gwASE_table <- renderDT({
+      datatable(
+        reactive_inputs()$gwASE_table,
+        rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE))  
+    })
+    
+    ### genome-wide ASE manhattan
+    output$gwASE = renderPlot({
+      manhattan_plot(res_dt=gwASE,sample = candidates$proband[i()],end= 'pos',pcutoff=0.01, pvalue='binom_pval',geneID = 'geneID')
+    })
+    
+
     ### Plotly
     output$Expression <- renderPlotly({
       #entire cohort
@@ -460,20 +500,22 @@ server <- function(input, output, session) {
         width = 400,
         alt = "My Figure"
         )},deleteFile = FALSE) 
-    
-    ### Description
+
+    ### Description    
     output$description <- renderUI({
-      log_info(paste0('Selecting ~~~ ',input$proband,' ~~~ ',input$gene_selection,' ~~~ ',i()))
       selected_ensembl <- candidates$ensembl[i()]
       selected_geneID <- candidates$geneID[i()]
+      selected_patient <- candidates$proband[i()]
+      selected_clinical <- clinical[clinical$`Patient ID` == selected_patient & clinical$Gène == selected_geneID,]
+      log_info(paste0('Selecting ~~~ ',selected_patient,' ~~~ ',selected_geneID,' ~~~ ',i()))
       url = paste0("https://www.proteinatlas.org/", selected_ensembl)
       HTML(
-        paste0("<span><b>Notes: </b>",clinical$Notes[clinical$`Patient ID` == input$proband],
+        paste0("<span><b>Notes: </b>",selected_clinical$Notes,
                "<br><br><b>Gene description for ",selected_geneID,": </b> <a href='", url, "' target='_self'>",selected_ensembl,"</a>",
-               "<br><br><b>Mutations: </b>",clinical$Mutation[clinical$`Patient ID` == input$proband],
-               "<br><br><b>Candidate Gene hypothesis: </b>",clinical$Hypothèse[clinical$`Patient ID` == input$proband],
-               "<br><br><b>HPO terms: </b>",clinical$`HPO terms`[clinical$`Patient ID` == input$proband],
-               "<br><br><b>Bam file location (Fir): </b>",system('echo ${HOME}',intern = T),"/scratch/raredisease_rnaseq/results_06_01_2026/star_salmon/",candidates$proband[i()],".sorted.bam<span>")
+               "<br><br><b>Mutations: </b>",selected_clinical$Mutation,
+               "<br><br><b>Candidate Gene hypothesis: </b>",selected_clinical$Hypothèse,
+               "<br><br><b>HPO terms: </b>",selected_clinical$`HPO terms`,
+               "<br><br><b>Bam file location (Fir): </b>",system('echo ${HOME}',intern = T),"/scratch/raredisease_rnaseq/results_06_01_2026/star_salmon/",selected_patient,".sorted.bam<span>")
         )
       })
     
@@ -574,7 +616,7 @@ server <- function(input, output, session) {
     
     ### genome-wide OUTRIDER
     output$gwOUTRIDER = renderPlot({
-      manhattan_plot(res_dt=gwOUTRIDER,sample = candidates$proband[i()],geneID = 'geneID',pvalue = 'pValue',pcutoff = 0.001,shape = T)
+      manhattan_plot(res_dt=gwOUTRIDER,sample = candidates$proband[i()],geneID = 'geneID',pvalue = 'pValue',pcutoff = 0.01,shape = T)
     })
     
     ### genome-wide FRASER
@@ -587,8 +629,16 @@ server <- function(input, output, session) {
         gwFRASER_table(res_dt=gwFRASER,sample = candidates$proband[i()]),
         rownames = F,options = list(dom = 'p'))
     })
+
+   ### dynamic title
+    output$dynamic_title <- renderUI({
+      titlePanel(
+        paste0("RNAseq dashboard (",candidates$proband[i()], ' ~~~ ',candidates$geneID[i()],')')
+      )
+    })
   }
 
 ######shiny app
+logger::log_info('Deploying app')
 app = shinyApp(ui, server, options = list(height = 900))
 runApp(app, launch.browser = TRUE)

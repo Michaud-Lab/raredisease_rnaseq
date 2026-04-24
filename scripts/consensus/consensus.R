@@ -1,5 +1,5 @@
-library(seqinr)
-library(dplyr)
+suppressMessages(suppressWarnings(library(seqinr)))
+suppressMessages(suppressWarnings(library(dplyr)))
 
 #Define parameters
 args = commandArgs(trailingOnly=TRUE)
@@ -12,9 +12,6 @@ params$fc_exons = args[4]
 params$ref_file = args[5]
 params$ref_annot = args[6]
 
-
-print(i)
-print(params)
 
 #candidates
 candidates = read.csv(params$candidates)
@@ -33,6 +30,8 @@ params$out_dir = paste0(params$FRASER,'/bams_subset/gene',candidates$geneID[i],'
 params$bam_file = paste0(candidates$proband[i],'_sorted_chrN.bam')
 params$gene_variants_annotated = paste0(params$out_dir,'/gene',candidates$geneID[i],'variants_annotated.tsv')
 params$region = paste0('chr',chr,":",candidates$start[i],"-",candidates$stop[i])
+
+print(paste0('Doing gene ', i, ' ~~~ ',params$geneID))
 
 if(params$geneID != "") {
 
@@ -72,7 +71,8 @@ mean_intronic_depth = variant_annotated %>% filter(transcript == 'intron') %>% g
 exonic = variant_annotated[variant_annotated$transcript !='intron',]
 exclude_first_and_last = unique(exonic$exon)
 exonic = exonic[exonic$exon %in% exclude_first_and_last[-c(1,length(exclude_first_and_last))],] 
-mean_exonic_depth = mean(exonic$depth)
+exonic_depth = exonic %>% group_by(exon) %>% summarise(mean = mean(depth))
+mean_exonic_depth = mean(exonic_depth$mean)
 if(is.na(mean_exonic_depth)) mean_exonic_depth = 0
 
 #code the retention event if the whole intron is expressed at more than 30% the exon level..
@@ -84,10 +84,23 @@ if(nrow(mean_intronic_depth) > 0) {
   }
 }
 
+#code the skipping event if the exon is expressed at less than 10% the exon level..
+variant_annotated$skipping_event = 0
+
+if(nrow(exonic_depth) > 0) {
+  for(r in 1:nrow(exonic_depth)){
+      if(exonic_depth$mean[r] < (mean_exonic_depth*0.3) ) variant_annotated$skipping_event[variant_annotated$exon == exonic_depth$exon[r]] = 1
+  }
+}
+
 #tolower the retention and the SNPs / '---' the retention in the reference
 variant_annotated$alternate[variant_annotated$reference != variant_annotated$alternate] = paste0("<b>",variant_annotated$alternate[variant_annotated$reference != variant_annotated$alternate],"</b>")
 variant_annotated$alternate[variant_annotated$retention_event == 1] = tolower(variant_annotated$alternate[variant_annotated$retention_event == 1])
 variant_annotated$reference[variant_annotated$retention_event == 1] = '-'
+
+#skipping events
+variant_annotated$reference[variant_annotated$skipping_event == 1] = tolower(variant_annotated$reference[variant_annotated$skipping_event == 1])
+variant_annotated$alternate[variant_annotated$skipping_event == 1] = '-'
 
 #sequences
 reference_sequence = variant_annotated$reference[variant_annotated$transcript != 'intron' | variant_annotated$retention_event == 1]
@@ -95,8 +108,8 @@ alternate_sequence = variant_annotated$alternate[variant_annotated$transcript !=
 
 #check the retention events and sequence lengths
 rle(variant_annotated$retention_event)
-print(paste0('length REF: ',length(reference_sequence)))
-print(paste0('length ATL: ',length(alternate_sequence)))
+print(paste0('length REF: ',length(reference_sequence[reference_sequence != '-'])))
+print(paste0('length ATL: ',length(alternate_sequence[alternate_sequence != '-'])))
 
 # Write to a FASTA file
 my_sequences <- list(reference = reference_sequence, alternate = alternate_sequence)

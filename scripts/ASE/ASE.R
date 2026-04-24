@@ -1,53 +1,139 @@
-
-
-suppressMessages(suppressWarnings(library(DESeq2)))
+########################################
+# ASE analysis from ASEReadCounter files
+########################################
 suppressMessages(suppressWarnings(library(dplyr)))
 suppressMessages(suppressWarnings(library(tidyr)))
+suppressMessages(suppressWarnings(library(DESeq2)))
+suppressMessages(suppressWarnings(library(vcfR)))
+suppressMessages(suppressWarnings(library(ggplot2)))
+suppressMessages(suppressWarnings(library(TxDb.Hsapiens.UCSC.hg38.knownGene)))
+suppressMessages(suppressWarnings(library(org.Hs.eg.db)))
 
-data <- read.table("/home/renaut/scratch/raredisease_rnaseq/ASE/overlaps.tsv",header=FALSE)
 
-colnames(data) <- c("sample","gene","ref","alt")
+########################################
+# 1. Read and filter ASE overlap.txt file
+########################################
+args = commandArgs(trailingOnly=TRUE)
+params = list(overlap = args[1])
+params$vcf = args[2]
+params$workdir = dirname(params$overlap)
+ase <- read.table(params$overlap,header=FALSE)
+colnames(ase) <- c("SNPchr","SNPstart","pos","sampleID",'ref','alt','chr','START','STOP','ensemblID')
 
-#data$condition <- ifelse(grepl("^CTRL",data$sample),"control","disease")
-data$condition = c("ctrl","ctrl","ctrl","ctrl","ctrl","disease","disease","disease","disease","disease")
+ase$sample_vcf = gsub('_PAX','',ase$sampleID)
+ase$pos = as.character(ase$pos)
+ase$binom_pval = NA
 
-long <- data %>%
-pivot_longer(cols=c(ref,alt),
-names_to="allele",
-values_to="count")
+ase <- ase %>%
+  mutate(total = ref + alt, REF_observed = signif(ref / total,2))
 
-long$sample_allele <- paste(long$sample,long$allele,sep="_")
+#get the actual chromosome names from the ase file
+aes_rle = rle(ase$SNPchr)
+aes_rle = data.frame(lengths = aes_rle$lengths, values = aes_rle$values, c = 1:length(aes_rle$lengths))
 
-count_matrix <- long %>%
-select(sample_allele,gene,count) %>%
-pivot_wider(names_from=sample_allele,values_from=count)
 
-genes <- count_matrix$gene
-count_matrix <- as.data.frame(count_matrix[,-1])
-rownames(count_matrix) <- genes
+########################################
+# 2. Read and filter ASE based on .vcf to check the expected count.
+########################################
+vcf <- read.vcfR(params$vcf,verbose = F)
+colnames(vcf@gt) = gsub('-','_',colnames(vcf@gt))
 
-samples <- colnames(count_matrix)
+#split things per chromosome for quicker access
+vcf_per_chr = list()
 
-condition <- c("ctrl","ctrl","ctrl","ctrl","ctrl","disease","disease","disease","disease","disease")
-allele <- ifelse(grepl("ref$",samples),"ref","alt")
+for(c in 1:length(aes_rle$values)){
+  vcf_per_chr[[c]] = data.frame(position = vcf@fix[vcf@fix[,1] == aes_rle$values[c],2],vcf@gt[vcf@fix[,1] == aes_rle$values[c],])
+}
 
-coldata <- data.frame(
-condition=factor(condition),
-allele=factor(allele)
-)
+names(vcf_per_chr) = aes_rle$values
 
-rownames(coldata) <- samples
 
-dds <- DESeqDataSetFromMatrix(
-countData=count_matrix,
-colData=coldata,
-design=~ condition + allele + condition:allele
-)
 
-dds <- DESeq(dds)
+########################################
+# 3. Calculate expected count and do a binomial test for the 0.5 HET variants.
+########################################
+ase$REF_expected = 1
 
-res <- results(dds,name="conditiondisease.allelealt")
+for(i in 1:nrow(ase)){
+  #temp vcf file per chromosome and genotype
+  temp_vcf_per_chr = vcf_per_chr[names(vcf_per_chr) == ase$SNPchr[i]][[1]]
+  temp_geno = temp_vcf_per_chr[temp_vcf_per_chr$position == ase$pos[i],colnames(temp_vcf_per_chr) == ase$sample_vcf[i]]
 
-write.csv(as.data.frame(res),"ASE_differential_results.csv")
+  if(length(temp_geno) > 0) {
+    geno = strsplit(temp_geno, ':')[[1]][1]
+    if(geno == ".|." | geno == "./.") ase$REF_expected[i] = 1 #missing so ref
+    
+    if(geno == "0|0" | geno == "0/0") ase$REF_expected[i] = 1 #homo ref
+    
+    if(geno == "0|1" | geno == "0/1" | geno == "1|0" | geno == "1/0" ) {
+      ase$REF_expected[i] = 0.5 #het
+      ase$binom_pval[i] = signif(binom.test(ase$ref[i],ase$total[i], p=0.5)$p.value,2)} #binomial test for ASE
 
-print("DONE ~~~ ASEpipeline.R")
+    if(geno == "1|1" | geno == "1/1") ase$REF_expected[i] = 0 #homo alt
+    
+    } else ase$REF_expected[i] = NA #sample not present in the .vcf
+  
+  if (i %% 10000 == 0) print(paste0('Done ',i,' of ',nrow(ase), ' ~~~ Time is: ',Sys.time()))
+}
+
+#filter results.
+ase_signif = ase[!is.na(ase$REF_expected),]
+ase_signif = ase_signif[ase_signif$REF_expected == 0.5,]
+ase_signif = ase_signif[ase_signif$binom_pval<0.05,]
+ase_signif$binom_pval[ase_signif$binom_pval<1e-50] = 1e-50
+
+########################################
+# 4. add geneID from hg38 annotation file.
+########################################
+#mapping genes
+map <- select(org.Hs.eg.db, keys=keys(TxDb.Hsapiens.UCSC.hg38.knownGene, keytype = "GENEID"),
+                keytype="ENTREZID", columns=c("ENSEMBL","SYMBOL"))
+map = map[!is.na(map$ENSEMBL),]
+colnames(map)[3] = 'geneID'
+
+#add the gene length info
+gene_locations = genes(TxDb.Hsapiens.UCSC.hg38.knownGene,single.strand.genes.only=FALSE)
+gene_locations = as.data.frame(gene_locations)
+gene_locations = gene_locations[nchar(as.character(gene_locations$seqnames))<6,]
+map = merge(map, gene_locations, by.y = 'group_name', by.x = 'ENTREZID')
+colnames(map)[c(2,3,5)] = c('ensemblID','geneID','chr')
+map$chr = gsub('chr','',map$chr)
+
+
+########################################
+# 5. Save
+########################################
+signif_map = merge(ase_signif,map,by = 'ensemblID',all.x = T)
+signif_map_ASE = signif_map[,c(5,17,1,2,4,6,7,14,15,12)]
+signif_map_ASE = signif_map_ASE[!is.na(signif_map_ASE$geneID),]
+colnames(signif_map_ASE)[4] = 'chr'
+
+write.table(signif_map_ASE, file.path(params$workdir,"gwASE.tsv"),sep = '\t',quote = F)
+
+########################################
+# 6. Plot
+########################################
+samples = unique(signif_map$sample)
+gplot_ASE = list()
+#g
+#for(i in 1:length(samples)){
+ # gplot_ASE[[i]] = ase %>%
+ # filter(sample == samples[i]) %>%
+ # filter(binom_pval < 0.01) %>%
+ # pivot_longer(5:6, names_to = "allele", values_to = "count")%>%
+ # ggplot(aes(gene,count, fill=allele)) +
+ # geom_bar(stat="identity") +
+#  ggtitle(paste0('ASE (p-val<0.01) ~~~ ', samples[i])) +
+ # theme_bw() +
+ # theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))
+#}  
+
+#
+#for(i in 1:length(samples)){
+#  pdf(file.path(params$workdir,paste0('temp/plots/gplot_ASE_',samples[i],'.pdf')),width = 14,height = 12) 
+#  print(gplot_ASE[[i]])
+#  dev.off()
+#}
+
+
+
