@@ -72,6 +72,7 @@ ui <- page_fluid(
     theme = theme,
    
     # Dark title header
+    title = "RNAseq dashboard",
     div(
       class = "bg-dark text-white p-3 mb-4",
       uiOutput("dynamic_title")
@@ -177,7 +178,7 @@ ui <- page_fluid(
              "FRASER",
              card(
                card_header(strong('Find RAre Splicing Events in RNAseq Data')),
-               'Identification of aberrant splicing events from RNAseq. Outliers are identified intron retention / exon skipping events that significantly deviate from the population'),
+               'Identification of aberrant splicing events from RNAseq. Outliers are identified intron retention / exon skipping events that significantly deviate from the population.'),
              card(
                card_header(strong('Genome-wide significance')),
                plotOutput("gwFRASER", width = '1500px', height = "600px")),
@@ -211,8 +212,9 @@ ui <- page_fluid(
       "ASE",
       card(
        card_header(strong('Allele Specific Expression')),
-         'Identification of Allele Specific Expression based on Long Read (.vcf) genotypes and RNA sequencing alignement (.bam) files. Called with GATK - ASEReadCounter and binomial t-test to quantify significance'),
-      card(
+         'Identification of Allele Specific Expression based on SNV genotypes (.vcf) called from WGS Long Read WGS, and RNAseq alignement (.bam) files.
+Called with GATK - ASEReadCounter. Significance tested with binomial t-tests. Visualised as Manhattan plots and dynamic table.'),
+       card(
         card_header(strong('Genome-wide significance')),
         plotOutput("gwASE", width = '1500px', height = "600px")),
       card(card_header(strong("Significant ASE table")), 
@@ -631,7 +633,7 @@ server <- function(input, output, session) {
    ### dynamic title
     output$dynamic_title <- renderUI({
       titlePanel(
-        paste("RNAseq dashboard ~~~ ",candidates$proband[i()], ' ~~~ ',candidates$geneID[i()])
+        paste0("RNAseq dashboard (",candidates$proband[i()], ' ~~~ ',candidates$geneID[i()],')')
       )
     })
   }
