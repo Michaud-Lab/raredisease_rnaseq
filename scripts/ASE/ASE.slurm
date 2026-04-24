@@ -12,5 +12,5 @@ module load gatk
 module load r
 
 
-
+#
 ./ASE.sh

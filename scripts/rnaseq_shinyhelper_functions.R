@@ -168,8 +168,15 @@ gwFRASER_table = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',pcutoff=0.05
 ###
 ###this is to do a manhattan plot of the p-values of the splicing test.
 ###
-manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcutoff=0.05, pvalue='padjust', geneID = 'hgncSymbol',shape = FALSE){
+manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcutoff=0.05, pvalue='padjust', geneID = 'hgncSymbol',shape = FALSE, end = 'end'){
   
+  #title definition
+  summarise_outliers = res_dt %>% 
+    group_by(sampleID) %>% 
+    summarise(signif = sum(.data[[pvalue]] < pcutoff)) 
+  
+  title = paste0(sample,' ~ ',summarise_outliers$signif[summarise_outliers$sampleID==sample], ' outliers events with ',pvalue,' < ',pcutoff,'. Median number is: ', median(summarise_outliers$signif))
+
   #shape factor 
   res_dt$shape = 'splicing'
   if(shape) res_dt$shape = ifelse(res_dt$l2fc >0,'over','under')
@@ -183,7 +190,7 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
   ##calculate cumulative chromosome sizes
   chr_size <- res_dt %>% 
     group_by(chr) %>% 
-    summarise(chr_len=max(end)) %>%
+    summarise(chr_len=max(.data[[end]])) %>%
     mutate(tot=cumsum(as.numeric(chr_len))-as.numeric(chr_len)) %>%
     dplyr::select(-chr_len) 
   
@@ -234,8 +241,11 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
       panel.border = element_blank(),
       panel.grid.major.x = element_blank(),
       panel.grid.minor.x = element_blank(),
-      axis.title = element_text(size = 20)) +
-    ggtitle(paste0('Outlier events ~ ',sample))
+      axis.title = element_text(size = 20),
+      plot.title = element_text(hjust = 0.5, color = "darkred", face = "bold")) +
+      ggtitle(title)
+
+  if(nrow(man_gplot@data)==0) man_gplot = plot(0, main = 'no gene available')
   
   return(man_gplot)
 }
