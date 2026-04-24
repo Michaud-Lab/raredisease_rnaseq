@@ -1,3 +1,9 @@
+### 2026-04-24 ase
+**Changed**
+* Allele Specific Expression v1
+* Minor improvements to UI
+* Consensus: introduce exon skipping events
+
 ### 2026-03-27 lr_quant
 **Changed**
 *  Long Read RNAseq analyses in scripts/lr_quant/
