@@ -184,9 +184,6 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
   #factorize
   res_dt$chr = factor(res_dt$chr, levels = c(1:22,'X','Y','MT')) 
 
-  #keep only samples of interest
-  res_dt_sampleID = res_dt[res_dt$sampleID == sample,]
-
   ##calculate cumulative chromosome sizes
   chr_size <- res_dt %>% 
     group_by(chr) %>% 
@@ -196,18 +193,22 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
   
   #Add this info to the initial dataset
   results_subset_forggplot = chr_size %>% 
-    left_join(res_dt_sampleID, ., by=c("chr"="chr")) %>%
+    left_join(res_dt, ., by=c("chr"="chr")) %>%
     arrange(chr, pos) %>%
     mutate(BPcum=pos+tot)
-
-  #set colors
-  colors = c(brewer.pal(8,'Set2'),brewer.pal(9,'Set1'),brewer.pal(9,'Set3'))
-  colors = c(colors[c(1,9,2,11,3,10,4,12,5,6,13,7,15,8,16:18,20:26)],'black')
   
   ###prepare axis labels.
   axisdf = results_subset_forggplot %>%
     group_by(chr) %>%
     dplyr::summarize(center=( max(BPcum) + min(BPcum)+1 ) / 2 )
+  
+  #keep only samples of interest
+  results_subset_forggplot = results_subset_forggplot[results_subset_forggplot$sampleID == sample,]
+
+  #set colors
+  colors = c(brewer.pal(8,'Set2'),brewer.pal(9,'Set1'),brewer.pal(9,'Set3'))
+  colors = c(colors[c(1,9,2,11,3,10,4,12,5,6,13,7,15,8,16:18,20:26)],'black')
+  
   
   #keep only the top (but remove duplicated splicing events)
   gw_top = results_subset_forggplot[order(results_subset_forggplot[[pvalue]]),]

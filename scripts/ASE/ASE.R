@@ -22,10 +22,10 @@ colnames(ase) <- c("SNPchr","SNPstart","pos","sampleID",'ref','alt','chr','START
 
 ase$sample_vcf = gsub('_PAX','',ase$sampleID)
 ase$pos = as.character(ase$pos)
-ase$binom_pval = NA
-
+ase$pvalue = NA
+ase$WGSgenotype = NA
 ase <- ase %>%
-  mutate(total = ref + alt, REF_observed = signif(ref / total,2))
+  mutate(total = ref + alt, RNAratio = signif(alt / total,2))
 
 #get the actual chromosome names from the ase file
 aes_rle = rle(ase$SNPchr)
@@ -61,15 +61,16 @@ for(i in 1:nrow(ase)){
 
   if(length(temp_geno) > 0) {
     geno = strsplit(temp_geno, ':')[[1]][1]
-    if(geno == ".|." | geno == "./.") ase$REF_expected[i] = 1 #missing so ref
+    if(geno == ".|." | geno == "./.") ase$REF_expected[i] = 1 #missing genotype, so we call it reference
     
-    if(geno == "0|0" | geno == "0/0") ase$REF_expected[i] = 1 #homo ref
+    if(geno == "0|0" | geno == "0/0") ase$REF_expected[i] = 1 #homozygous reference
     
     if(geno == "0|1" | geno == "0/1" | geno == "1|0" | geno == "1/0" ) {
-      ase$REF_expected[i] = 0.5 #het
-      ase$binom_pval[i] = signif(binom.test(ase$ref[i],ase$total[i], p=0.5)$p.value,2)} #binomial test for ASE
+      ase$REF_expected[i] = 0.5 #heterozygous
+      ase$pvalue[i] = signif(binom.test(ase$ref[i],ase$total[i], p=0.5)$p.value,2)} #binomial test for ASE
+      ase$WGSgenotype[i] = geno
 
-    if(geno == "1|1" | geno == "1/1") ase$REF_expected[i] = 0 #homo alt
+    if(geno == "1|1" | geno == "1/1") ase$REF_expected[i] = 0 #homo alternate
     
     } else ase$REF_expected[i] = NA #sample not present in the .vcf
   
@@ -79,8 +80,8 @@ for(i in 1:nrow(ase)){
 #filter results.
 ase_signif = ase[!is.na(ase$REF_expected),]
 ase_signif = ase_signif[ase_signif$REF_expected == 0.5,]
-ase_signif = ase_signif[ase_signif$binom_pval<0.05,]
-ase_signif$binom_pval[ase_signif$binom_pval<1e-50] = 1e-50
+ase_signif = ase_signif[ase_signif$pvalue<0.5,]
+ase_signif$pvalue[ase_signif$pvalue<1e-50] = 1e-50
 
 ########################################
 # 4. add geneID from hg38 annotation file.
@@ -104,36 +105,9 @@ map$chr = gsub('chr','',map$chr)
 # 5. Save
 ########################################
 signif_map = merge(ase_signif,map,by = 'ensemblID',all.x = T)
-signif_map_ASE = signif_map[,c(5,17,1,2,4,6,7,14,15,12)]
+signif_map_ASE = signif_map[,c(5,18,1,2,4,6,7,15,13,12)]
 signif_map_ASE = signif_map_ASE[!is.na(signif_map_ASE$geneID),]
 colnames(signif_map_ASE)[4] = 'chr'
 
 write.table(signif_map_ASE, file.path(params$workdir,"gwASE.tsv"),sep = '\t',quote = F)
-
-########################################
-# 6. Plot
-########################################
-samples = unique(signif_map$sample)
-gplot_ASE = list()
-#g
-#for(i in 1:length(samples)){
- # gplot_ASE[[i]] = ase %>%
- # filter(sample == samples[i]) %>%
- # filter(binom_pval < 0.01) %>%
- # pivot_longer(5:6, names_to = "allele", values_to = "count")%>%
- # ggplot(aes(gene,count, fill=allele)) +
- # geom_bar(stat="identity") +
-#  ggtitle(paste0('ASE (p-val<0.01) ~~~ ', samples[i])) +
- # theme_bw() +
- # theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1))
-#}  
-
-#
-#for(i in 1:length(samples)){
-#  pdf(file.path(params$workdir,paste0('temp/plots/gplot_ASE_',samples[i],'.pdf')),width = 14,height = 12) 
-#  print(gplot_ASE[[i]])
-#  dev.off()
-#}
-
-
 

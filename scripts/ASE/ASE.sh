@@ -25,13 +25,13 @@ echo "DONE ~~~ STEP0 ~~~ define inputs ~~~ $(date)"
 ############################
 for vcf_file in ${VCF_DIR}/*slivar.vcf.gz
   do
-    bcftools view -m2 -M2 -v snps --force-samples -e 'GT="mis"' -s ^samples_to_keep.txt -Oz ${vcf_file} | \
+    bcftools view -m2 -M2 -v snps --force-samples -e 'GT="mis"' -S <(cut -f2 ${ASE}/vcf_bam_families.txt) -Oz ${vcf_file} | \
     bcftools annotate --rename-chrs ${ASE}/chr_map.txt -Oz | \
     bcftools norm -d all -O b -o ${vcf_file}.temp
     bcftools index ${vcf_file}.temp
   done
 
-#merge and index all vcf's 
+#merge and index all vcf's  (all VCFs calls merged here, irrespective if it is present in the RNAseq .bam data, because this is filtered further.
 bcftools merge ${VCF_DIR}/*temp -Oz -o ${VCF_DIR}/biallelic_sites.vcf.gz
 gatk IndexFeatureFile -I ${VCF_DIR}/biallelic_sites.vcf.gz --verbosity ERROR
 
@@ -40,7 +40,7 @@ echo "DONE ~~~ STEP1 ~~~ bcftools prep ~~~ $(date)"
 ############################
 # STEP 2: ASEReadCounter
 ############################
-cat ${ASE}samples.txt | parallel -j 5 'gatk ASEReadCounter \
+cut -f1 ${ASE}vcf_bam_families.txt | parallel -j 5 'gatk ASEReadCounter \
 -R ${REF} \
 -I ${BAM_DIR}{}_sorted.bam \
 -V ${VCF_DIR}biallelic_sites.vcf.gz \
@@ -98,7 +98,7 @@ bedtools intersect \
 -b ${ASE}/bed/genes.sorted.BED \
 -wa -wb > ${ASE}/overlaps.tsv
 
-echo "DONE ~~~ STEP6 ~~~ dedtools intersect ~~~ $(date)"
+echo "DONE ~~~ STEP6 ~~~ bedtools intersect ~~~ $(date)"
 
 ############################
 # STEP 7:  Deseq2

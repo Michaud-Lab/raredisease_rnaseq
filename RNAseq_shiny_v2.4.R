@@ -211,13 +211,12 @@ ui <- page_fluid(
     tabPanel(
       "ASE",
       card(
-       card_header(strong('Allele Specific Expression')),
-         'Identification of Allele Specific Expression based on SNV genotypes (.vcf) called from WGS Long Read WGS, and RNAseq alignement (.bam) files.
-Called with GATK - ASEReadCounter. Significance tested with binomial t-tests. Visualised as Manhattan plots and dynamic table.'),
-       card(
-        card_header(strong('Genome-wide significance')),
+        card_header(strong('Allele Specific Expression')),
+        htmlOutput('ase_legend')),
+      card(
+        card_header(strong('Genome-wide significance (Manhattan plot)')),
         plotOutput("gwASE", width = '1500px', height = "600px")),
-      card(card_header(strong("Significant ASE table")), 
+      card(card_header(strong("Genome-wide significance (table)")),
            DTOutput("gwASE_table"),height = "600px")
     ),
 
@@ -296,7 +295,7 @@ server <- function(input, output, session) {
 
         #ASE
         gwASE_table = gwASE[gwASE$sampleID == candidates$proband[i()],]
-        gwASE_table = gwASE_table[gwASE_table$binom_pval<0.01,]
+        gwASE_table = gwASE_table[gwASE_table$pvalue<0.01,]
         gwASE_table = gwASE_table[order(gwASE_table$chr,gwASE_table$pos,gwASE_table$geneID),]
         
         # Plotly family of proband
@@ -391,12 +390,12 @@ server <- function(input, output, session) {
     output$gwASE_table <- renderDT({
       datatable(
         reactive_inputs()$gwASE_table,
-        rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE))  
+        rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))  
     })
-    
+
     ### genome-wide ASE manhattan
     output$gwASE = renderPlot({
-      manhattan_plot(res_dt=gwASE,sample = candidates$proband[i()],end= 'pos',pcutoff=0.01, pvalue='binom_pval',geneID = 'geneID')
+      manhattan_plot(res_dt=gwASE,sample = candidates$proband[i()],end= 'pos',pcutoff=0.01, pvalue='pvalue',geneID = 'geneID')
     })
     
 
@@ -519,7 +518,7 @@ server <- function(input, output, session) {
         )
       })
     
-    ### Figure legend
+    ### Figure legends
     output$Figure_genemodel_legend  <- renderUI({
       HTML(
         paste0("<span><b>Figure 2:</b> Visualisation des altérations d’épissage détectées par l'outil FRASER.
@@ -528,6 +527,16 @@ server <- function(input, output, session) {
         <br><b>C:</b>  Couverture de séquençage normalisée pour le probant ainsi que 25-75ième percentile de la population de référence (en orange).</span>")
         )
       })
+
+    output$ase_legend  <- renderUI({
+      HTML(
+        paste0("<span>Identification of Allele Specific Expression based on SNV genotypes (.vcf) and short read RNAseq alignement (.bam) files.
+                <br>Called with GATK - ASEReadCounter. Significance tested with binomial t-tests. Cisualised as Manhattan plots and dynamic table.
+                <br><b>ref/alt: </b>RNAseq reference/alternate count. 
+                <b>WGSgenotype: </b>Long Read genotypes. 
+                <b>RNAratio: </b>ref/(ref+alt)</span>")
+      )
+    })
  
     ### Versioning
     output$Version <- renderDT({
