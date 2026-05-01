@@ -18,18 +18,18 @@ sebastien.renaut.hsj@ssss.gouv.qc.ca
 `module load r`         
 
 ### Check the required files  
-`ls $datadir/candidate_genes_3.txt`   # list of candidate genes & mutations      
-`ls $datadir/*.xlsx`   # An excel file that contains more info about each sample.       
-`ls $datadir/config.json`   # Nextflow configuration file      
-`ls $datadir/params.json`   # rnasplice parameters     
-`ls $datadir/contrast.csv`  # Contrast file for nextflow. Currently not meaningfull     
+`ls $datadir/input/candidate_genes_3.txt`   # list of candidate genes & mutations      
+`ls $datadir/input/*.xlsx`   # An excel file that contains more info about each sample.       
+`ls $datadir/input/nextflow_config.json`   # Nextflow configuration file      
+`ls $datadir/input/nextflow_params.json`   # rnasplice parameters     
+`ls $datadir/input/nextflow_contrast.csv`  # Contrast file for nextflow. Currently not meaningfull     
 `ls sequences/*`  # The raw sequencing files (.fastq paired-end data)       
 `ls reference/*`  # The reference genome and annotations        
 `ls $scriptsdir/*`   # The required scripts     
 
 ### Usage
 * Nextflow pipeline & post-processing:    
-`nextflow run rnasplice -params-file data/params.json -c data/config.json -resume -bg`      
+`nextflow run rnasplice -params-file data/input/nextflow_params.json -c data/input/nextflow_config.json -resume -bg`      
 `sbatch $scriptsdir/lr_quant/lr_quant.slurm`  
 `sbatch $scriptsdir/featureCounts/featureCounts.slurm`      
 `sbatch $scriptsdir/OUTRIDER/outrider.slurm`        

@@ -13,11 +13,11 @@ module load r
 
 #read configs.json
 read workdir candidate_genes candidate_genes_LR < <(
-  jq -r '.general | [.workdir, .candidate_genes, .candidate_genes_LR] | @tsv' ../configs.json
+  jq -r '.general | [.workdir, .candidate_genes, .candidate_genes_LR] | @tsv' ../../data/input/configs.json
 )
 
 read fc_exons fc_genes cpu genome_in genome_out bamdir MANE ens_gene masterlog  < <(
-  jq -r '.featureCounts | [.fc_exons, .fc_genes, .cpu, .genome_in, .genome_out, .bamdir, .MANE, .ens_gene, .masterlog] | @tsv' ../configs.json
+  jq -r '.featureCounts | [.fc_exons, .fc_genes, .cpu, .genome_in, .genome_out, .bamdir, .MANE, .ens_gene, .masterlog] | @tsv' ../../data/input/configs.json
 )
 
 #run
