@@ -23,14 +23,17 @@ colnames(ase) <- c("SNPchr","SNPstart","pos","sampleID",'ref','alt','chr','START
 ase$sample_vcf = gsub('_PAX','',ase$sampleID)
 ase$pos = as.character(ase$pos)
 ase$pvalue = NA
-ase$WGSgenotype = NA
+ase$WGS_GT = NA
+ase$WGS_DP = NA
+ase$WGS_GQ = NA
+ase$WGS_ratio = 1
+
 ase <- ase %>%
-  mutate(total = ref + alt, RNAratio = signif(alt / total,2))
+  mutate(total = ref + alt, RNA_ratio = signif(alt / total,2),RNA_DP = paste0(ref,',',alt))
 
 #get the actual chromosome names from the ase file
 aes_rle = rle(ase$SNPchr)
 aes_rle = data.frame(lengths = aes_rle$lengths, values = aes_rle$values, c = 1:length(aes_rle$lengths))
-
 
 ########################################
 # 2. Read and filter ASE based on .vcf to check the expected count.
@@ -52,7 +55,6 @@ names(vcf_per_chr) = aes_rle$values
 ########################################
 # 3. Calculate expected count and do a binomial test for the 0.5 HET variants.
 ########################################
-ase$REF_expected = 1
 
 for(i in 1:nrow(ase)){
   #temp vcf file per chromosome and genotype
@@ -61,25 +63,40 @@ for(i in 1:nrow(ase)){
 
   if(length(temp_geno) > 0) {
     geno = strsplit(temp_geno, ':')[[1]][1]
-    if(geno == ".|." | geno == "./.") ase$REF_expected[i] = 1 #missing genotype, so we call it reference
+    DP = strsplit(temp_geno, ':')[[1]][3] 
+    GQ = strsplit(temp_geno, ':')[[1]][4]
+    if(geno == ".|." | geno == "./.") ase$WGS_ratio[i] = 1 #missing genotype, so we call it reference
     
-    if(geno == "0|0" | geno == "0/0") ase$REF_expected[i] = 1 #homozygous reference
+    if(geno == "0|0" | geno == "0/0") ase$WGS_ratio[i] = 1 #homozygous reference
     
     if(geno == "0|1" | geno == "0/1" | geno == "1|0" | geno == "1/0" ) {
-      ase$REF_expected[i] = 0.5 #heterozygous
+      ase$WGS_ratio[i] = 0.5 #heterozygous
       ase$pvalue[i] = signif(binom.test(ase$ref[i],ase$total[i], p=0.5)$p.value,2)} #binomial test for ASE
-      ase$WGSgenotype[i] = geno
+      ase$WGS_GT[i] = geno
+      ase$WGS_DP[i] = DP
+      ase$WGS_GQ[i] = GQ
 
-    if(geno == "1|1" | geno == "1/1") ase$REF_expected[i] = 0 #homo alternate
+    if(geno == "1|1" | geno == "1/1") ase$WGS_ratio[i] = 0 #homo alternate
     
-    } else ase$REF_expected[i] = NA #sample not present in the .vcf
+    } else ase$WGS_ratio[i] = NA #sample not present in the .vcf
   
-  if (i %% 10000 == 0) print(paste0('Done ',i,' of ',nrow(ase), ' ~~~ Time is: ',Sys.time()))
+  if (i %% 50000 == 0) print(paste0('Done ',i,' of ',nrow(ase), ' ~~~ Time is: ',Sys.time()))
 }
 
 #filter results.
-ase_signif = ase[!is.na(ase$REF_expected),]
-ase_signif = ase_signif[ase_signif$REF_expected == 0.5,]
+ase_signif = ase[!is.na(ase$WGS_ratio),]
+ase_signif = ase_signif[ase_signif$WGS_ratio == 0.5,]
+
+print('Dimension of ase_signif: ')
+print(dim(ase_signif))
+
+print('Number of unique genes tested: ')
+print(ase_signif %>% group_by(sampleID) %>% summarise(unique_genes = length(unique(ensemblID))))
+
+print('Number of unique SNV tested: ')
+print(ase_signif %>% group_by(sampleID) %>% summarise(unique_genes = length(ensemblID)))
+
+
 ase_signif = ase_signif[ase_signif$pvalue<0.5,]
 ase_signif$pvalue[ase_signif$pvalue<1e-50] = 1e-50
 
@@ -105,7 +122,9 @@ map$chr = gsub('chr','',map$chr)
 # 5. Save
 ########################################
 signif_map = merge(ase_signif,map,by = 'ensemblID',all.x = T)
-signif_map_ASE = signif_map[,c(5,18,1,2,4,6,7,15,13,12)]
+signif_map_ASE = signif_map[,c(5,1,21,2,4,19:18,13:16,12)]
+#signif_map[,c(5,1,21,2,4,18:17, 19, 13:15,12)]
+#signif_map_ASE = signif_map[,c(5,18,1,2,4,6,7,15,13,12)]
 signif_map_ASE = signif_map_ASE[!is.na(signif_map_ASE$geneID),]
 colnames(signif_map_ASE)[4] = 'chr'
 

@@ -38,10 +38,10 @@ transcripts_named_filtered = read.csv(file.path(params$datadir,'transcripts_name
 transcripts_named_filtered_ggplot = read.csv(file.path(params$datadir,'transcripts_named_filtered_ggplot.tsv'),sep = '\t',check.names = F)
 
 fc_exons_tpm_ggplot = read.csv(file.path(params$datadir,'fc_exons_tpm_ggplot.tsv'),sep = '\t',check.names = F)
-candidates = read.csv(file.path(params$datadir,'candidate_genes_3.txt'))
+candidates = read.csv(file.path(params$datadir,'input/candidate_genes.csv'))
 
-if(file.exists(file.path(params$datadir,'candidate_genes_LR.txt'))){
-  candidates_LR = read.csv(file.path(params$datadir,'candidate_genes_LR.txt'))
+if(file.exists(file.path(params$datadir,'input/candidate_genes_LR.csv'))){
+  candidates_LR = read.csv(file.path(params$datadir,'input/candidate_genes_LR.csv'))
   candidates_LR = candidates_LR[,c(2,3,10,4,5,6,7,8,9)]
   colnames(candidates_LR) = colnames(candidates)
   candidates = rbind(candidates,candidates_LR) 
@@ -216,7 +216,7 @@ ui <- page_fluid(
       card(
         card_header(strong('Genome-wide significance (Manhattan plot)')),
         plotOutput("gwASE", width = '1500px', height = "600px")),
-      card(card_header(strong("Genome-wide significance (table)")),
+      card(card_header(strong("Genome-wide significance (table, p<0.01)")),
            DTOutput("gwASE_table"),height = "600px")
     ),
 
@@ -494,7 +494,7 @@ server <- function(input, output, session) {
     ### Image
     output$mainimage = renderImage({
       list(
-        src = file.path(params$datadir,'CHUSJ_CR_Bioinformatique_V2.png'), #path to the file
+        src = file.path(params$datadir,'input/CHUSJ_CR_Bioinformatique_V2.png'), #path to the file
         contentType = "image/png",
         width = 400,
         alt = "My Figure"
@@ -514,6 +514,7 @@ server <- function(input, output, session) {
                "<br><br><b>Mutations: </b>",selected_clinical$Mutation,
                "<br><br><b>Candidate Gene hypothesis: </b>",selected_clinical$Hypothèse,
                "<br><br><b>HPO terms: </b>",selected_clinical$`HPO terms`,
+               "<br><br><b>Sex: </b>",selected_clinical$Sexe, 
                "<br><br><b>Bam file location (Fir): </b>",system('echo ${HOME}',intern = T),"/scratch/raredisease_rnaseq/results_06_01_2026/star_salmon/",selected_patient,".sorted.bam<span>")
         )
       })
@@ -531,7 +532,7 @@ server <- function(input, output, session) {
     output$ase_legend  <- renderUI({
       HTML(
         paste0("<span>Identification of Allele Specific Expression based on SNV genotypes (.vcf) and short read RNAseq alignement (.bam) files.
-                <br>Called with GATK - ASEReadCounter. Significance tested with binomial t-tests. Cisualised as Manhattan plots and dynamic table.
+                <br>Called with GATK - ASEReadCounter. Significance tested with binomial t-tests. Visualised as Manhattan plots and dynamic table.
                 <br><b>ref/alt: </b>RNAseq reference/alternate count. 
                 <b>WGSgenotype: </b>Long Read genotypes. 
                 <b>RNAratio: </b>ref/(ref+alt)</span>")
@@ -636,7 +637,7 @@ server <- function(input, output, session) {
     output$gwFRASER_table = renderDT({
       datatable(
         gwFRASER_table(res_dt=gwFRASER,sample = candidates$proband[i()]),
-        rownames = F,options = list(dom = 'p'))
+        rownames = F,options = list(pageLength = 100,columnDefs = list(list(className = 'dt-center', targets = "_all"))))
     })
 
    ### dynamic title

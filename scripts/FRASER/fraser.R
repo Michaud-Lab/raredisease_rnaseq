@@ -11,7 +11,7 @@ suppressMessages(suppressWarnings(library(FRASER)))
 suppressMessages(suppressWarnings(library(tidyr)))
 
 #candidates
-candidates = read.csv(file.path(params$FRASER,'../data/candidate_genes_3.txt'))
+candidates = read.csv(file.path(params$FRASER,'../data/input/candidate_genes.csv'))
 params$output = paste0(args[2],'/FRASER/results/output_FRASER_',candidates$proband[i])
 
 #prepare the bam subsetting BASH script

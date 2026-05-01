@@ -12,7 +12,7 @@ module load r
 
 #read configs.json
 read workdir candidate_genes < <(
-  jq -r '.general | [.workdir, .candidate_genes] | @tsv' ../configs.json
+  jq -r '.general | [.workdir, .candidate_genes] | @tsv' ../../data/input/configs.json
 )
 
 temp=$(wc -l < $candidate_genes)

@@ -17,7 +17,7 @@ ncores = 8
 register(MulticoreParam(ncores, ncores*2, progressbar = TRUE))
 
 
-if(file.exists(file.path(params$workdir,'../raredisease_rnaseq/data/candidate_genes_LR.txt')) !=T) {
+if(file.exists(file.path(params$workdir,'../raredisease_rnaseq/data/candidate_genes_LR.csv')) !=T) {
   #the samples we processed with LR
   samples = data.frame(long_read_code = c("bc01","bc02","bc03",'bc04'), 
                        proband = c('HSJ_003_03_PAX','HSJ_017_03_PAX','HSJ_018_03_PAX','HSJ_036_03_PAX'),
@@ -29,8 +29,8 @@ if(file.exists(file.path(params$workdir,'../raredisease_rnaseq/data/candidate_ge
   candidates_LR = merge(candidates_LR,samples[,1:2])
   
   #save the candidate genes with the long read data for the Shiny dashboard
-  write.csv(candidates_LR,file.path(params$workdir,'../data/candidate_genes_LR.txt'),row.names = F, quote = T)
-} else candidates_LR = read.csv(file.path(params$workdir,'../data/candidate_genes_LR.txt'), header = T)
+  write.csv(candidates_LR,file.path(params$workdir,'../data/candidate_genes_LR.csv'),row.names = F, quote = T)
+} else candidates_LR = read.csv(file.path(params$workdir,'../data/candidate_genes_LR.csv'), header = T)
 
 params$output = paste0(args[1],'/results/output_FRASER_',candidates_LR$long_read_code[i])
 dir.create(params$output,showWarnings = T)

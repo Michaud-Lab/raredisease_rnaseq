@@ -22,7 +22,7 @@ fi
 
 #read configs.json
 read workdir candidate_genes_LR workdir_LR< <(
-  jq -r '.general | [.workdir, .candidate_genes_LR, .workdir_LR] | @tsv' ../configs.json
+  jq -r '.general | [.workdir, .candidate_genes_LR, .workdir_LR] | @tsv' ../../data/input/configs.json
   )
 
 temp=$(wc -l < $candidate_genes_LR)

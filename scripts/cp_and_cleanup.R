@@ -36,7 +36,7 @@
   write.csv(gwFRASER,file.path(params$datadir,'gwFRASER.csv'))
 
   #cp the scripts for backup
-  cp_scripts = paste0("rsync -av --exclude='.*' --exclude='slurm*' ",params$workdir,"/scripts ",params$datadir,"/.")
+  cp_scripts = paste0("rsync -av --exclude='deprecat*' --exclude='.*' --exclude='slurm*' ",params$workdir,"/scripts ",params$datadir,"/.")
   cp_info = paste0('cp ',paste0(params$workdir,c('/VERSION.json ','/CHANGELOG.md ', '/README.md ', '/RNAseq_shiny_v* '),collapse = ''),params$datadir,'/.')
   system(cp_scripts);system(cp_info)
 
@@ -61,8 +61,8 @@
   system(cp_outrider)
 
   #candidate genes
-  candidates = read.csv(file.path(params$datadir,'candidate_genes_3.txt'))
-  candidates_LR = read.csv(file.path(params$datadir,'candidate_genes_LR.txt'))
+  candidates = read.csv(file.path(params$datadir,'input/candidate_genes.csv'))
+  candidates_LR = read.csv(file.path(params$datadir,'input/candidate_genes_LR.csv'))
   candidates_LR = candidates_LR[,c(2,3,10,4,5,6,7,8,9)]
   colnames(candidates_LR) = colnames(candidates)
   candidates = rbind(candidates,candidates_LR)

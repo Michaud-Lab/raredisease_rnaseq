@@ -10,11 +10,11 @@ module load r
 
 #read configs.json
 read workdir candidate_genes candidate_genes_LR < <(
-  jq -r '.general | [.workdir, .candidate_genes, .candidate_genes_LR] | @tsv' ../configs.json
+  jq -r '.general | [.workdir, .candidate_genes, .candidate_genes_LR] | @tsv' ../../data/input/configs.json
 )
 
 read fc_pergene fc_perexon < <(
-  jq -r '.OUTRIDER | [.fc_pergene, .fc_perexon] | @tsv' ../configs.json
+  jq -r '.OUTRIDER | [.fc_pergene, .fc_perexon] | @tsv' ../../data/input/configs.json
 )
 
 #R script launches the bash script to prepare data and continues with analysis.
