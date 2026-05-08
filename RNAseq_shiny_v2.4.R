@@ -27,6 +27,7 @@ gwOUTRIDER$chr = factor(gwOUTRIDER$chr,levels = c(1:22,'X','Y','MT'))
 
 gwASE = read.csv(file.path(params$datadir,'gwASE.tsv'),row.names = 1,sep = '\t')
 gwASE$chr = factor(gwASE$chr,levels = c(1:22,'X','Y','MT'))
+gwASE_IMX = read.csv(file.path(params$datadir,'gwImprinted.tsv'),row.names = 1,sep = '\t')
 
 significant_perexons_OUTRIDER = read.csv(file.path(params$datadir,'exons_OUTRIDER.tsv'),sep = '\t',check.names = F)
 significant_perexons_OUTRIDER$chr = factor(significant_perexons_OUTRIDER$chr,levels = c(1:22,'X','Y','MT'))
@@ -217,7 +218,11 @@ ui <- page_fluid(
         card_header(strong('Genome-wide significance (Manhattan plot)')),
         plotOutput("gwASE", width = '1500px', height = "600px")),
       card(card_header(strong("Genome-wide significance (table, p<0.01)")),
-           DTOutput("gwASE_table"),height = "600px")
+           DTOutput("gwASE_table"),height = "600px"),
+      card(card_header(strong("Known Imprinted genes (table)")),
+           DTOutput("gwImprinted_table"),height = "600px"),
+      card(card_header(strong("X-chromosome (table)")),
+           DTOutput("gwX_table"),height = "600px")
     ),
 
 
@@ -298,6 +303,10 @@ server <- function(input, output, session) {
         gwASE_table = gwASE_table[gwASE_table$pvalue<0.01,]
         gwASE_table = gwASE_table[order(gwASE_table$chr,gwASE_table$pos,gwASE_table$geneID),]
         
+        #ASE Imprinted
+        gwIMX_table = gwASE_IMX[gwASE_IMX$sampleID == candidates$proband[i()],]
+        gwIMX_table = gwIMX_table[order(gwIMX_table$chr,gwIMX_table$pos,gwIMX_table$geneID),]
+                
         # Plotly family of proband
         fc_exons_ggplot_reactive = fc_exons_tpm_ggplot[fc_exons_tpm_ggplot$proband == reactive_i, ]
         fc_exons_ggplot_reactive = fc_exons_ggplot_reactive[fc_exons_ggplot_reactive$geneID == candidates$geneID[i()], ]
@@ -315,8 +324,8 @@ server <- function(input, output, session) {
             fc_exons_ggplot_reactive_child$exonID = fc_exons_ggplot_reactive_child$exonID - 0.1
             fc_exons_ggplot_reactive_adults$exonID = fc_exons_ggplot_reactive_adults$exonID + 0.1
           
-        output = list(transcripts_reactive,table_OUTRIDER,table_OUTRIDER_candidate,fc_exons_ggplot_reactive_child,fc_exons_ggplot_reactive_adults,fc_exons_tpm_reactive,fc_exons_raw_reactive,fc_exons_ggplot_reactive,fc_exons_ggplot_reactive_patient,fc_exons_ggplot_reactive_family,table_perexons_OUTRIDER_candidate,table_perexons_OUTRIDER_significant,gwASE_table)
-        names(output)  = c('transcripts_reactive','table_OUTRIDER','table_OUTRIDER_candidate','fc_exons_ggplot_reactive_child','fc_exons_ggplot_reactive_adults','fc_exons_tpm_reactive','fc_exons_raw_reactive','fc_exons_ggplot_reactive','fc_exons_ggplot_reactive_patient','fc_exons_ggplot_reactive_family','table_perexons_OUTRIDER_candidate','table_perexons_OUTRIDER_significant','gwASE_table')
+        output = list(transcripts_reactive,table_OUTRIDER,table_OUTRIDER_candidate,fc_exons_ggplot_reactive_child,fc_exons_ggplot_reactive_adults,fc_exons_tpm_reactive,fc_exons_raw_reactive,fc_exons_ggplot_reactive,fc_exons_ggplot_reactive_patient,fc_exons_ggplot_reactive_family,table_perexons_OUTRIDER_candidate,table_perexons_OUTRIDER_significant,gwASE_table,gwIMX_table)
+        names(output)  = c('transcripts_reactive','table_OUTRIDER','table_OUTRIDER_candidate','fc_exons_ggplot_reactive_child','fc_exons_ggplot_reactive_adults','fc_exons_tpm_reactive','fc_exons_raw_reactive','fc_exons_ggplot_reactive','fc_exons_ggplot_reactive_patient','fc_exons_ggplot_reactive_family','table_perexons_OUTRIDER_candidate','table_perexons_OUTRIDER_significant','gwASE_table','gwIMX_table')
         output
     })
   
@@ -390,6 +399,20 @@ server <- function(input, output, session) {
     output$gwASE_table <- renderDT({
       datatable(
         reactive_inputs()$gwASE_table,
+        rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))  
+    })
+
+    ### genome-wide Imprinted table
+    output$gwImprinted_table <- renderDT({
+      datatable(
+        reactive_inputs()$gwIMX_table[reactive_inputs()$gwIMX_table$Type == 'I',1:12],
+        rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))  
+    })
+    
+    ### genome-wide X table
+    output$gwX_table <- renderDT({
+      datatable(
+        reactive_inputs()$gwIMX_table[reactive_inputs()$gwIMX_table$Type == 'X',1:12],
         rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))  
     })
 
@@ -534,8 +557,14 @@ server <- function(input, output, session) {
         paste0("<span>Identification of Allele Specific Expression based on SNV genotypes (.vcf) and short read RNAseq alignement (.bam) files.
                 <br>Called with GATK - ASEReadCounter. Significance tested with binomial t-tests. Visualised as Manhattan plots and dynamic table.
                 <br><b>ref/alt: </b>RNAseq reference/alternate count. 
-                <b>WGSgenotype: </b>Long Read genotypes. 
-                <b>RNAratio: </b>ref/(ref+alt)</span>")
+                <br><b>chr: </b>Chromosome.
+		<br><b>pos: </b>Position.
+		<br><b>RNA_DP: </b>RNA read depth for reference,alternate allele.
+		<br><b>RNA_ratio: </b>RNA alternate allele/ (ref+alt).
+		<br><b>WGS_GT: </b>WGS genotype.
+		<br><b>WGS_DP: </b>WGS read depth for reference,alternate allele.
+		<br><b>WGS_GQ: </b>WGS genotype quality.
+                <b>WGSratio: </b>WGS alternate allele/ (ref+alt).</span>")
       )
     })
  

@@ -68,7 +68,7 @@ for s in $(cut -f1 ${INPUT_DIR}vcf_bam_families.txt);
   done
 
 
-echo "DONE ~~~ STEP3 ~~~  ASE -> BED conversio ~~~ $(date)"
+echo "DONE ~~~ STEP3 ~~~ ASE -> BED conversion ~~~ $(date)"
 
 ############################
 # STEP 4: Extract genes from GTF
@@ -104,7 +104,7 @@ echo "DONE ~~~ STEP6 ~~~ bedtools intersect ~~~ $(date)"
 ############################
 # STEP 7:  Deseq2
 ###########################
-Rscript ./ASE.R ${ASE_DIR}/overlaps.tsv ${VCF_DIR}/biallelic_sites.vcf.gz
+Rscript ./ASE.R ${ASE_DIR}/overlaps.tsv ${VCF_DIR}/biallelic_sites.vcf.gz ${INPUT_DIR}/high_confidence_imprinted_genes.csv
 
 echo "DONE ~~~ STEP7 ~~~ DeSeq2 ~~~ $(date)"
 
