@@ -16,6 +16,7 @@ suppressMessages(suppressWarnings(library(org.Hs.eg.db)))
 args = commandArgs(trailingOnly=TRUE)
 params = list(overlap = args[1])
 params$vcf = args[2]
+params$imprinting = args[3]
 params$workdir = dirname(params$overlap)
 ase <- read.table(params$overlap,header=FALSE)
 colnames(ase) <- c("SNPchr","SNPstart","pos","sampleID",'ref','alt','chr','START','STOP','ensemblID')
@@ -119,6 +120,29 @@ map$chr = gsub('chr','',map$chr)
 
 
 ########################################
+# 5. imprinting and X specific.
+########################################
+high_confidence_imprinted_genes = read.csv(params$imprinting, header =T)
+ase_map = merge(ase,map,by = 'ensemblID',all.x = T)
+ase_map = ase_map[!is.na(ase_map$WGS_ratio),]
+ase_map = ase_map[!is.na(ase_map$geneID),]
+ase_map_X = ase_map[ase_map$chr.x == 'X',]
+ase_map_X = ase_map_X[ase_map_X$WGS_ratio == 0.5, ]
+ase_map_X$Type = 'X'
+
+ase_map_imprinted = ase_map[ase_map$geneID %in% high_confidence_imprinted_genes$Gene,]
+ase_map_imprinted = ase_map_imprinted[ase_map_imprinted$WGS_ratio == 0.5, ]
+ase_map_imprinted$Type = 'I'
+ase_map_imprinted = rbind(ase_map_imprinted,ase_map_X)
+#ase_map_imprinted = ase_map_imprinted[!is.na(ase_map_imprinted$WGS_ratio),]
+#ase_map_imprinted = ase_map_imprinted[!is.na(ase_map_imprinted$geneID),]
+ase_map_imprinted = ase_map_imprinted[,c(5,1,21,2,4,19:18,13:16,12,28)]
+colnames(ase_map_imprinted)[4] = 'chr'
+
+write.table(ase_map_imprinted, file.path(params$workdir,"gwImprinted.tsv"),sep = '\t',quote = F)
+
+
+########################################
 # 5. Save
 ########################################
 signif_map = merge(ase_signif,map,by = 'ensemblID',all.x = T)
@@ -126,6 +150,8 @@ signif_map_ASE = signif_map[,c(5,1,21,2,4,19:18,13:16,12)]
 #signif_map[,c(5,1,21,2,4,18:17, 19, 13:15,12)]
 #signif_map_ASE = signif_map[,c(5,18,1,2,4,6,7,15,13,12)]
 signif_map_ASE = signif_map_ASE[!is.na(signif_map_ASE$geneID),]
+#signif_map_ASE$Imprinted = 0
+#signif_map_ASE = rbind(signif_map_ASE,ase_map_imprinted)
 colnames(signif_map_ASE)[4] = 'chr'
 
 write.table(signif_map_ASE, file.path(params$workdir,"gwASE.tsv"),sep = '\t',quote = F)

@@ -15,7 +15,7 @@
   dir.create(paste0(params$datadir,'bams_subset'),showWarnings = FALSE)
 
   #ASE
-  cp_ASE = paste0('cp ', params$workdir,'/ASE/gwASE.tsv ',params$datadir,'/.')
+  cp_ASE = paste0('cp ', params$workdir,'/ASE/gw* ',params$datadir,'/.')
   system(cp_ASE)
 
   #res_dt FRASER genome-wide	
