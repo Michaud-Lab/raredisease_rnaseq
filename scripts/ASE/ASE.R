@@ -9,7 +9,6 @@ suppressMessages(suppressWarnings(library(ggplot2)))
 suppressMessages(suppressWarnings(library(TxDb.Hsapiens.UCSC.hg38.knownGene)))
 suppressMessages(suppressWarnings(library(org.Hs.eg.db)))
 
-
 ########################################
 # 1. Read and filter ASE overlap.txt file
 ########################################
@@ -21,13 +20,15 @@ params$workdir = dirname(params$overlap)
 ase <- read.table(params$overlap,header=FALSE)
 colnames(ase) <- c("SNPchr","SNPstart","pos","sampleID",'ref','alt','chr','START','STOP','ensemblID')
 
+#get rid of HSJ_045_04 because it should not be there...
+ase = ase[ase$sampleID != 'HSJ_042_04_PAX', ]
 ase$sample_vcf = gsub('_PAX','',ase$sampleID)
 ase$pos = as.character(ase$pos)
 ase$pvalue = NA
 ase$WGS_GT = NA
 ase$WGS_DP = NA
 ase$WGS_GQ = NA
-ase$WGS_ratio = 1
+ase$WGS_ratio = NA
 
 ase <- ase %>%
   mutate(total = ref + alt, RNA_ratio = signif(alt / total,2),RNA_DP = paste0(ref,',',alt))
@@ -39,7 +40,7 @@ aes_rle = data.frame(lengths = aes_rle$lengths, values = aes_rle$values, c = 1:l
 ########################################
 # 2. Read and filter ASE based on .vcf to check the expected count.
 ########################################
-vcf <- read.vcfR(params$vcf,verbose = F)
+vcf <- read.vcfR(params$vcf,verbose = T)
 colnames(vcf@gt) = gsub('-','_',colnames(vcf@gt))
 
 #split things per chromosome for quicker access
@@ -48,58 +49,74 @@ vcf_per_chr = list()
 for(c in 1:length(aes_rle$values)){
   vcf_per_chr[[c]] = data.frame(position = vcf@fix[vcf@fix[,1] == aes_rle$values[c],2],vcf@gt[vcf@fix[,1] == aes_rle$values[c],])
 }
-
 names(vcf_per_chr) = aes_rle$values
-
-
 
 ########################################
 # 3. Calculate expected count and do a binomial test for the 0.5 HET variants.
 ########################################
-
 for(i in 1:nrow(ase)){
-  #temp vcf file per chromosome and genotype
-  temp_vcf_per_chr = vcf_per_chr[names(vcf_per_chr) == ase$SNPchr[i]][[1]]
-  temp_geno = temp_vcf_per_chr[temp_vcf_per_chr$position == ase$pos[i],colnames(temp_vcf_per_chr) == ase$sample_vcf[i]]
+  #temp vcf file when using a new chromosome
+  if((i == 1) | ((i!=1) && (ase[i-1,1] != ase[i,1]))) {
+    temp_vcf_per_chr = vcf_per_chr[names(vcf_per_chr) == ase$SNPchr[i]][[1]]
+  }
 
-  if(length(temp_geno) > 0) {
-    geno = strsplit(temp_geno, ':')[[1]][1]
-    DP = strsplit(temp_geno, ':')[[1]][3] 
-    GQ = strsplit(temp_geno, ':')[[1]][4]
-    if(geno == ".|." | geno == "./.") ase$WGS_ratio[i] = 1 #missing genotype, so we call it reference
-    
-    if(geno == "0|0" | geno == "0/0") ase$WGS_ratio[i] = 1 #homozygous reference
-    
-    if(geno == "0|1" | geno == "0/1" | geno == "1|0" | geno == "1/0" ) {
-      ase$WGS_ratio[i] = 0.5 #heterozygous
-      ase$pvalue[i] = signif(binom.test(ase$ref[i],ase$total[i], p=0.5)$p.value,2)} #binomial test for ASE
-      ase$WGS_GT[i] = geno
-      ase$WGS_DP[i] = DP
-      ase$WGS_GQ[i] = GQ
-
-    if(geno == "1|1" | geno == "1/1") ase$WGS_ratio[i] = 0 #homo alternate
-    
-    } else ase$WGS_ratio[i] = NA #sample not present in the .vcf
+  #temp vcf file when using a locus
+  if((i == 1) | ((i!=1) && (ase[i-1,2] != ase[i,2]))) {
+    temp_geno = temp_vcf_per_chr[temp_vcf_per_chr$position == ase$pos[i],]
+  }
   
-  if (i %% 50000 == 0) print(paste0('Done ',i,' of ',nrow(ase), ' ~~~ Time is: ',Sys.time()))
+  temp_geno2 = 'nosnp'
+  if(nrow(temp_geno) >0){
+   temp_geno2 = temp_geno[,colnames(temp_geno) == ase$sample_vcf[i]]}
+
+  if(nchar(temp_geno2) > 15) {
+    gt = strsplit(temp_geno2, ':')[[1]]
+    ase$WGS_GT[i] = gt[1]
+    ase$WGS_DP[i] = gt[3]
+    ase$WGS_GQ[i] = gt[4]
+  }
+  
+  if(i %% 10000 == 0) print(paste('Done ',i,' of ',nrow(ase), ', Time is: ',Sys.time()))
 }
 
-#filter results.
-ase_signif = ase[!is.na(ase$WGS_ratio),]
-ase_signif = ase_signif[ase_signif$WGS_ratio == 0.5,]
+#subset the hetero SNVs.
+ase$WGS_ratio[ase$WGS_GT == "0|1" | ase$WGS_GT == "1|0" | ase$WGS_GT == "0/1" | ase$WGS_GT == "1/0"] = 0.5
+ase$WGS_ratio[ase$WGS_GT == ".|." | ase$WGS_GT == "./."] = 1
+ase$WGS_ratio[ase$WGS_GT == "0|0" | ase$WGS_GT == "0/0"] = 1
+ase$WGS_ratio[ase$WGS_GT == "1|1" | ase$WGS_GT == "1/1"] = 0
 
-print('Dimension of ase_signif: ')
-print(dim(ase_signif))
+ase_signif = ase
+ase_signif = ase_signif[!is.na(ase_signif$WGS_GT),]
+ase_signif = ase_signif[ase_signif$WGS_GT == "0|1" | ase_signif$WGS_GT == "1|0" | ase_signif$WGS_GT == "0/1" | ase_signif$WGS_GT == "1/0",]
 
-print('Number of unique genes tested: ')
-print(ase_signif %>% group_by(sampleID) %>% summarise(unique_genes = length(unique(ensemblID))))
+for(i in 1:nrow(ase_signif)){
+  ase_signif$WGS_ratio[i] = 0.5 #heterozygous
+  ase_signif$pvalue[i] = signif(binom.test(ase_signif$ref[i],ase_signif$total[i], p=0.5)$p.value,2) #binomial test for ASE
+  
+  if(i %% 5000 == 0) print(paste('Done ',i,' of ',nrow(ase_signif), ', Time is: ',Sys.time()))
+}
 
-print('Number of unique SNV tested: ')
-print(ase_signif %>% group_by(sampleID) %>% summarise(unique_genes = length(ensemblID)))
-
-
+#
 ase_signif = ase_signif[ase_signif$pvalue<0.5,]
 ase_signif$pvalue[ase_signif$pvalue<1e-50] = 1e-50
+
+dim(ase_signif)
+
+#filter results.
+#ase_signif = ase[!is.na(ase$WGS_ratio),]
+#ase_signif = ase_signif[ase_signif$WGS_ratio == 0.5,]
+
+#print('Dimension of ase_signif: ')
+#print(dim(ase_signif))
+
+#print('Number of unique genes tested: ')
+#print(ase_signif %>% group_by(sampleID) %>% summarise(unique_genes = length(unique(ensemblID))))
+
+#print('Number of unique SNV tested: ')
+#print(ase_signif %>% group_by(sampleID) %>% summarise(unique_genes = length(ensemblID)))
+
+ase_signif_dedup = ase[!duplicated(ase[,c(3,4)]),]
+ase_pivoted = pivot_wider(ase_signif_dedup[,c(3,4,19)],names_from = sampleID,values_from = RNA_DP)
 
 ########################################
 # 4. add geneID from hg38 annotation file.
@@ -117,7 +134,6 @@ gene_locations = gene_locations[nchar(as.character(gene_locations$seqnames))<6,]
 map = merge(map, gene_locations, by.y = 'group_name', by.x = 'ENTREZID')
 colnames(map)[c(2,3,5)] = c('ensemblID','geneID','chr')
 map$chr = gsub('chr','',map$chr)
-
 
 ########################################
 # 5. imprinting and X specific.
@@ -155,4 +171,3 @@ signif_map_ASE = signif_map_ASE[!is.na(signif_map_ASE$geneID),]
 colnames(signif_map_ASE)[4] = 'chr'
 
 write.table(signif_map_ASE, file.path(params$workdir,"gwASE.tsv"),sep = '\t',quote = F)
-
