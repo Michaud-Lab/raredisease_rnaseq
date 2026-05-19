@@ -1,3 +1,9 @@
+### 2026-05-19 ase
+**Changed**
+* ase_refactor 
+* refactor RNAseq_shiny (now RNAseq_shiny_v2.5), modulalise input
+
+
 ### 2026-04-24 ase
 **Changed**
 * Allele Specific Expression v1
