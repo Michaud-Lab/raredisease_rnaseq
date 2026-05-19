@@ -1,7 +1,7 @@
 #source
-source("data/Shiny/global.R")
-source("data/Shiny/rnaseq_shinyhelper_functions.R")
-source("data/Shiny/reactive_module.R")
+source("data/scripts/Shiny/global.R")
+source("data/scripts/Shiny/rnaseq_shinyhelper_functions.R")
+source("data/scripts/Shiny/reactive_module.R")
 #####
 #####UI
 #####
@@ -459,14 +459,14 @@ server <- function(input, output, session) {
   ### genome-wide ASE Imprinted table
   output$gwImprinted_table <- renderDT({
     datatable(
-      rd$reactive_inputs()$gwIMX_table[reactive_inputs()$gwIMX_table$Type == 'I',1:12],
+      rd$reactive_inputs()$gwIMX_table[rd$reactive_inputs()$gwIMX_table$Type == 'I',1:12],
       rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))  
   })
   
   ### genome-wide ASE X table
   output$gwX_table <- renderDT({
     datatable(
-      reactive_inputs()$gwIMX_table[reactive_inputs()$gwIMX_table$Type == 'X',1:12],
+      rd$reactive_inputs()$gwIMX_table[rd$reactive_inputs()$gwIMX_table$Type == 'X',1:12],
       rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))  
   })
   
