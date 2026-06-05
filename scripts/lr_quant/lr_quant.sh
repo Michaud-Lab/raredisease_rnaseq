@@ -1,6 +1,6 @@
 
-lrpath="/home/renaut/scratch/raredisease_rnaseq/"
-resultpath="/home/renaut/scratch/raredisease_rnaseq/lr_quant/"
+lrpath="/home/renaut/scratch/longread_rnaseq/"
+resultpath="/home/renaut/scratch/raredisease_rnaseq/lr_quant_QiavsPax/"
 ref_genome="/home/renaut/scratch/reference/Homo_sapiens/Homo_sapiensChr.GRCh38.dna.primary_assembly.fa"
 gtf="/home/renaut/scratch/reference/Human_hg38_Gencode_v39/gencode.v39.annotation.gtf"
 gtf_c="/home/renaut/scratch/reference/Human_hg38_Gencode_v39/gencode.v39.annotation.sorted.gtf"
@@ -11,10 +11,11 @@ rnasplice_bamdir="$HOME/scratch/raredisease_rnaseq/results_06_01_2026/star_salmo
 mkdir -p $resultpath
 
 #0.generate a subsetted samples (1M reads)
-#samtools view -h "$lrpath"1_A01/hifi_reads/m84196_260317_144727_s1.hifi_reads.bcM0001.bam | head -n 600000 | samtools view -b -o "$lrpath"test_data/hifi_reads/test.hifi_reads.bcM0001.bam
+#samtools view -h "$resultpath"1_D01/hifi_reads/m84196_260508_182259_s1.hifi_reads.bcM0001.bam | head -n 500000 | samtools view -b -o "$resultpath"test_data/hifi_reads/test.hifi_reads.bcM0001.bam
 
 #1. Generate segmented reads
-#skera split -j $cpu "$lrpath"1_A01/hifi_reads/m84196_260317_144727_s1.hifi_reads.bcM0001.bam "$lrpath"/reference/mas8_primers.fasta "$resultpath"segmented.bam
+#skera split -j $cpu "$resultpath"1_D01/hifi_reads/m84196_260508_182259_s1.hifi_reads.bcM0001.bam "$lrpath"/reference/mas8_primers.fasta "$resultpath"segmented.bam
+#skera split -j $cpu "$resultpath"test_data/hifi_reads/test.hifi_reads.bcM0001.bam "$lrpath"/reference/mas8_primers.fasta "$resultpath"segmented.bam
 
 #2. Primer removal and demux
 #lima -j $cpu "$resultpath"segmented.bam "$lrpath"/reference/IsoSeq_v2_primers_12.fasta "$resultpath"movieX.fl.bam --isoseq --peek-guess
@@ -26,7 +27,7 @@ for s in $samples
   do
     samp_dir=${s//'movieX.fl.IsoSeqX_'} 
     samp_dir="${samp_dir//'_5p--IsoSeqX_3p.bam'}" 
-    bc=${samp_dir//'/home/renaut/scratch/longread_rnaseq/results_6M/'}
+    bc=${samp_dir//'/home/renaut/scratch/raredisease_rnaseq/lr_quant_QiavsPax/'}
     mkdir -p $samp_dir
     echo $samp_dir
 
@@ -37,16 +38,16 @@ for s in $samples
     #`ls movie*.flnc.bam movie*.flnc.bam movie*.flnc.bam > flnc.fofn`
 
     #4. Cluster isoforms
-    isoseq cluster2 -j $cpu "$samp_dir"/movieX.flnc.bam "$samp_dir"/transcripts.bam
+    #isoseq cluster2 -j $cpu "$samp_dir"/movieX.flnc.bam "$samp_dir"/transcripts.bam
 
     #5. Check sequences (generate a .fastq)
-    #samtools fastq "$samp_dir"/transcripts.bam >"$samp_dir"/transcripts.fastq.gz
+    samtools fastq "$samp_dir"/transcripts.bam >"$samp_dir"/transcripts.fastq.gz
 
     #6a. ppmm2: map clustered reads to human genome
     pbmm2 align -j $cpu --preset ISOSEQ --sort "$samp_dir"/transcripts.bam "$ref_genome" "$samp_dir"/mapped.bam
 
     #6b. ppmm2: map ALL reads to human genome (I need this for FRASER)
-    pbmm2 align -j $cpu --preset ISOSEQ --sort "$samp_dir"/movieX.flnc.bam "$ref_genome" "rnasplice_bamdir"/"$bc"_sorted.bam 
+    #pbmm2 align -j $cpu --preset ISOSEQ --sort "$samp_dir"/movieX.flnc.bam "$ref_genome" "$rnasplice_bamdir"/"$bc"_sorted.bam 
 
     #7. Collapse into single isoforms (gff contains the sequence annotation. collapsed.flnc_count.txt contains the count of each unique sequence) 
     isoseq collapse "$samp_dir"/mapped.bam "$samp_dir"/movieX.flnc.bam "$samp_dir"/collapsed.gff

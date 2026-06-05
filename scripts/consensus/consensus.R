@@ -94,6 +94,7 @@ if(nrow(exonic_depth) > 0) {
 }
 
 #tolower the retention and the SNPs / '---' the retention in the reference
+if(candidates$position[i] != '') {variant_annotated$alternate[variant_annotated$position == candidates$position[i]] = paste0("<span style='color: red;'>",variant_annotated$alternate[variant_annotated$position == candidates$position[i]],"</span>")}
 variant_annotated$alternate[variant_annotated$reference != variant_annotated$alternate] = paste0("<b>",variant_annotated$alternate[variant_annotated$reference != variant_annotated$alternate],"</b>")
 variant_annotated$alternate[variant_annotated$retention_event == 1] = tolower(variant_annotated$alternate[variant_annotated$retention_event == 1])
 variant_annotated$reference[variant_annotated$retention_event == 1] = '-'

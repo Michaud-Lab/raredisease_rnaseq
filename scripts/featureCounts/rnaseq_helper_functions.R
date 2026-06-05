@@ -7,18 +7,18 @@ gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcript
   suppressMessages(suppressWarnings(library(GenomicAlignments)))  
 
   # Connect to Ensembl and select the human dataset for hg38 (GRCh38)
-  ensembl <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", GRCh = 38)
+  ensembl <- biomaRt::useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", GRCh = 38)
   
   # Get gene annotations
-  genes <- getBM(attributes = c("chromosome_name", "start_position", "end_position",
+  genes <-  biomaRt::getBM(attributes = c("chromosome_name", "start_position", "end_position",
                                 "strand", "ensembl_gene_id", "hgnc_symbol", "gene_biotype"),mart = ensembl)
   
   ##subset only  genes on an actual chromosome (i.e. not a scaffold or something weird)
   genes = genes[genes$chromosome_name %in% c(1:22,'X','Y','MT'),]
   
   # Create GRanges object
-  gr <- GRanges(seqnames = paste0("chr", genes$chromosome_name),
-                ranges = IRanges(start = genes$start_position, end = genes$end_position),
+  gr <-  GenomicRanges::GRanges(seqnames = paste0("chr", genes$chromosome_name),
+                ranges = IRanges::IRanges(start = genes$start_position, end = genes$end_position),
                 strand = ifelse(genes$strand == 1, "+", "-"),
                 gene_id = genes$ensembl_gene_id,
                 symbol = genes$hgnc_symbol,
@@ -29,7 +29,7 @@ gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcript
   wh = wh[wh@seqnames %in% paste0('chr',candidates$chromosome),]
 
   #genemodel
-  exons_df <- getBM(
+  exons_df <- biomaRt::getBM(
     attributes = c(
       "ensembl_gene_id",
       "ensembl_transcript_id",
@@ -59,9 +59,9 @@ gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcript
   exons_df = exons_df[exons_df$transcript_id %in% unique_transcript_id,]
   
   # Create GRanges object
-  gr_exons <- GRanges(
+  gr_exons <- GenomicRanges::GRanges(
     seqnames = exons_df$chromosome,
-    ranges = IRanges(start = exons_df$start, end = exons_df$end),
+    ranges = IRanges::IRanges(start = exons_df$start, end = exons_df$end),
     strand = exons_df$strand,
     gene_id = exons_df$gene_id,
     transcript_id = exons_df$transcript_id,

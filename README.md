@@ -34,7 +34,8 @@ sebastien.renaut.hsj@ssss.gouv.qc.ca
 `sbatch $scriptsdir/featureCounts/featureCounts.slurm`      
 `sbatch $scriptsdir/OUTRIDER/outrider.slurm`        
 `sbatch $scriptsdir/FRASER/fraser.slurm`        
-`sbatch $scriptsdir/consensus/consensus.slurm`      
+`sbatch $scriptsdir/consensus/consensus.slurm`
+`sbatch $scriptsdir/consensus/ase.slurm`      
 `Rscript $scriptsdir/cp_and_cleanup.R`      
     
 * Shiny app (Run in Rstudio, or Rscript locally, requires R>=4.5)       

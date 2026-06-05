@@ -1,6 +1,6 @@
 
 # R libraries that you need
-packages = c('DT','plotly','tidyr','shiny','shinyjs','jsonlite','igvShiny','GenomicAlignments','dplyr','ggtranscript','patchwork','Hmisc','bslib','RColorBrewer','ggrepel','R.utils','logger')
+packages = c('DT','plotly','tidyr','shiny','shinyjs','jsonlite','igvShiny','GenomicAlignments','dplyr','ggtranscript','patchwork','Hmisc','bslib','RColorBrewer','ggrepel','R.utils','logger','rtracklayer')
 logger::log_info('Loading required packages')
 
 for(p in 1:length(packages)) {
