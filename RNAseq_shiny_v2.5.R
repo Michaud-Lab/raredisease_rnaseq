@@ -167,7 +167,7 @@ ui <- page_fluid(
     tabPanel("fasta",
              card(
                card_header(strong('Transcribed sequences: reference / alternate')),
-               em('dashes (---) in reference/alternate correspond to intron retention/exon skipping events, respectively, variants in ',strong('bold')),               
+               em('dashes (---) in reference/alternate correspond to intron retention/exon skipping events, respectively, variants in ',strong('bold'), 'candidate variant in blue.'),               
                htmlOutput("fasta")
              )
     ),
