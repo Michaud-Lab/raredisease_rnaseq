@@ -22,7 +22,6 @@ count=$((temp - 1))
 #Can add new genes specified in candidate_genes_3.txt to the for loop below:
 for i in $(seq 1 $count); do
   Rscript fraser.R $i $workdir
-  echo $i
 done
 
 
@@ -33,3 +32,6 @@ done
 # echo 'Done chr:'$i
 #done
 
+
+
+echo 'All done FRASER'

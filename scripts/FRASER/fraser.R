@@ -4,12 +4,6 @@ i = as.numeric(args[1])
 params = list(FRASER = file.path(args[2],"FRASER/"))
 options(scipen = 999)
 
-#Load required packages
-suppressMessages(suppressWarnings(library(dplyr)))
-suppressMessages(suppressWarnings(library(patchwork)))
-suppressMessages(suppressWarnings(library(FRASER)))
-suppressMessages(suppressWarnings(library(tidyr)))
-
 #candidates
 candidates = read.csv(file.path(params$FRASER,'../data/input/candidate_genes.csv'))
 params$output = paste0(args[2],'/FRASER/results/output_FRASER_',candidates$proband[i])
@@ -23,78 +17,94 @@ proband = candidates$proband[i]
 
 if(geneID != "") {
   out_dir = paste0(params$FRASER,'bams_subset/gene',geneID,'_chr',chr,'_',start,'_',stop)
-  command = paste('./fraser.sh', chr, start, stop, geneID,proband)
-  system(command)
-    
-  #FRASER analysis
-  dir.create(params$FRASER,showWarnings = T)
-  dir.create(file.path(params$FRASER,'results'),showWarnings = T)
-  dir.create(params$output,showWarnings = T)
+  command = paste('./fraser.sh', chr, start, stop, geneID, proband)
 
-  sampleTable = data.table(data.frame(sampleID =  gsub('_sorted_chrN.bam','',list.files(out_dir,pattern = '*bam$')),
+  res_dt_outfile = paste0(out_dir,"/gene_",geneID,"_",proband,"_res_dt_candidate_gene.csv")
+
+  if(!file.exists(res_dt_outfile)) {
+    #create an empty file in case analysis does not run, and you don't want to run it again...
+    system(paste0('touch ', res_dt_outfile))    
+
+    #subset and prepare the big bam file
+    system(command)
+   
+    #FRASER analysis
+    #Load required packages
+    suppressMessages(suppressWarnings(library(dplyr)))
+    suppressMessages(suppressWarnings(library(patchwork)))
+    suppressMessages(suppressWarnings(library(FRASER)))
+    suppressMessages(suppressWarnings(library(tidyr))) 
+
+    dir.create(params$FRASER,showWarnings = T)
+    dir.create(file.path(params$FRASER,'results'),showWarnings = T)
+    dir.create(params$output,showWarnings = T)
+
+    sampleTable = data.table(data.frame(sampleID =  gsub('_sorted_chrN.bam','',list.files(out_dir,pattern = '*bam$')),
                            bamFile = list.files(out_dir,pattern = '*bam$',full.names = F),
                            group = 1,
                            pairedEnd = TRUE))
 
-  sampleTable$group = 1:nrow(sampleTable)
-  sampleTable$bamFile = paste0(out_dir,'/',sampleTable$bamFile) 
+    sampleTable$group = 1:nrow(sampleTable)
+    sampleTable$bamFile = paste0(out_dir,'/',sampleTable$bamFile) 
 
-  #probands only
-  probands = c(1:nrow(sampleTable))[grepl('_0[34]_',sampleTable$bamFile) | grepl('LC_',sampleTable$bamFile)| grepl('F0',sampleTable$bamFile)]
-  settings <- FraserDataSet(colData=sampleTable[probands,], workingDir=params$output)
+    #probands only
+    probands = c(1:nrow(sampleTable))[grepl('_0[34]_',sampleTable$bamFile) | grepl('LC_',sampleTable$bamFile)| grepl('F0',sampleTable$bamFile)]
+    settings <- FraserDataSet(colData=sampleTable[probands,], workingDir=params$output)
 
-  fds <- countRNAData(settings,recount=TRUE)
-  fds <- calculatePSIValues(fds)
-  fds <- annotateRanges(fds,GRCh=38)
-  #fds <- FRASER(fds, q=c(jaccard=2))
-  fds <- fit(fds, q=c(jaccard=2))
-  fds = calculatePvalues(fds)
-  fds = calculatePadjValues(fds,method = 'none',geneLevel=F)
-  fds = calculateZscore(fds)  
+    fds <- countRNAData(settings,recount=TRUE)
+    fds <- calculatePSIValues(fds)
+    fds <- annotateRanges(fds,GRCh=38)
+    #fds <- FRASER(fds, q=c(jaccard=2))
+    fds <- fit(fds, q=c(jaccard=2))
+    fds = calculatePvalues(fds)
+    fds = calculatePadjValues(fds,method = 'none',geneLevel=F)
+    fds = calculateZscore(fds)  
 
-  res <- results(fds, all=TRUE, padjCutoff=NA, deltaPsiCutoff=NA)
-  sort(unique(res$hgncSymbol))
+    res <- results(fds, all=TRUE, padjCutoff=NA, deltaPsiCutoff=NA)
+    sort(unique(res$hgncSymbol))
 
-  res_dt <- as.data.table(res)
-  res_dt <- res_dt[sampleID == candidates$proband[i],]
+    res_dt <- as.data.table(res)
+    res_dt <- res_dt[sampleID == proband,]
   
-  print('dimension de res_dt')
-  print(dim(res_dt))
+    print('dimension de res_dt')
+    print(dim(res_dt))
 
-  #load more annotation packages
-  suppressMessages(suppressWarnings(library(TxDb.Hsapiens.UCSC.hg38.knownGene)))
-  suppressMessages(suppressWarnings(library(org.Hs.eg.db)))
+    #load more annotation packages
+    suppressMessages(suppressWarnings(library(TxDb.Hsapiens.UCSC.hg38.knownGene)))
+    suppressMessages(suppressWarnings(library(org.Hs.eg.db)))
 
-  txdb_chr <- keepSeqlevels(TxDb.Hsapiens.UCSC.hg38.knownGene,paste0('chr',c(1:22,'X','Y','M')), pruning.mode = "coarse")
+    txdb_chr <- keepSeqlevels(TxDb.Hsapiens.UCSC.hg38.knownGene,paste0('chr',c(1:22,'X','Y','M')), pruning.mode = "coarse")
 
-  temp = c(1:nrow(as.data.frame(res_dt)))[res_dt$hgncSymbol == candidates$geneID[i]]; candidate_gene_localisation = temp[!is.na(temp)][1]
-  control_samples = sampleTable$sampleID[grepl('_03_',sampleTable$bamFile) | grepl('LC_',sampleTable$bamFile)]
-  control_samples = control_samples[control_samples != candidates$proband[i]][1:5]
+    temp = c(1:nrow(as.data.frame(res_dt)))[res_dt$hgncSymbol == geneID]; candidate_gene_localisation = temp[!is.na(temp)][1]
+    control_samples = sampleTable$sampleID[grepl('_03_',sampleTable$bamFile) | grepl('LC_',sampleTable$bamFile)]
+    control_samples = control_samples[control_samples != proband][1:5]
 
-  #save results
-  res_dt_candidate_gene = res_dt[temp[!is.na(temp)],]
-  res_dt_candidate_gene$mean = (res_dt_candidate_gene$start + res_dt_candidate_gene$end) / 2
-  res_dt_candidate_gene$minuslogpval = -log(res_dt_candidate_gene$pValue,10)
-  write.csv(res_dt_candidate_gene,paste0(out_dir,"/gene_",candidates$geneID[i],"_",candidates$proband[i],"_res_dt_candidate_gene.csv"))
+    #save results
+    res_dt_candidate_gene = res_dt[temp[!is.na(temp)],]
+    res_dt_candidate_gene$mean = (res_dt_candidate_gene$start + res_dt_candidate_gene$end) / 2
+    res_dt_candidate_gene$minuslogpval = -log(res_dt_candidate_gene$pValue,10)
+    write.csv(res_dt_candidate_gene,res_dt_outfile)
 
-  print('dimension de res_dt_candidate_gene')
-  print(dim(res_dt_candidate_gene))
+    print('dimension de res_dt_candidate_gene')
+    print(dim(res_dt_candidate_gene))
  
-  #fail-safe in case the plotting does not work.
-  png(file.path(params$output,paste0('gene_',candidates$geneID[i],'_',candidates$proband[i],'_sashimi.png')),width = 1000,height = 600)
-  plot(0, main = 'failed test')
-  dev.off()
+    #fail-safe in case the plotting does not work.
+    png(file.path(params$output,paste0('gene_',geneID,'_',proband,'_sashimi.png')),width = 1000,height = 600)
+    plot(0, main = 'failed test')
+    dev.off()
 
-  png(file.path(params$output,paste0('gene_',candidates$geneID[i],'_',candidates$proband[i],'_sashimi.png')),width = 1000 + length(temp[!is.na(temp)])*5 ,height = 1200)
-  try(plotBamCoverageFromResultTable(fds, result=res_dt[candidate_gene_localisation,], show_full_gene=TRUE,txdb=txdb_chr,
-  orgDb=org.Hs.eg.db,
-  control_samples = control_samples,
-  splicegraph_labels="id",
-  mar = c(1,10,0.1,1))
-  ,silent = T)
-  dev.off()
+    png(file.path(params$output,paste0('gene_',geneID,'_',proband,'_sashimi.png')),width = 1000 + length(temp[!is.na(temp)])*5 ,height = 1200)
+    try(plotBamCoverageFromResultTable(fds, result=res_dt[candidate_gene_localisation,], show_full_gene=TRUE,txdb=txdb_chr,
+    orgDb=org.Hs.eg.db,
+    control_samples = control_samples,
+    splicegraph_labels="id",
+    mar = c(1,10,0.1,1))
+    ,silent = T)
+    dev.off()
+  
+    print(paste0('Done sample ~~~ ',i,' ~~~ Time is: ',Sys.time()))
 
-}
+    } else {print(paste0('Sample ~~~ ',i,' already exists ~~~ Time is: ',Sys.time()))} 
+  } else {print(paste0('Sample ~~~ ',i,' did not contain a candidate gene ~~~ Time is: ',Sys.time()))}
 
-print(paste0('Done sample ~~~ ',i,' ~~~ Time is: ',Sys.time()))
 
