@@ -37,6 +37,7 @@ logger::log_info("Global resources loaded")
 fc_exons_raw = read.table(file.path(params$datadir,'fc_exons_raw.tsv'),sep = '\t',check.names = F);fc_exons_raw[,-c(1:5)] = round(fc_exons_raw[,-c(1:5)])
 fc_exons_tpm = read.table(file.path(params$datadir,'fc_exons_tpm.tsv'),sep = '\t',check.names = F)
 fc_genes_tpm = read.table(file.path(params$datadir,'fc_genes_tpm.tsv'),sep = '\t',check.names = F)
+fc_genes_raw_ALL = read.table(file.path(params$datadir,'fc_genes_raw_ALL.tsv'),sep = '\t',check.names = F)
 
 gwOUTRIDER = read.csv(file.path(params$datadir,'gw_OUTRIDER.tsv'),sep = '\t',check.names = F)
 gwOUTRIDER$chr = factor(gwOUTRIDER$chr,levels = c(1:22,'X','Y','MT'))

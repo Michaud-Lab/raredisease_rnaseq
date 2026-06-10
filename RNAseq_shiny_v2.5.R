@@ -172,6 +172,15 @@ ui <- page_fluid(
              )
     ),
     
+    ### Data table
+    tabPanel("Search expression",
+             card(
+               textInput("text", label = "Find gene expression (raw) of a gene", value = "HBA"),
+               DTOutput("searchExpression")
+             )
+    ),
+    
+    
     ### multiQC
     tabPanel(
       "MultiQC",
@@ -533,6 +542,13 @@ server <- function(input, output, session) {
       data.frame(Parameter=names(unlist(report_version)),Value=unlist(report_version)),
       rownames = F,options = list(dom = 'p'))
   })
+  
+  #searh Gene expression
+  output$searchExpression <- renderDT({
+    datatable(fc_genes_raw_ALL[grepl(input$text, fc_genes_raw_ALL$geneID,ignore.case =T),],
+      rownames = F,options = list(dom = 'p'))
+  })
+  
   
   ### multiQC
   output$htmlViewer <- renderUI({
