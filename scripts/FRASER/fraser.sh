@@ -6,11 +6,12 @@ start=$2
 stop=$3
 geneID=$4
 proband=$5
+rnasplice_bamdir=$6
+fraser_temp_bamdir=$7
+fraser_bamdir=$8
+
 
 #data directories
-rnasplice_bamdir="$HOME/scratch/raredisease_rnaseq/results_06_01_2026/star_salmon/"
-fraser_temp_bamdir="$HOME/scratch/raredisease_rnaseq/FRASER/bams_temp_subset/"
-fraser_bamdir="$HOME/scratch/raredisease_rnaseq/FRASER/bams_subset/"
 fraser_perregion=$fraser_bamdir'gene'$geneID'_chr'$chromosome'_'$start'_'$stop
 
 mkdir -p $fraser_temp_bamdir

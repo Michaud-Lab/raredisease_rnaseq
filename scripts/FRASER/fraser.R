@@ -2,6 +2,9 @@
 args = commandArgs(trailingOnly=TRUE)
 i = as.numeric(args[1])
 params = list(FRASER = file.path(args[2],"FRASER/"))
+params$rnasplice_bamdir=args[3]
+params$fraser_temp_bamdir=args[4]
+params$fraser_bamdir=args[5] 
 options(scipen = 999)
 
 #candidates
@@ -15,9 +18,10 @@ stop = candidates$stop[i] + 5000
 geneID = candidates$geneID[i]
 proband = candidates$proband[i]
 
+
 if(geneID != "") {
   out_dir = paste0(params$FRASER,'bams_subset/gene',geneID,'_chr',chr,'_',start,'_',stop)
-  command = paste('./fraser.sh', chr, start, stop, geneID, proband)
+  command = paste('./fraser.sh', chr, start, stop, geneID, proband, params$rnasplice_bamdir, params$fraser_temp_bamdir, params$fraser_bamdir)
 
   res_dt_outfile = paste0(out_dir,"/gene_",geneID,"_",proband,"_res_dt_candidate_gene.csv")
 
