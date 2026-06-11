@@ -1,10 +1,10 @@
 #!/bin/bash
 
-#SBATCH --time=02:00:00
-#SBATCH --mem=64G
+#SBATCH --time=08:00:00
+#SBATCH --mem=200G
 #SBATCH --account=def-rallard
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=64
 
 #
 module load StdEnv/2023
@@ -14,8 +14,8 @@ module load r
 
 
 #PacBio alignment
-if [ ! -f "/home/renaut/scratch/raredisease_rnaseq/lr_quant/bc01/mapped.bam" ]; then
-  ./lr_quant.sh 64 
+if [ ! -f "/home/renaut/scratch/raredisease_rnaseq/lr_quant_test2/bc01/Xmapped.bam" ]; then
+  ./lr_quant.sh 64
 else
   echo "~~~ Not running lr_quant.sh because I already have the bam files~~~"
 fi
@@ -30,9 +30,9 @@ count=$((temp - 1))
 
 
 #
-for i in $(seq 1 $count); do
-  Rscript lr_quant.R $workdir"FRASER/" $workdir_LR $i
-  echo $i
-done
+#for i in $(seq 1 $count); do
+#  Rscript lr_quant.R $workdir"FRASER/" $workdir_LR $i
+#  echo $i
+#done
 
 
