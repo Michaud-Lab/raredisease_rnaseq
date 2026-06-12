@@ -1,12 +1,16 @@
 args = commandArgs(trailingOnly=TRUE)
 params = list(bams_subset = paste0(args[1],'/',args[2]))
 params$chromosome = args[2]
-params$ncores = args[3]
+params$ncores = as.numeric(args[3])
+params$rnasplice_bamdir = args[4]
+params$fraser_chr_bamdir = args[1]
+
+
 options(scipen = 999)
 
 #subset chromosome 
-dir.create(params$bams_subset,showWarnings = F)
-command = paste0('./fraser_gw.sh ', params$chromosome)
+dir.create(params$bams_subset,showWarnings = F,recursive = T)
+command = paste0('./fraser_gw.sh ', params$chromosome,' ',params$rnasplice_bamdir,' ',params$fraser_chr_bamdir,'/',params$chromosome)
 if(is.na(list.files(params$bams_subset)[1])) system(command) else{print(paste0('Chromosome ',params$chromosome,' already subsetted'))}
 
 if(file.exists(paste0(params$bams_subset,'res_dt.csv'))==T) print(paste0('ALLREADY DONE CHR ',params$chromosome,': Sys.time is: ', Sys.time())) else{ 
@@ -18,8 +22,7 @@ options(scipen = 999)
 suppressMessages(suppressWarnings(library(FRASER)))
 
 #parameters
-ncores = params$ncores
-register(MulticoreParam(ncores, ncores*2, progressbar = TRUE))
+register(MulticoreParam(params$ncores, params$ncores*2, progressbar = TRUE))
 
 sampleTable = data.table(data.frame(sampleID =  gsub('.bam','',list.files(params$bams_subset,pattern = '*bam$')),
                            bamFile = list.files(params$bams_subset,pattern = '*bam$',full.names = F),

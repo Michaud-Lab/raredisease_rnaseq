@@ -13,6 +13,7 @@ params$ref_annot = args[6]
 candidates = read.csv(params$candidates)
 
 #transcript analysed
+dir.create(params$consensus, showWarnings = F)
 fc_exons_tpm = read.table(params$fc_exons,sep = '\t',check.names = F) 
 unique_transcript = unique(fc_exons_tpm[,1:3])
 params$transcript = unique_transcript$transcriptID[unique_transcript$geneID == candidates$geneID[i]]

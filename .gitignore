@@ -10,7 +10,10 @@ deprecated/
 /temp/
 /scripts/deprecated
 /scripts/*/slurm-*
+/scripts/FRASER/.Rsubread_*
 /.nextflow
+/.nextflow.log*
+
 
 # History files
 .Rhistory

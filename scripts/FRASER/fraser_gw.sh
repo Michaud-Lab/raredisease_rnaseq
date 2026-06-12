@@ -2,10 +2,8 @@
 
 #arguments
 chromosome=$1
-
-#data directories
-rnasplice_bamdir="$HOME/scratch/raredisease_rnaseq/results_06_01_2026/star_salmon/"
-fraser_bamdir="$HOME/scratch/raredisease_rnaseq/FRASER/bams_chr_subset/"$chromosome
+rnasplice_bamdir=$2
+fraser_chr_bamdir=$3
 
 #chr 16 is problematic because of hemoglobin gene (HBA), so let's downsample it. 
 if [ $chromosome = "16" ]; then
@@ -19,7 +17,7 @@ fi
 for bam_in in $rnasplice_bamdir/*sorted.bam
   do
     bam_chr_out=${bam_in//'sorted'/$chromosome}
-    bam_chr_out=${bam_chr_out//$rnasplice_bamdir/$fraser_bamdir}
+    bam_chr_out=${bam_chr_out//$rnasplice_bamdir/$fraser_chr_bamdir}
     samtools view $fraction --threads 16 -b "$bam_in" $chromosome > "$bam_chr_out"
 
     #5. Index the sorted BAM

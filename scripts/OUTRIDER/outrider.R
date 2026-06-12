@@ -3,8 +3,8 @@ args = commandArgs(trailingOnly=TRUE)
 params = list(OUTRIDER = file.path(args[1],"OUTRIDER/"))
 params$candidate_genes = args[2]
 params$candidate_genes_LR = args[5]
-params$fc_pergene = file.path(args[1],args[3])
-params$fc_perexon = file.path(args[1],args[4])
+params$fc_pergene = args[3]
+params$fc_perexon = args[4]
 
 #library
 suppressMessages(suppressWarnings(library(dplyr)))
@@ -13,6 +13,7 @@ suppressMessages(suppressWarnings(library(TxDb.Hsapiens.UCSC.hg38.knownGene)))
 suppressMessages(suppressWarnings(library(org.Hs.eg.db)))
 
 #parameters
+dir.create(params$OUTRIDER)
 ncores = 8
 register(MulticoreParam(ncores, ncores*2, progressbar = TRUE))
 

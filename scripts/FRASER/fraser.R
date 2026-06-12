@@ -1,15 +1,21 @@
 
 args = commandArgs(trailingOnly=TRUE)
 i = as.numeric(args[1])
-params = list(FRASER = file.path(args[2],"FRASER/"))
+params = list(workdir = args[2])
+params$FRASER = file.path(params$workdir,'FRASER')
 params$rnasplice_bamdir=args[3]
 params$fraser_temp_bamdir=args[4]
 params$fraser_bamdir=args[5] 
 options(scipen = 999)
 
 #candidates
-candidates = read.csv(file.path(params$FRASER,'../data/input/candidate_genes.csv'))
-params$output = paste0(args[2],'/FRASER/results/output_FRASER_',candidates$proband[i])
+candidates = read.csv(file.path(params$workdir,'data/input/candidate_genes.csv'))
+params$output = paste0(params$FRASER,'/results/output_FRASER_',candidates$proband[i])
+
+#create dir
+dir.create(params$FRASER,showWarnings = T)
+dir.create(file.path(params$FRASER,'results'),showWarnings = T)
+dir.create(params$output,showWarnings = T)
 
 #prepare the bam subsetting BASH script
 chr = candidates$chromosome[i]
@@ -20,12 +26,14 @@ proband = candidates$proband[i]
 
 
 if(geneID != "") {
-  out_dir = paste0(params$FRASER,'bams_subset/gene',geneID,'_chr',chr,'_',start,'_',stop)
+  out_dir = paste0(params$FRASER,'/bams_subset/gene',geneID,'_chr',chr,'_',start,'_',stop)
+  dir.create(out_dir, showWarnings = T, recursive = T)
+
   command = paste('./fraser.sh', chr, start, stop, geneID, proband, params$rnasplice_bamdir, params$fraser_temp_bamdir, params$fraser_bamdir)
 
   res_dt_outfile = paste0(out_dir,"/gene_",geneID,"_",proband,"_res_dt_candidate_gene.csv")
 
-  if(!file.exists(res_dt_outfile)) {
+  if(!file.exists(res_dt_outfile) | length(readLines(res_dt_outfile)) == 0) {
     #create an empty file in case analysis does not run, and you don't want to run it again...
     system(paste0('touch ', res_dt_outfile))    
 
@@ -38,10 +46,6 @@ if(geneID != "") {
     suppressMessages(suppressWarnings(library(patchwork)))
     suppressMessages(suppressWarnings(library(FRASER)))
     suppressMessages(suppressWarnings(library(tidyr))) 
-
-    dir.create(params$FRASER,showWarnings = T)
-    dir.create(file.path(params$FRASER,'results'),showWarnings = T)
-    dir.create(params$output,showWarnings = T)
 
     sampleTable = data.table(data.frame(sampleID =  gsub('_sorted_chrN.bam','',list.files(out_dir,pattern = '*bam$')),
                            bamFile = list.files(out_dir,pattern = '*bam$',full.names = F),

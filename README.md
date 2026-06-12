@@ -2,7 +2,7 @@
 sebastien.renaut.hsj@ssss.gouv.qc.ca    
 
 ### Summary        
- Typically, one would run analyses one step at a time, starting with `nextflow rnasplice` to produce the QC, trimming and aligment (`.bam files`). Then, run `featureCounts` to quantify gene expression per gene and per exon.  Then, run `Outrider` (aberrant gene expression), `fraser` (aberrant splicing pattterns) and `consensus` (consensus sequences). One these analyses are performed, run `cp_and_cleanup.R` to gather all the necessary results into a single zipped `data` folder. With this zipped `data` folder, we can then produce a Shiny web App with `RNAseq_shiny_v2.4.R` script. Note that:    
+ Typically, one would run analyses one step at a time, starting with `nextflow rnasplice` to produce the QC, trimming and aligment (`.bam files`). Then, run `featureCounts` to quantify gene expression per gene and per exon.  Then, run `Outrider` (aberrant gene expression), `fraser` (aberrant splicing pattterns) and `consensus` (consensus sequences). One these analyses are performed, run `cp_and_cleanup.R` to gather all the necessary results into a single zipped `data` folder. With this zipped `data` folder, we can then produce a Shiny web App with `RNAseq_shiny_v2.5.R` script. Note that:    
 
 * You need a resonnably sized cohort to produce results that are statistically sound. Ten is a probably a bare minimum for Outrider and Fraser, alhough >30 is probably more appropriate.      
 * Paths to the required input dataset and/or output directories are typically defined in the configs.json.
@@ -18,28 +18,27 @@ sebastien.renaut.hsj@ssss.gouv.qc.ca
 `module load r`         
 
 ### Check the required files  
-`ls $datadir/input/candidate_genes_3.txt`   # list of candidate genes & mutations      
-`ls $datadir/input/*.xlsx`   # An excel file that contains more info about each sample.       
+`ls $datadir/input/candidate_genes.csv`   # list of candidate genes & mutations      
+`ls $datadir/input/CHUSJ_Master_Linking_Log_modif.xlsx`   # An excel file that contains more info about each sample.       
 `ls $datadir/input/nextflow_config.json`   # Nextflow configuration file      
-`ls $datadir/input/nextflow_params.json`   # rnasplice parameters     
-`ls $datadir/input/nextflow_contrast.csv`  # Contrast file for nextflow. Currently not meaningfull     
+`ls $datadir/input/nextflow_params.json`   # Nextflow rnasplice parameters     
+`ls $datadir/input/nextflow_contrast.csv`  # Nextflow contrast file. Currently not meaningfull     
 `ls sequences/*`  # The raw sequencing files (.fastq paired-end data)       
 `ls reference/*`  # The reference genome and annotations        
 `ls $scriptsdir/*`   # The required scripts     
 
 ### Usage
-* Nextflow pipeline & post-processing:    
-`nextflow run rnasplice -params-file data/input/nextflow_params.json -c data/input/nextflow_config.json -resume -bg`      
-`sbatch $scriptsdir/lr_quant/lr_quant.slurm`  
+`nextflow run rnasplice -params-file data/input/nextflow_params.json -c data/input/nextflow_config.json -resume -bg -w /home/renaut/scratch/nextflow_rnasplice/work`
+#`sbatch $scriptsdir/lr_quant/lr_quant.slurm`  #Don't currently run  
 `sbatch $scriptsdir/featureCounts/featureCounts.slurm`      
 `sbatch $scriptsdir/OUTRIDER/outrider.slurm`        
 `sbatch $scriptsdir/FRASER/fraser.slurm`        
 `sbatch $scriptsdir/consensus/consensus.slurm`
-`sbatch $scriptsdir/consensus/ase.slurm`      
+`sbatch $scriptsdir/ASE/ase.slurm`      
 `Rscript $scriptsdir/cp_and_cleanup.R`      
     
 * Shiny app (Run in Rstudio, or Rscript locally, requires R>=4.5)       
-`Rscript RNAseq_shiny_v2.4.R`   
+`Rscript RNAseq_shiny_v2.5.R`   
 
 ### Citations       
 * OUTRIDER: Brechtmann, Felix, et al. "OUTRIDER: a statistical method for detecting aberrantly expressed genes in RNA sequencing data." The American Journal of Human Genetics 103.6 (2018): 907-917.       

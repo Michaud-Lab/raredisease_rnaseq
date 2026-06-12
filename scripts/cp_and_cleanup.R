@@ -1,7 +1,7 @@
   #directory were the files are located
-  params = list(workdir = "/home/renaut/scratch/raredisease_rnaseq")
+  params = list(workdir = "/project/def-rallard/COMMUN/raredisease_rnaseq/")
   params$datadir = file.path(params$workdir,'/data/')
-  params$resultdir = file.path(params$workdir,'/results_06_01_2026/')
+  params$resultdir = file.path(params$workdir,'/results_nextflow_rnasplice_09_05_2026/')
 
   #r, libraries
   library(readxl)

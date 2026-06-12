@@ -25,10 +25,6 @@ read fc_exons ref_file ref_annot < <(
 temp=$(wc -l < $candidate_genes)
 count=$((temp - 1))
 
-#
-fc_exons=$HOME/$fc_exons
-ref_file=$HOME/$ref_file
-ref_annot=$HOME/$ref_annot
 
 #R script launches the bash script to annotated variant file and continues with consensus.R to produce the reference sequence.
 for i in $(seq 1 $count); do

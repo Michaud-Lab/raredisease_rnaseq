@@ -1,10 +1,10 @@
 #!/bin/bash
 
 #SBATCH --time=06:00:00
-#SBATCH --mem=64G
+#SBATCH --mem=128G
 #SBATCH --account=def-rallard
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=16
 
 
 module load samtools
@@ -16,8 +16,8 @@ read workdir candidate_genes < <(
 )
 
 
-read rnasplice_bamdir fraser_temp_bamdir fraser_bamdir  < <(
-  jq -r '.FRASER | [.rnasplice_bamdir, .fraser_temp_bamdir, .fraser_bamdir] | @tsv' ../../data/input/configs.json
+read rnasplice_bamdir fraser_temp_bamdir fraser_bamdir fraser_chr_bamdir  < <(
+  jq -r '.FRASER | [.rnasplice_bamdir, .fraser_temp_bamdir, .fraser_bamdir, .fraser_chr_bamdir] | @tsv' ../../data/input/configs.json
 )
 
 temp=$(wc -l < $candidate_genes)
@@ -31,11 +31,12 @@ done
 
 
 #fraser genome wide
-#cpu=64
+#cpu=32
 #for i in $(seq 1 22) X Y MT; do
-# Rscript fraser_gw.R /home/renaut/scratch/raredisease_rnaseq/FRASER/bams_chr_subset/ $i $cpu
+# Rscript fraser_gw.R $fraser_chr_bamdir $i $cpu $rnasplice_bamdir
 # echo 'Done chr:'$i
 #done
+
 
 
 
