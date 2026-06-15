@@ -1,3 +1,11 @@
+### 2026-06-15 testhat
+**Changed** 
+* Some hard paths have been changed since moving to /project/
+* FRASER, and consensus modified to skip analysis if the sample has already been processed.
+
+**Added**
+* Added AI generated unit tests. 
+
 ### 2026-05-19 ase
 **Changed**
 * ase_refactor 
