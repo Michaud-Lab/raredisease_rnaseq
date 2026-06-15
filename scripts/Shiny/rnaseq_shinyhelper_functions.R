@@ -280,7 +280,7 @@ gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clin
    hpo_genes = as.list(temp)
    hpo_terms = hpo_un[hpo_un$hpo_id %in% temp,]
    names(hpo_genes) = paste0(hpo_terms$hpo_id," ",hpo_terms$hpo_name_shortened)
-   for(h in 1:length(hpo_genes)){hpo_genes[[h]] = unique(hpo$gene_symbol[hpo$hpo_id == hpo_terms[h,3]])}} else hpo_genes = list(hp_NULL='none')
+   for(h in 1:length(hpo_genes)){hpo_genes[[h]] = unique(hpo$gene_symbol[hpo$hpo_id == hpo_terms[h,3]])}} else {hpo_genes = list(hp_1=c('none','0'));temp = c('','')}
 
   #add outrider
   if(!is.null(dim(outrider))) {
