@@ -1,180 +1,238 @@
-### 2026-06-15 testhat
-**Changed** 
-* Some hard paths have been changed since moving to /project/
-* FRASER, and consensus modified to skip analysis if the sample has already been processed.
+# Changelog
+
+All notable changes to this project are documented here.
+
+---
+
+## 2026-06-15 — code-standardisation
 
 **Added**
-* Added AI generated unit tests. 
+- Unit tests for `plot_expression_cohort()` and `plot_expression_family()` in `scripts/tests/testthat/test_helper_functions.R`.
+- `plot_expression_cohort()` and `plot_expression_family()` helper functions extracted from `RNAseq_shiny_v2.5.R` into `scripts/Shiny/rnaseq_shinyhelper_functions.R`.
 
-### 2026-05-19 ase
 **Changed**
-* ase_refactor 
-* refactor RNAseq_shiny (now RNAseq_shiny_v2.5), modulalise input
+- Full code standardisation pass across all R scripts: consistent `=` assignments, `TRUE`/`FALSE` literals, section headers, indentation, and removal of dead commented-out code.
+- Hard-coded paths updated for `/project/` HPC mount.
+- FRASER and consensus scripts now skip already-processed samples.
 
+---
 
-### 2026-04-24 ase
+## 2026-05-19 — ase
+
 **Changed**
-* Allele Specific Expression v1
-* Minor improvements to UI
-* Consensus: introduce exon skipping events
+- Refactored `ASE.R`.
+- Refactored `RNAseq_shiny` (now `RNAseq_shiny_v2.5.R`); modularised reactive inputs into `reactive_module.R`.
 
-### 2026-03-27 lr_quant
-**Changed**
-*  Long Read RNAseq analyses in scripts/lr_quant/
-*  This pipeline is based on the [PacBio Isoseq reference pipeline](https://isoseq.how/getting-started.html)
+---
 
-### 2026-03_27 geneeprior_download
+## 2026-04-24 — ase
+
 **Changed**
-* Added a button to download gene prior table.
+- Allele-specific expression analysis v1.
+- Minor UI improvements to the Shiny dashboard.
+- Consensus: added exon-skipping event detection.
+
+---
+
+## 2026-03-27 — lr_quant
+
+**Changed**
+- Long-read RNA-seq analysis added under `scripts/lr_quant/`, based on the [PacBio Iso-Seq reference pipeline](https://isoseq.how/getting-started.html).
+- Added download button for the gene prioritisation table.
 
 **Fixed**
-* Bug fix edge cases
+- Bug fixes for various edge cases.
 
-### 2026-03_27 bugfixes_FT_dataviz
-**Fixed**
-* Bug fix to MANE (duplicates can exist)
-* geneoprior table, FRASER stats
+---
 
-### 2026-03-26
-**Changed***
-* Bug fixes. Mainly due to MT genes. 
-
-### 2026-03-24
-**Changed***
-* Allele specific expression module
-
-### 2026-03-16 - gene_prior
-**Fixed**
-* Gene prior table fix & update to logic.
-
-### 2026-02-26 - gene_prior_table
-**Fixed**
-* Added the HPO name to the table for gene_prior
-
-### 2026-02-24 - main
+## 2026-03-27 — bugfixes
 
 **Fixed**
-* Minor changes to the info in the gen prior table
-* pass more info to the gw_OUTRIDER (min pvalue per exon and max zScore )
+- MANE transcript deduplication (duplicate entries can exist).
+- Gene prioritisation table and FRASER summary statistics.
 
-### 2026-02-20 - gene_prior
+---
+
+## 2026-03-26
+
+**Fixed**
+- Bug fixes related to mitochondrial (MT) genes.
+
+---
+
+## 2026-03-24
 
 **Changed**
-* Add a gene prioritisation table based on the HPO & the FRASER, OUTRIDER gene lists. 
+- Allele-specific expression module added to the Shiny dashboard.
+
+---
+
+## 2026-03-16 — gene-prioritisation
 
 **Fixed**
-* Minor improvments to dashboard
+- Gene prioritisation table logic updated and corrected.
 
+---
 
-### 2026-02-19 - manhattan_expression
-
-**Fixed**
-* Shape as a function of Foldchange in genome-wide OUTrider 
-
-
-### 2026-02-18 - main
-
-**Changed**
-* Split the selector into a gene and a sample specific selector.
-
-
-### 2026-02-17 - gwFRASER_minorfix
-
-**Changed**
-* Add a plot of gwOUTRIDER (and modify the manhattan plot function accordingly)
-* Modify the output of outrider to standardise column names
-* Subset only +/5Kb of candidate genes to save space.
+## 2026-02-26 — gene-prioritisation
 
 **Fixed**
-* readme.md
-* how many genes to show on gwFRASER
+- Added HPO term names to the gene prioritisation table.
 
+---
 
-### 2026-01-29 - Outrider perexon
-
-**Changed**
-* Add results of OUTRIDER for all candidate exons.
-* Add results of FRASER genome-wide (as a Manhattan plot & data.table)
-
-
-### 2026-01-28 -feat: a modern UI to Shiny App
-
-**Changed**
-* Use bslib to provide a modern UI to Shiny using bootstrap 5.0.  
-
-
-### 2026-01-22 - error messages
-
-**Changed**
-* Produce default plots when no gene/expression is available. 
-* Removed the unzipping into a temp folder of data, its just cumbersome for now
-
-**fixed** 
-* Several Bug fixes when multiple genes were present.
-
-### 2026-01-20 -  new_genes
-
-**Changed**
-* Parameters are now pulled from a single configs.json file.
-* Added a selector for the OUTRIDER pvalue threshold
-* RNAseq_shiny_v2.4.R: refactor to define an 'i' variable reactively.
+## 2026-02-24
 
 **Fixed**
-* Minor refactor to accomodate new genes (even for lncRNA)
-* Bug fix that did not show all the .bam alignments when multiple genes present.
-* Bug fix for HSJ_032 gsub('03$') pattern.
+- Minor improvements to gene prioritisation table content.
+- Pass per-exon min p-value and max z-score to the genome-wide OUTRIDER view.
 
-### 2026-01-09 
+---
 
-**Changed** 
-* Minor refactor to accomodate new samples
-* Moved parameters as much as possible to the .slurm scripts.
-
-### 2026-01-06  - feat: add slider for coverage
+## 2026-02-20 — gene-prioritisation
 
 **Added**
-* Add a slider widget to the coverage plots
-
-### 2025-12-18 - v2.4: update_readme
-		
-**Changed**		
-* Update to the README.md, LICENCE, VERSION.json		
-
-### 2025-12-17 - v2.4
-
-**Changed**
-* Major refactor to fraser.r
-   * Moved the coverage plotting to a new rnaseq_helper_functions.R , instead simply create files (.csvs + .rda) to generate plots later as part of RNAseq_shiny_v2.4.R
-      * Added a option to plot a +/-1kb or +/-5kb window of coverage and refactoring of syntax. 
-   * Moved the gene model preparation to a new rnaseq_helper_functions.R function, then run it as part of featurecounts.R
-* Reference transcript according to: Matched Annotation from NCBI and EMBL-EBI (MANE)
+- Gene prioritisation table combining HPO terms, FRASER, and OUTRIDER gene lists.
 
 **Fixed**
-* Minor refactor to simplify Shiny App
+- Minor dashboard improvements.
 
-### 2025-12-05 - v2.3
+---
+
+## 2026-02-19 — manhattan-plot
+
+**Fixed**
+- OUTRIDER Manhattan plot: point shape now reflects fold-change direction (over/under-expression).
+
+---
+
+## 2026-02-18
+
+**Changed**
+- Split the proband selector into a gene-level and sample-level selector.
+
+---
+
+## 2026-02-17 — gwFRASER
 
 **Added**
-*  New analysis (outrider per exon) and new table for dataviz in the Shiny App. 
+- Genome-wide OUTRIDER Manhattan plot (manhattan plot function extended accordingly).
 
 **Changed**
-*   Show  a seperate coverage plot in cased there are several mutations.
-*   Show fasta sequence as HTML with mutations in bold.
-*   Minor refactor to outrider.r to streamline the code.
+- Standardised OUTRIDER output column names.
+- BAM subsets now limited to ±5 kb around candidate genes to reduce storage.
 
 **Fixed**
-*   Remove coverage plot when no mutation is present.
-*   Wrong mutation location for HSJ_003_03 fixed.
+- Updated README.
+- Corrected number of genes shown on the genome-wide FRASER plot.
 
-### 2025-11-27 - v2.2
+---
+
+## 2026-01-29 — OUTRIDER-per-exon
 
 **Added**
-*   New feature to generate a consensus fasta sequence (`consensus/`).
-*   Created this changelog.
+- OUTRIDER results for all candidate exons.
+- Genome-wide FRASER results (Manhattan plot and data table).
+
+---
+
+## 2026-01-28 — modern-UI
 
 **Changed**
-*   migrated and updated RNAseq_version.json to `scripts/`.
-*   standardised script naming to `*.sh` / `*.slurm` / `*.R`.
+- Migrated Shiny UI to `bslib` with Bootstrap 5 theme.
+
+---
+
+## 2026-01-22 — error-handling
+
+**Changed**
+- Produce placeholder plots when no gene or expression data is available.
+- Removed automatic unzipping of the data archive (too cumbersome).
 
 **Fixed**
-*   FRASER:Don't generate the *closeup.pdf plots because we don't use it anymore.
+- Several bugs triggered when multiple candidate genes were present.
+
+---
+
+## 2026-01-20 — new-genes
+
+**Added**
+- OUTRIDER p-value threshold selector in the dashboard.
+
+**Changed**
+- Parameters now read from a single `configs.json` file.
+- `RNAseq_shiny_v2.4.R`: refactored proband index `i` to be defined reactively.
+
+**Fixed**
+- Minor refactor to accommodate new gene types (including lncRNAs).
+- Bug: not all BAM alignments shown when multiple candidate genes present.
+- Bug: incorrect `gsub('03$')` pattern for sample `HSJ_032`.
+
+---
+
+## 2026-01-09
+
+**Changed**
+- Minor refactor to accommodate new samples.
+- Moved as many parameters as possible into the `.slurm` scripts.
+
+---
+
+## 2026-01-06 — coverage-slider
+
+**Added**
+- Slider widget for the coverage plot genomic window.
+
+---
+
+## 2025-12-18 — v2.4
+
+**Changed**
+- Updated README, LICENSE, and VERSION.json.
+
+---
+
+## 2025-12-17 — v2.4
+
+**Added**
+- `rnaseq_helper_functions.R`: coverage plotting and gene model preparation extracted from `fraser.R`.
+- Option to display ±1 kb or ±5 kb coverage window.
+
+**Changed**
+- Reference transcript now selected by MANE (Matched Annotation from NCBI and EMBL-EBI).
+- Major refactor of `fraser.R`.
+- Gene model preparation moved to `featureCounts.R`.
+
+**Fixed**
+- Minor Shiny app simplifications.
+
+---
+
+## 2025-12-05 — v2.3
+
+**Added**
+- OUTRIDER per-exon analysis and corresponding table in the dashboard.
+
+**Changed**
+- Separate coverage plots when multiple mutations are present.
+- FASTA sequence displayed as HTML with mutations highlighted in bold.
+- Minor refactor of `outrider.R`.
+
+**Fixed**
+- Coverage plot hidden when no mutation is defined.
+- Incorrect mutation location for sample `HSJ_003_03`.
+
+---
+
+## 2025-11-27 — v2.2
+
+**Added**
+- Consensus FASTA sequence generation (`consensus/`).
+- This changelog.
+
+**Changed**
+- Migrated and updated `RNAseq_version.json` to `scripts/`.
+- Standardised script naming to `*.sh` / `*.slurm` / `*.R`.
+
+**Fixed**
+- FRASER: removed unused `*closeup.pdf` plot generation.
