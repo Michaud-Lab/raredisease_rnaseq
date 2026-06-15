@@ -1,151 +1,177 @@
-#param arguments
-args = commandArgs(trailingOnly=TRUE)
-params = list(OUTRIDER = file.path(args[1],"OUTRIDER/"))
-params$candidate_genes = args[2]
-params$candidate_genes_LR = args[5]
-params$fc_pergene = args[3]
-params$fc_perexon = args[4]
+# =============================================================================
+# outrider.R - Aberrant expression analysis (per gene and per exon)
+# =============================================================================
 
-#library
+# Libraries
 suppressMessages(suppressWarnings(library(dplyr)))
 suppressMessages(suppressWarnings(library(OUTRIDER)))
 suppressMessages(suppressWarnings(library(TxDb.Hsapiens.UCSC.hg38.knownGene)))
 suppressMessages(suppressWarnings(library(org.Hs.eg.db)))
 
-#parameters
+# -----------------------------------------------------------------------------
+# 1. Arguments and parameters
+# -----------------------------------------------------------------------------
+args = commandArgs(trailingOnly = TRUE)
+params = list(OUTRIDER = file.path(args[1], "OUTRIDER/"))
+params$candidate_genes = args[2]
+params$candidate_genes_LR = args[5]
+params$fc_pergene = args[3]
+params$fc_perexon = args[4]
+
 dir.create(params$OUTRIDER)
 ncores = 8
-register(MulticoreParam(ncores, ncores*2, progressbar = TRUE))
+register(MulticoreParam(ncores, ncores * 2, progressbar = TRUE))
 
-#candidate genes
+# -----------------------------------------------------------------------------
+# 2. Load candidate genes and gene annotation map
+# -----------------------------------------------------------------------------
 candidates = read.csv(params$candidate_genes)
-#candidates_LR = read.csv(params$candidate_genes_LR)
-#candidates_LR = candidates_LR[,c(2,3,10,4,5,6,7,8,9)]
-#colnames(candidates_LR) = colnames(candidates)
-#candidates = rbind(candidates,candidates_LR)
-candidates$ensembl_proband = apply(candidates[,colnames(candidates) %in% c('ensembl','proband')],1,paste0,collapse ='_')
+candidates$ensembl_proband = apply(
+  candidates[, colnames(candidates) %in% c('ensembl', 'proband')],
+  1, paste0, collapse = '_'
+)
 
-##mapping genes
-map <- select(org.Hs.eg.db, keys=keys(TxDb.Hsapiens.UCSC.hg38.knownGene, keytype = "GENEID"),
-keytype="ENTREZID", columns=c("ENSEMBL","SYMBOL"))
-map = map[!is.na(map$ENSEMBL),]
+# Map Entrez IDs to Ensembl IDs and gene symbols
+map = select(
+  org.Hs.eg.db,
+  keys = keys(TxDb.Hsapiens.UCSC.hg38.knownGene, keytype = "GENEID"),
+  keytype = "ENTREZID",
+  columns = c("ENSEMBL", "SYMBOL")
+)
+map = map[!is.na(map$ENSEMBL), ]
 colnames(map)[3] = 'geneID'
 
-#add the gene length info
-gene_locations = genes(TxDb.Hsapiens.UCSC.hg38.knownGene,single.strand.genes.only=FALSE)
+# Add gene location info
+gene_locations = genes(TxDb.Hsapiens.UCSC.hg38.knownGene, single.strand.genes.only = FALSE)
 gene_locations = as.data.table(gene_locations)
-gene_locations = gene_locations[nchar(as.character(gene_locations$seqnames))<6,]
+gene_locations = gene_locations[nchar(as.character(gene_locations$seqnames)) < 6, ]
 map = merge(map, gene_locations, by.y = 'group_name', by.x = 'ENTREZID')
-colnames(map)[c(2,3,5)] = c('ensemblID','geneID','chr')
-map$pos = (map$start+map$end)/2
-map$chr = gsub('chr','',map$chr)
+colnames(map)[c(2, 3, 5)] = c('ensemblID', 'geneID', 'chr')
+map$pos = (map$start + map$end) / 2
+map$chr = gsub('chr', '', map$chr)
 
-###from featurecount gene expression data
-genes_counts = read.table(params$fc_pergene,sep = '\t',header = T,comment.char = '#',check.names = F)
-rownames(genes_counts) = genes_counts[,1]
-genes_counts = genes_counts[,-c(1:6)]
+# -----------------------------------------------------------------------------
+# 3. OUTRIDER per gene
+# -----------------------------------------------------------------------------
+genes_counts = read.table(params$fc_pergene, sep = '\t', header = TRUE, comment.char = '#', check.names = FALSE)
+rownames(genes_counts) = genes_counts[, 1]
+genes_counts = genes_counts[, -c(1:6)]
 genes_counts = round(genes_counts)
-colnames(genes_counts) = sapply(lapply(strsplit(colnames(genes_counts),'/'),'['),tail,1)
-colnames(genes_counts) = gsub('_sorted.bam','',colnames(genes_counts))
+colnames(genes_counts) = sapply(lapply(strsplit(colnames(genes_counts), '/'), '['), tail, 1)
+colnames(genes_counts) = gsub('_sorted.bam', '', colnames(genes_counts))
 
-#probands only (and the LC and F0 from Philippe Campeau, and 04 because that is a twin of a 03)
-probands = colnames(genes_counts)[grepl('_0[34]_',colnames(genes_counts)) | grepl('LC_',colnames(genes_counts)) | grepl('F0',colnames(genes_counts)) ]
-genes_counts = genes_counts[,colnames(genes_counts) %in% c('gene_id',probands)]
-#genes_counts = genes_counts[1:2000,]
+# Probands only (includes LC and F0 samples, and _04 twins of _03 probands)
+probands = colnames(genes_counts)[
+  grepl('_0[34]_', colnames(genes_counts)) |
+  grepl('LC_', colnames(genes_counts)) |
+  grepl('F0', colnames(genes_counts))
+]
+genes_counts = genes_counts[, colnames(genes_counts) %in% c('gene_id', probands)]
 
-#OUTRIDER
-ods <- OutriderDataSet(countData=genes_counts)
-ods <- filterExpression(ods, TxDb.Hsapiens.UCSC.hg38.knownGene, mapping=map[,1:2],filterGenes=T, savefpkm=TRUE, fpkmCutoff = 1)
-ods <- filterExpression(ods)
-ods <- OUTRIDER(ods)
-dim(ods)
+ods = OutriderDataSet(countData = genes_counts)
+ods = filterExpression(ods, TxDb.Hsapiens.UCSC.hg38.knownGene, mapping = map[, 1:2], filterGenes = TRUE, savefpkm = TRUE, fpkmCutoff = 1)
+ods = filterExpression(ods)
+ods = OUTRIDER(ods)
 
-#Result table
-table_genes = as.data.frame(results(ods,padjCutoff=1))
-table_genes$pValue = signif(table_genes$pValue,4)
+# Result tables
+table_genes = as.data.frame(results(ods, padjCutoff = 1))
+table_genes$pValue = signif(table_genes$pValue, 4)
 
-significant_table = table_genes[table_genes$pValue<0.05,]
-significant_table$padjust = signif(significant_table$padjust,4)
-colnames(significant_table)[1] = 'ensemblID' 
-significant_table = merge(significant_table,map,by = 'ensemblID')
-table_genes$ensemblID_sampleID =  paste0(table_genes$geneID,'_',table_genes$sampleID)
+significant_table = table_genes[table_genes$pValue < 0.05, ]
+significant_table$padjust = signif(significant_table$padjust, 4)
+colnames(significant_table)[1] = 'ensemblID'
+significant_table = merge(significant_table, map, by = 'ensemblID')
+table_genes$ensemblID_sampleID = paste0(table_genes$geneID, '_', table_genes$sampleID)
 
-#candidate only
-candidate_table = table_genes[table_genes$ensemblID_sampleID %in% candidates$ensembl_proband,]
+candidate_table = table_genes[table_genes$ensemblID_sampleID %in% candidates$ensembl_proband, ]
 colnames(candidate_table)[1] = 'ensemblID'
-candidate_table = merge(candidate_table,map,by = 'ensemblID')
+candidate_table = merge(candidate_table, map, by = 'ensemblID')
 
-#write the results
-colnames_ALL = c("sampleID","geneID","ensemblID","chr","start","end","pos","width","pValue","padjust","zScore","l2fc","rawcounts","meanRawcounts","normcounts","meanCorrected","exon_pValue","exon_zScore")
-colnames_candidate_genes = c("sampleID","geneID","ensemblID","pValue","zScore","l2fc","rawcounts","meanRawcounts","normcounts","meanCorrected")
+# Output column sets
+colnames_ALL = c("sampleID", "geneID", "ensemblID", "chr", "start", "end", "pos", "width",
+                 "pValue", "padjust", "zScore", "l2fc", "rawcounts", "meanRawcounts",
+                 "normcounts", "meanCorrected", "exon_pValue", "exon_zScore")
+colnames_candidate_genes = c("sampleID", "geneID", "ensemblID", "pValue", "zScore", "l2fc",
+                              "rawcounts", "meanRawcounts", "normcounts", "meanCorrected")
 
-#message
-print(paste0('Done OUTRIDER --- Time is: ',Sys.time()) )
+print(paste0('Done OUTRIDER per gene --- Time is: ', Sys.time()))
 
-###
-###PER EXON
-###
-#from featurecount gene expression data
-fc_exons_raw_ALL = read.table(params$fc_perexon,sep = '\t',check.names = F)
-fc_exons_raw_ALL = fc_exons_raw_ALL[, grepl('^bc',colnames(fc_exons_raw_ALL))==F]
+# -----------------------------------------------------------------------------
+# 4. OUTRIDER per exon
+# -----------------------------------------------------------------------------
+fc_exons_raw_ALL = read.table(params$fc_perexon, sep = '\t', check.names = FALSE)
+fc_exons_raw_ALL = fc_exons_raw_ALL[, grepl('^bc', colnames(fc_exons_raw_ALL)) == FALSE]
 
-colnames(fc_exons_raw_ALL)[grep('HSJ',colnames(fc_exons_raw_ALL))] = paste0(colnames(fc_exons_raw_ALL)[grep('HSJ',colnames(fc_exons_raw_ALL))],'_PAX')#this is ugly and I should fix this. It's there because HSJ samples have two names, one with '_PAX', one without.
-rownames(fc_exons_raw_ALL) = paste0(fc_exons_raw_ALL$geneID,"_",fc_exons_raw_ALL$ensemblID,"_",fc_exons_raw_ALL$transcriptID,"_",fc_exons_raw_ALL$exonID)
+# HSJ samples appear with two naming conventions; add '_PAX' suffix to align them
+colnames(fc_exons_raw_ALL)[grep('HSJ', colnames(fc_exons_raw_ALL))] =
+  paste0(colnames(fc_exons_raw_ALL)[grep('HSJ', colnames(fc_exons_raw_ALL))], '_PAX')
 
-#filter dataset to remove very low expression genes
-genes_counts = fc_exons_raw_ALL[,-c(1:5)]
-genes_counts = genes_counts[rowMeans(genes_counts) > 1,]
-#genes_counts = genes_counts[1:5000,]
+rownames(fc_exons_raw_ALL) = paste0(
+  fc_exons_raw_ALL$geneID, "_",
+  fc_exons_raw_ALL$ensemblID, "_",
+  fc_exons_raw_ALL$transcriptID, "_",
+  fc_exons_raw_ALL$exonID
+)
 
-#OUTRIDER
-ods <- OutriderDataSet(countData=genes_counts)
-ods <- OUTRIDER(ods)
-dim(ods)
+# Filter out very low-expression exons
+genes_counts = fc_exons_raw_ALL[, -c(1:5)]
+genes_counts = genes_counts[rowMeans(genes_counts) > 1, ]
 
-#Result table
-table = as.data.frame(results(ods,padjCutoff=1))
+ods = OutriderDataSet(countData = genes_counts)
+ods = OUTRIDER(ods)
+
+# Result table
+table = as.data.frame(results(ods, padjCutoff = 1))
 table$combinedID = table$geneID
-table$geneID = sapply(strsplit(table$combinedID,'_'),'[',1)
-table$ensemblID = sapply(strsplit(table$combinedID,'_'),'[',2)
-table$transcriptID = sapply(strsplit(table$combinedID,'_'),'[',3)
-table$exonID = sapply(strsplit(table$combinedID,'_'),'[',4)
-table$ensemblID_sampleID =  paste0(table$ensemblID,'_',table$sampleID)
-table$pValue = signif(table$pValue,4)
+table$geneID = sapply(strsplit(table$combinedID, '_'), '[', 1)
+table$ensemblID = sapply(strsplit(table$combinedID, '_'), '[', 2)
+table$transcriptID = sapply(strsplit(table$combinedID, '_'), '[', 3)
+table$exonID = sapply(strsplit(table$combinedID, '_'), '[', 4)
+table$ensemblID_sampleID = paste0(table$ensemblID, '_', table$sampleID)
+table$pValue = signif(table$pValue, 4)
 
-#candidates exons only
-colnames_candidate_exon = c("sampleID","geneID","ensemblID","transcriptID","exonID","pValue","zScore","l2fc","rawcounts","meanRawcounts","normcounts","meanCorrected")
-candidate_table_exon = table[table$ensemblID_sampleID %in% candidates$ensembl_proband,]
-candidate_table_exon = candidate_table_exon[,colnames_candidate_exon]
+# Candidate exons
+colnames_candidate_exon = c("sampleID", "geneID", "ensemblID", "transcriptID", "exonID",
+                             "pValue", "zScore", "l2fc", "rawcounts", "meanRawcounts",
+                             "normcounts", "meanCorrected")
+candidate_table_exon = table[table$ensemblID_sampleID %in% candidates$ensembl_proband, ]
+candidate_table_exon = candidate_table_exon[, colnames_candidate_exon]
 
-#all significant exons
-colnames_significant_exon = c("sampleID","geneID","ensemblID","transcriptID","exonID","chr","start","end","pos","width","pValue","padjust","zScore","l2fc","rawcounts","meanRawcounts","normcounts","meanCorrected")
-table = table[table$pValue < 0.01,]
-significant_table_exon = merge(table,map[,-3],by = 'ensemblID')
-significant_table_exon = significant_table_exon[,colnames_significant_exon]
+# All significant exons
+colnames_significant_exon = c("sampleID", "geneID", "ensemblID", "transcriptID", "exonID",
+                               "chr", "start", "end", "pos", "width", "pValue", "padjust",
+                               "zScore", "l2fc", "rawcounts", "meanRawcounts", "normcounts",
+                               "meanCorrected")
+table = table[table$pValue < 0.01, ]
+significant_table_exon = merge(table, map[, -3], by = 'ensemblID')
+significant_table_exon = significant_table_exon[, colnames_significant_exon]
 
-#write the results (exons)
-write.table(significant_table_exon,file.path(params$OUTRIDER,'exons_OUTRIDER.tsv'),sep = '\t',quote = F)
-write.table(candidate_table_exon,file.path(params$OUTRIDER,'candidates_perexons_OUTRIDER.tsv'),sep = '\t',quote = F)
+write.table(significant_table_exon, file.path(params$OUTRIDER, 'exons_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
+write.table(candidate_table_exon, file.path(params$OUTRIDER, 'candidates_perexons_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
 
-#min pvalue and max zscore
-table_minmax_exons = table %>% group_by(geneID,sampleID) %>% summarise(min_pValue = min(pValue),min_zscore=min(zScore),max_zscore=max(zScore))
+# Aggregate min p-value and max z-score per gene per sample
+table_minmax_exons = table %>%
+  group_by(geneID, sampleID) %>%
+  summarise(min_pValue = min(pValue), min_zscore = min(zScore), max_zscore = max(zScore))
 table_minmax_exons$exon_zScore = '0'
 colnames(table_minmax_exons)[3] = 'exon_pValue'
 
-#add the min_pvalue and zScores
-for(i in 1:nrow(table_minmax_exons))
-  {table_minmax_exons$exon_zScore[i] = table_minmax_exons[i,4:5][abs(table_minmax_exons[i,4:5]) ==max(abs(table_minmax_exons[i,4:5]))][1]}
+for (i in 1:nrow(table_minmax_exons)) {
+  table_minmax_exons$exon_zScore[i] =
+    table_minmax_exons[i, 4:5][abs(table_minmax_exons[i, 4:5]) == max(abs(table_minmax_exons[i, 4:5]))][1]
+}
 
-table_minmax_exons = table_minmax_exons[,-c(4:5)]
-significant_table = merge(significant_table,table_minmax_exons, by.x = c('geneID','sampleID'), by.y = c('geneID','sampleID'),all.x= T)
+table_minmax_exons = table_minmax_exons[, -c(4:5)]
+significant_table = merge(
+  significant_table, table_minmax_exons,
+  by.x = c('geneID', 'sampleID'), by.y = c('geneID', 'sampleID'),
+  all.x = TRUE
+)
 
-write.table(significant_table[,colnames_ALL],file.path(params$OUTRIDER,'gw_OUTRIDER.tsv'),sep = '\t',quote = F)
-write.table(candidate_table[,colnames_candidate_genes],file.path(params$OUTRIDER,'candidates_OUTRIDER.tsv'),sep = '\t',quote = F)
+# -----------------------------------------------------------------------------
+# 5. Save results
+# -----------------------------------------------------------------------------
+write.table(significant_table[, colnames_ALL], file.path(params$OUTRIDER, 'gw_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
+write.table(candidate_table[, colnames_candidate_genes], file.path(params$OUTRIDER, 'candidates_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
 
-
-#message
-print(paste0('Done OUTRIDER per exon --- Time is: ',Sys.time()) )
-
-
-
-
+print(paste0('Done OUTRIDER per exon --- Time is: ', Sys.time()))
