@@ -257,84 +257,19 @@ server = function(input, output, session) {
   })
   ### Plotly expression
   output$Expression = renderPlotly({
-    # entire cohort
-    plot_ly() %>%
-      add_trace(
-        data = rd$reactive_inputs()$fc_exons_ggplot_reactive_child,
-        x = ~exonID,
-        y = ~expression,
-        type = "box",
-        boxpoints = FALSE,
-        name = 'Average (<18yrs)',
-        color = I('darkblue'),
-        hoverinfo = 'none',
-        marker = list(size = 12)) %>%
-      add_trace(
-        data = rd$reactive_inputs()$fc_exons_ggplot_reactive_adults,
-        x = ~exonID,
-        y = ~expression,
-        type = "box",
-        boxpoints = FALSE,
-        name = 'Average (>18yrs)',
-        color = I('darkgreen'),
-        hoverinfo = 'none',
-        marker = list(size = 12))  %>%
-      add_trace(
-        data = rd$reactive_inputs()$fc_exons_ggplot_reactive_patient,
-        x = ~exonID,
-        y = ~expression,
-        type = 'scatter',
-        mode = 'markers',
-        hoverinfo = 'text',
-        marker = list(opacity = 1),
-        color = I('darkorange'),
-        size = 22,
-        name = ~PatientID,
-        customdata= ~Sexe,
-        text = ~as.factor(age),
-        hovertemplate = paste('<b>Exon number</b>: %{x}',
-                              '<br><b>Proband Age</b>: %{text}',
-                              '<br><b>Sex</b>: %{customdata}<br>')
-      ) %>%
-      layout(
-        xaxis = list(title = "Exon Number",
-                     ticktext = 1:(max(rd$reactive_inputs()$fc_exons_ggplot_reactive_patient$exonID,1)),
-                     tickvals = as.list(1:(max(rd$reactive_inputs()$fc_exons_ggplot_reactive_patient$exonID,1))),
-                     tickmode = "array"),
-        yaxis = list(title = "Normalised Expression (TPM)"),
-        title = paste0('Cohort expression (per exon) for ',rd$reactive_inputs()$fc_exons_ggplot_reactive_patient$geneID[1])
-      )
+    plot_expression_cohort(
+      data_child   = rd$reactive_inputs()$fc_exons_ggplot_reactive_child,
+      data_adults  = rd$reactive_inputs()$fc_exons_ggplot_reactive_adults,
+      data_patient = rd$reactive_inputs()$fc_exons_ggplot_reactive_patient
+    )
   })
 
   ### Plotly expression per family
   output$Expression_perfamily = renderPlotly({
-    plot_ly() %>%
-      add_trace(
-        data = rd$reactive_inputs()$fc_exons_ggplot_reactive_family,
-        x = ~exonID,
-        y = ~expression,
-        type = 'scatter',
-        mode = 'markers',
-        hoverinfo = 'text',
-        marker = list(opacity = 1),
-        color = ~PatientID,
-        colors = c('darkorange','black','blue')[length(unique(rd$reactive_inputs()$fc_exons_ggplot_reactive_family$PatientID)):1],
-        size = 22,
-        name = ~PatientID,
-        customdata= ~Sexe,
-        text = ~as.factor(age),
-        hovertemplate = paste('<b>Exon number</b>: %{x}',
-                              '<br><b>Age</b>: %{text}',
-                              '<br><b>Sex</b>: %{customdata}<br>')
-      ) %>%
-      layout(
-        xaxis = list(title = "Exon Number",
-                     ticktext = 1:(max(rd$reactive_inputs()$fc_exons_ggplot_reactive_family$exonID,1)),
-                     tickvals = as.list(1:(max(rd$reactive_inputs()$fc_exons_ggplot_reactive_family$exonID,1))),
-                     tickmode = "array"),
-        yaxis = list(title = "Normalised Expression (TPM)"),
-        title = paste0('Family expression (per exon) for ',rd$reactive_inputs()$fc_exons_ggplot_reactive_patient$geneID[1])
-      )
+    plot_expression_family(
+      data_family  = rd$reactive_inputs()$fc_exons_ggplot_reactive_family,
+      data_patient = rd$reactive_inputs()$fc_exons_ggplot_reactive_patient
+    )
   })
 
   ### OUTRIDER table

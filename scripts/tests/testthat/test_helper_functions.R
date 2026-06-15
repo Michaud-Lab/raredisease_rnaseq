@@ -16,6 +16,7 @@ library(dplyr)
 library(RColorBrewer)
 library(ggplot2)
 library(ggrepel)
+library(plotly)
 
 # Source the functions under test.  Adjust if running from a different cwd.
 source("scripts/Shiny/rnaseq_shinyhelper_functions.R")
@@ -368,4 +369,163 @@ test_that("gene_prioritization: FRASER column is present in output", {
     )
   })
   expect_true(any(grepl("FRASER", colnames(out), ignore.case = TRUE)))
+})
+
+
+# =============================================================================
+# 4.  plot_expression_cohort()
+# =============================================================================
+
+# Shared mock data for plotly expression tests
+make_expr_cohort_data <- function(gene = "ABAT", n_exons = 4) {
+  exons <- rep(seq_len(n_exons), each = 5)
+  data.frame(
+    exonID     = exons,
+    expression = abs(rnorm(length(exons), mean = 100, sd = 20)),
+    PatientID  = rep(paste0("P", seq_len(5)), n_exons),
+    Sexe       = rep(c("M", "F", "M", "F", "M"), n_exons),
+    age        = rep(c(5, 8, 12, 15, 10), n_exons),
+    geneID     = gene,
+    stringsAsFactors = FALSE
+  )
+}
+
+make_expr_patient_data <- function(gene = "ABAT", n_exons = 4) {
+  data.frame(
+    exonID     = seq_len(n_exons),
+    expression = abs(rnorm(n_exons, mean = 90, sd = 10)),
+    PatientID  = "HSJ_001_03",
+    Sexe       = "M",
+    age        = 8,
+    geneID     = gene,
+    stringsAsFactors = FALSE
+  )
+}
+
+test_that("plot_expression_cohort: returns a plotly object", {
+  skip_if_not_installed("plotly")
+  p <- plot_expression_cohort(
+    data_child   = make_expr_cohort_data(),
+    data_adults  = make_expr_cohort_data(),
+    data_patient = make_expr_patient_data()
+  )
+  expect_s3_class(p, "plotly")
+})
+
+test_that("plot_expression_cohort: has exactly 3 traces (children, adults, patient)", {
+  skip_if_not_installed("plotly")
+  p <- plotly_build(plot_expression_cohort(
+    data_child   = make_expr_cohort_data(),
+    data_adults  = make_expr_cohort_data(),
+    data_patient = make_expr_patient_data()
+  ))
+  expect_equal(length(p$x$data), 3)
+})
+
+test_that("plot_expression_cohort: tick labels match the number of exons in patient data", {
+  skip_if_not_installed("plotly")
+  p <- plotly::plotly_build(plot_expression_cohort(
+    data_child   = make_expr_cohort_data(n_exons = 6),
+    data_adults  = make_expr_cohort_data(n_exons = 6),
+    data_patient = make_expr_patient_data(n_exons = 6)
+  ))
+  expect_equal(length(p$x$layout$xaxis$ticktext), 6)
+})
+
+test_that("plot_expression_cohort: works with a single exon (edge case)", {
+  skip_if_not_installed("plotly")
+  expect_no_error(
+    plot_expression_cohort(
+      data_child   = make_expr_cohort_data(n_exons = 1),
+      data_adults  = make_expr_cohort_data(n_exons = 1),
+      data_patient = make_expr_patient_data(n_exons = 1)
+    )
+  )
+})
+
+test_that("plot_expression_cohort: children trace is a box plot", {
+  skip_if_not_installed("plotly")
+  p <- plotly::plotly_build(plot_expression_cohort(
+    data_child   = make_expr_cohort_data(),
+    data_adults  = make_expr_cohort_data(),
+    data_patient = make_expr_patient_data()
+  ))
+  expect_equal(p$x$data[[1]]$type, "box")
+})
+
+test_that("plot_expression_cohort: patient trace is a scatter plot", {
+  skip_if_not_installed("plotly")
+  p <- plotly::plotly_build(plot_expression_cohort(
+    data_child   = make_expr_cohort_data(),
+    data_adults  = make_expr_cohort_data(),
+    data_patient = make_expr_patient_data()
+  ))
+  expect_equal(p$x$data[[3]]$type, "scatter")
+})
+
+
+# =============================================================================
+# 5.  plot_expression_family()
+# =============================================================================
+
+make_expr_family_data <- function(gene = "ABAT", n_exons = 4, n_members = 3) {
+  exons   <- rep(seq_len(n_exons), each = n_members)
+  members <- rep(paste0("FM", seq_len(n_members)), n_exons)
+  data.frame(
+    exonID     = exons,
+    expression = abs(rnorm(length(exons), mean = 95, sd = 15)),
+    PatientID  = members,
+    Sexe       = rep(c("M", "F", "M")[seq_len(n_members)], n_exons),
+    age        = rep(c(8, 38, 40)[seq_len(n_members)], n_exons),
+    geneID     = gene,
+    stringsAsFactors = FALSE
+  )
+}
+
+test_that("plot_expression_family: returns a plotly object", {
+  skip_if_not_installed("plotly")
+  p <- plot_expression_family(
+    data_family  = make_expr_family_data(),
+    data_patient = make_expr_patient_data()
+  )
+  expect_s3_class(p, "plotly")
+})
+
+test_that("plot_expression_family: has one trace per family member", {
+  skip_if_not_installed("plotly")
+  fam <- make_expr_family_data(n_members = 3)
+  p <- plotly_build(plot_expression_family(
+    data_family  = fam,
+    data_patient = make_expr_patient_data()
+  ))
+  expect_equal(length(p$x$data), length(unique(fam$PatientID)))
+})
+
+test_that("plot_expression_family: tick labels match number of exons in family data", {
+  skip_if_not_installed("plotly")
+  p <- plotly_build(plot_expression_family(
+    data_family  = make_expr_family_data(n_exons = 5),
+    data_patient = make_expr_patient_data(n_exons = 5)
+  ))
+  expect_equal(length(p$x$layout$xaxis$ticktext), 5)
+})
+
+test_that("plot_expression_family: works with a single family member (edge case)", {
+  skip_if_not_installed("plotly")
+  expect_no_error(
+    plot_expression_family(
+      data_family  = make_expr_family_data(n_members = 1),
+      data_patient = make_expr_patient_data()
+    )
+  )
+})
+
+test_that("plot_expression_family: all traces are scatter plots", {
+  skip_if_not_installed("plotly")
+  p <- plotly::plotly_build(plot_expression_family(
+    data_family  = make_expr_family_data(),
+    data_patient = make_expr_patient_data()
+  ))
+  types <- vapply(p$x$data, `[[`, character(1), "type")
+  expect_true(all(types == "scatter"))
 })
