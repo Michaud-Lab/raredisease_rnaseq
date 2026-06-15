@@ -1,3 +1,107 @@
+# plot_expression_cohort: per-exon TPM box plots for the cohort (children / adults)
+#   overlaid with the proband's individual data points.
+# Arguments:
+#   data_child   - data.frame: cohort rows for patients < 18 yrs
+#   data_adults  - data.frame: cohort rows for patients >= 18 yrs
+#   data_patient - data.frame: rows for the selected proband
+plot_expression_cohort = function(data_child, data_adults, data_patient) {
+  n_exons = max(data_patient$exonID, 1)
+  plot_ly() %>%
+    add_trace(
+      data = data_child,
+      x = ~exonID,
+      y = ~expression,
+      type = "box",
+      boxpoints = FALSE,
+      name = 'Average (<18yrs)',
+      color = I('darkblue'),
+      hoverinfo = 'none',
+      marker = list(size = 12)
+    ) %>%
+    add_trace(
+      data = data_adults,
+      x = ~exonID,
+      y = ~expression,
+      type = "box",
+      boxpoints = FALSE,
+      name = 'Average (>18yrs)',
+      color = I('darkgreen'),
+      hoverinfo = 'none',
+      marker = list(size = 12)
+    ) %>%
+    add_trace(
+      data = data_patient,
+      x = ~exonID,
+      y = ~expression,
+      type = 'scatter',
+      mode = 'markers',
+      hoverinfo = 'text',
+      marker = list(opacity = 1),
+      color = I('darkorange'),
+      size = 22,
+      name = ~PatientID,
+      customdata = ~Sexe,
+      text = ~as.factor(age),
+      hovertemplate = paste(
+        '<b>Exon number</b>: %{x}',
+        '<br><b>Proband Age</b>: %{text}',
+        '<br><b>Sex</b>: %{customdata}<br>'
+      )
+    ) %>%
+    layout(
+      xaxis = list(
+        title = "Exon Number",
+        ticktext = 1:n_exons,
+        tickvals = as.list(1:n_exons),
+        tickmode = "array"
+      ),
+      yaxis = list(title = "Normalised Expression (TPM)"),
+      title = paste0('Cohort expression (per exon) for ', data_patient$geneID[1])
+    )
+}
+
+
+# plot_expression_family: per-exon TPM scatter plot for all members of the proband's family.
+# Arguments:
+#   data_family  - data.frame: rows for all family members (proband + parents)
+#   data_patient - data.frame: rows for the selected proband (used for gene name in title)
+plot_expression_family = function(data_family, data_patient) {
+  n_exons = max(data_family$exonID, 1)
+  n_members = length(unique(data_family$PatientID))
+  plot_ly() %>%
+    add_trace(
+      data = data_family,
+      x = ~exonID,
+      y = ~expression,
+      type = 'scatter',
+      mode = 'markers',
+      hoverinfo = 'text',
+      marker = list(opacity = 1),
+      color = ~PatientID,
+      colors = c('darkorange', 'black', 'blue')[n_members:1],
+      size = 22,
+      name = ~PatientID,
+      customdata = ~Sexe,
+      text = ~as.factor(age),
+      hovertemplate = paste(
+        '<b>Exon number</b>: %{x}',
+        '<br><b>Age</b>: %{text}',
+        '<br><b>Sex</b>: %{customdata}<br>'
+      )
+    ) %>%
+    layout(
+      xaxis = list(
+        title = "Exon Number",
+        ticktext = 1:n_exons,
+        tickvals = as.list(1:n_exons),
+        tickmode = "array"
+      ),
+      yaxis = list(title = "Normalised Expression (TPM)"),
+      title = paste0('Family expression (per exon) for ', data_patient$geneID[1])
+    )
+}
+
+
 ###
 ### plotting coverage
 ###
