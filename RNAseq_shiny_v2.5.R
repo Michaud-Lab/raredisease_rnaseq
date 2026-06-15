@@ -1,35 +1,35 @@
-#source
+# source
 source("data/scripts/Shiny/global.R")
 source("data/scripts/Shiny/rnaseq_shinyhelper_functions.R")
 source("data/scripts/Shiny/reactive_module.R")
 #####
-#####UI
+##### UI
 #####
-logger::log_info('Defining UI')    
-ui <- page_fluid(
+logger::log_info('Defining UI')
+ui = page_fluid(
   theme = theme,
-  
+
   # Dark title header
   title = "RNAseq dashboard",
   div(
     class = "bg-dark text-white p-3 mb-4",
     uiOutput("dynamic_title")
   ),
-  
+
   tabsetPanel(
-    
+
     ###  Selection & Info
     tabPanel('Proband Selection',
              card(
                selectInput(
                  inputId = "proband",
-                 label = h4("Select a proband:"), 
+                 label = h4("Select a proband:"),
                  choices = sort(unique(candidates$proband)),
                  selected = 'HSJ_001_03_PAX'),
                reactive_data_UI("reactive_data"),
                div(
                  imageOutput("mainimage"),
-                 class = "text-center" 
+                 class = "text-center"
                )),
              card(
                card_header("Information"),
@@ -38,8 +38,8 @@ ui <- page_fluid(
                card_header("Software Version"),
                DTOutput("Version")
              )
-    ),  
-    
+    ),
+
     ### Data table
     tabPanel("Expression",
              card(
@@ -50,13 +50,13 @@ ui <- page_fluid(
                DTOutput("exonTPM")
              )
     ),
-    
+
     ### Plot of Expression
     tabPanel("Plot",
              card(plotlyOutput("Expression",width = "1500px")),
              card(plotlyOutput("Expression_perfamily",width = "1500px"))
     ),
-    
+
     ### Data table
     tabPanel("OUTRIDER",
              card(
@@ -67,7 +67,7 @@ ui <- page_fluid(
                card_header(strong('Genome-wide significance')),
                plotOutput("gwOUTRIDER", width = '1500px', height = "600px")),
              card(
-               fill=F, 
+               fill=FALSE,
                height='200px',
                card_header(strong('Candidate gene')),
                DTOutput("candidates_OUTRIDER")),
@@ -75,7 +75,7 @@ ui <- page_fluid(
                card_header(strong('Candidate exons')),
                DTOutput("candidates_OUTRIDER_exons")),
              card(
-               card_header(strong('All significant genes')), 
+               card_header(strong('All significant genes')),
                selectInput("pvalue", "Select a p-value threshold:",
                            choices = c(0.05,0.01,0.005,0.001,0.0005),
                            selected = 0.005),
@@ -85,7 +85,7 @@ ui <- page_fluid(
                DTOutput("significant_OUTRIDER_exons")
              )
     ),
-    
+
     ### Plot of Expression
     tabPanel("Gene model",
              card(
@@ -96,12 +96,12 @@ ui <- page_fluid(
              card(
                htmlOutput('Figure_genemodel_legend'))
     ),
-    
-    
+
+
     ### Plot of Structural variation
     tabPanel("IGV",
              card(
-               card_header(strong('Integrative Genome Viewer')), 
+               card_header(strong('Integrative Genome Viewer')),
                useShinyjs(), # Initialize shinyjs
                actionButton("addBamLocalFileButton",
                             "Show gene alignment",
@@ -110,7 +110,7 @@ ui <- page_fluid(
                igvShinyOutput('igvShiny',width = "100%")
              )
     ),
-    
+
     ### Plot of Structural variation
     tabPanel(
       "FRASER",
@@ -133,18 +133,18 @@ ui <- page_fluid(
         imageOutput("Sashimi",width = "1200px")
       )
     ),
-    
+
     ### gene prioritisation
     tabPanel(
       "Gene Prioritization",
       card(card_header(strong("Gene prioritization")),
-           downloadButton("gp_download", "Download CSV"), 
+           downloadButton("gp_download", "Download CSV"),
            selectInput("geneprior_rm", "Remove missing data in column:",
                        choices = c('gene score','OUTRIDER gene zScore','OUTRIDER gene pValue','FRASER gene pValue','OUTRIDER exon zScore','OUTRIDER exon pValue'),
                        selected = 'gene score'),
            DTOutput("gp"),height = "600px")
     ),
-    
+
     ### ASE
     tabPanel(
       "ASE",
@@ -161,17 +161,17 @@ ui <- page_fluid(
       card(card_header(strong("X-chromosome (table)")),
            DTOutput("gwX_table"),height = "600px")
     ),
-    
-    
+
+
     ### Plot of Structural variation
     tabPanel("fasta",
              card(
                card_header(strong('Transcribed sequences: reference / alternate')),
-               em('dashes (---) in reference/alternate correspond to intron retention/exon skipping events, respectively, variants in ',strong('bold'), 'candidate variant in blue.'),               
+               em('dashes (---) in reference/alternate correspond to intron retention/exon skipping events, respectively, variants in ',strong('bold'), 'candidate variant in blue.'),
                htmlOutput("fasta")
              )
     ),
-    
+
     ### Data table
     tabPanel("Search expression",
              card(
@@ -179,8 +179,8 @@ ui <- page_fluid(
                DTOutput("searchExpression")
              )
     ),
-    
-    
+
+
     ### multiQC
     tabPanel(
       "MultiQC",
@@ -193,15 +193,15 @@ ui <- page_fluid(
 
 
 #####
-#####server
+##### server
 #####
 logger::log_info('Defining back-end server')
-server <- function(input, output, session) {
-  
+server = function(input, output, session) {
+
   #####
-  #####reactive data (module)
+  ##### reactive data (module)
   #####
-  rd <- reactive_data_server(
+  rd = reactive_data_server(
     id           = "reactive_data",
     proband      = reactive(input$proband),
     pvalue       = reactive(input$pvalue),
@@ -209,15 +209,15 @@ server <- function(input, output, session) {
   )
 
   #####
-  #####outputs
+  ##### outputs
   #####
   ### dynamic title
-  output$dynamic_title <- renderUI({
+  output$dynamic_title = renderUI({
     titlePanel(
       paste0("RNAseq dashboard (",candidates$proband[rd$i()], ' ~~~ ',candidates$geneID[rd$i()],')')
     )
   })
-  
+
   ### Image
   output$mainimage = renderImage({
     list(
@@ -225,10 +225,10 @@ server <- function(input, output, session) {
       contentType = "image/png",
       width = 400,
       alt = "My Figure"
-    )},deleteFile = FALSE) 
-  
+    )},deleteFile = FALSE)
+
   ### Data table
-  output$exonTPM <- renderDT({
+  output$exonTPM = renderDT({
     if(input$table_choice == 'Normalised expression') {
       datatable(
         rd$reactive_inputs()$fc_exons_tpm_reactive,
@@ -246,9 +246,9 @@ server <- function(input, output, session) {
         options = list(pageLength = 100,lengthChange = FALSE,info = FALSE))
     }
   })
-  
+
   ### Data table
-  output$Table <- renderDT({
+  output$Table = renderDT({
     datatable(
       rd$reactive_inputs()$transcripts_reactive,
       rownames = FALSE,
@@ -256,9 +256,9 @@ server <- function(input, output, session) {
     )
   })
   ### Plotly expression
-  output$Expression <- renderPlotly({
-    #entire cohort
-    plot_ly() %>% 
+  output$Expression = renderPlotly({
+    # entire cohort
+    plot_ly() %>%
       add_trace(
         data = rd$reactive_inputs()$fc_exons_ggplot_reactive_child,
         x = ~exonID,
@@ -298,17 +298,17 @@ server <- function(input, output, session) {
       ) %>%
       layout(
         xaxis = list(title = "Exon Number",
-                     ticktext = 1:(max(rd$reactive_inputs()$fc_exons_ggplot_reactive_patient$exonID,1)), 
+                     ticktext = 1:(max(rd$reactive_inputs()$fc_exons_ggplot_reactive_patient$exonID,1)),
                      tickvals = as.list(1:(max(rd$reactive_inputs()$fc_exons_ggplot_reactive_patient$exonID,1))),
                      tickmode = "array"),
         yaxis = list(title = "Normalised Expression (TPM)"),
         title = paste0('Cohort expression (per exon) for ',rd$reactive_inputs()$fc_exons_ggplot_reactive_patient$geneID[1])
       )
   })
-  
+
   ### Plotly expression per family
-  output$Expression_perfamily <- renderPlotly({
-    plot_ly() %>% 
+  output$Expression_perfamily = renderPlotly({
+    plot_ly() %>%
       add_trace(
         data = rd$reactive_inputs()$fc_exons_ggplot_reactive_family,
         x = ~exonID,
@@ -329,50 +329,50 @@ server <- function(input, output, session) {
       ) %>%
       layout(
         xaxis = list(title = "Exon Number",
-                     ticktext = 1:(max(rd$reactive_inputs()$fc_exons_ggplot_reactive_family$exonID,1)), 
+                     ticktext = 1:(max(rd$reactive_inputs()$fc_exons_ggplot_reactive_family$exonID,1)),
                      tickvals = as.list(1:(max(rd$reactive_inputs()$fc_exons_ggplot_reactive_family$exonID,1))),
                      tickmode = "array"),
         yaxis = list(title = "Normalised Expression (TPM)"),
         title = paste0('Family expression (per exon) for ',rd$reactive_inputs()$fc_exons_ggplot_reactive_patient$geneID[1])
       )
   })
-  
+
   ### OUTRIDER table
-  output$table_OUTRIDER <- renderDT({
+  output$table_OUTRIDER = renderDT({
     datatable(
       rd$reactive_inputs()$table_OUTRIDER[rd$reactive_inputs()$table_OUTRIDER$pValue < as.numeric(input$pvalue),],
       rownames = FALSE,
       options = list(pageLength = 100)
     )
   })
-  
+
   ### OUTRIDER candidate gene table
-  output$candidates_OUTRIDER <- renderDT({
+  output$candidates_OUTRIDER = renderDT({
     datatable(
       rd$reactive_inputs()$table_OUTRIDER_candidate,
       rownames = FALSE,
       options = list(dom = 'tir',info = FALSE)
-    )  
+    )
   })
-  
-  ### OUTRIDER candidate exon table 
-  output$candidates_OUTRIDER_exons <- renderDT({
+
+  ### OUTRIDER candidate exon table
+  output$candidates_OUTRIDER_exons = renderDT({
     datatable(
       rd$reactive_inputs()$table_perexons_OUTRIDER_candidate,
       rownames = FALSE,
       options = list(pageLength = 50)
-    )  
-  })   
-  
-  ### OUTRIDER significant exon table 
-  output$significant_OUTRIDER_exons <- renderDT({
+    )
+  })
+
+  ### OUTRIDER significant exon table
+  output$significant_OUTRIDER_exons = renderDT({
     datatable(
       rd$reactive_inputs()$table_perexons_OUTRIDER_significant,
       rownames = FALSE,
       options = list(pageLength = 50)
-    )  
+    )
   })
-  
+
   ### Sashimi plots FRASER
   output$Sashimi = renderImage({
     list(
@@ -381,11 +381,11 @@ server <- function(input, output, session) {
       width = 900,
       alt = "My Figure"
     )}, deleteFile = FALSE)
-  
+
   ### Reactive slider
-  output$genemodel_slider <- renderUI({
-    cmin <- floor(candidates$start[rd$i()]/1000)
-    cmax <- ceiling(candidates$stop[rd$i()]/1000)
+  output$genemodel_slider = renderUI({
+    cmin = floor(candidates$start[rd$i()]/1000)
+    cmax = ceiling(candidates$stop[rd$i()]/1000)
     sliderInput(
       inputId = "sliderxlims",
       label = "Select genomic window (Kb)",
@@ -395,7 +395,7 @@ server <- function(input, output, session) {
       width = '80%'
     )
   })
-  
+
   ### Coverage ggplots
   output$Figure_genemodel = renderPlot({
     if(is.null(input$sliderxlims)) {genemodel = ggplot() +  theme_void() + geom_text(aes(0,0,label='Plotting in ¨Progress')) + xlab(NULL)} else {
@@ -408,95 +408,95 @@ server <- function(input, output, session) {
         colmean_genes_counts_file = paste0(params$datadir,'/colmean_genes_counts.tsv'),
         gene_annotations=gene_annotations,
         xlims = input$sliderxlims)}
-    
+
     genemodel
   })
-  
+
   ### gene prioritization Table
   output$gp = renderDT({
     datatable(rd$gene_prioritization_data(),
-              rownames = T,options = list(pageLength = 100,columnDefs = list(list(className = 'dt-center', targets = "_all"))))
+              rownames = TRUE,options = list(pageLength = 100,columnDefs = list(list(className = 'dt-center', targets = "_all"))))
   })
-  
+
   ### DOWNLOAD gene prioritization Table
-  output$gp_download <- downloadHandler(
+  output$gp_download = downloadHandler(
     filename = function() {paste0("gene_prioritization_", candidates$geneID[rd$i()],'_',candidates$proband[rd$i()], ".csv")},
-    content = function(file) {write.csv(rd$gene_prioritization_data(),file,row.names = F)}
+    content = function(file) {write.csv(rd$gene_prioritization_data(),file,row.names = FALSE)}
   )
-  
+
   ### genome-wide OUTRIDER
   output$gwOUTRIDER = renderPlot({
-    manhattan_plot(res_dt=gwOUTRIDER,sample = candidates$proband[rd$i()],geneID = 'geneID',pvalue = 'pValue',pcutoff = 0.01,shape = T)
+    manhattan_plot(res_dt=gwOUTRIDER,sample = candidates$proband[rd$i()],geneID = 'geneID',pvalue = 'pValue',pcutoff = 0.01,shape = TRUE)
   })
-  
+
   ### genome-wide FRASER
   output$gwFRASER = renderPlot({
     manhattan_plot(res_dt=gwFRASER,sample = candidates$proband[rd$i()])
   })
-  
+
   output$gwFRASER_table = renderDT({
     datatable(
       gwFRASER_table(res_dt=gwFRASER,sample = candidates$proband[rd$i()]),
-      rownames = F,options = list(pageLength = 100,columnDefs = list(list(className = 'dt-center', targets = "_all"))))
+      rownames = FALSE,options = list(pageLength = 100,columnDefs = list(list(className = 'dt-center', targets = "_all"))))
   })
-  
+
   ### IGV
   observeEvent(input$addBamLocalFileButton, {
     gene_dir = paste0(params$datadir,'/bams_subset/gene',candidates$geneID[rd$i()],'_chr',candidates$chromosome[rd$i()],'_',candidates$start[rd$i()]-5000,'_',candidates$stop[rd$i()]+5000,'/')
     color=
       showGenomicRegion(session, id="igvShiny",paste0("chr",candidates$chromosome[rd$i()],":",candidates$start[rd$i()],"-",candidates$stop[rd$i()]))
-    bamFile <- paste0(gene_dir,candidates$proband[rd$i()],"_sorted_chrN.bam")
-    bamAlign <- readGAlignments(bamFile, param = Rsamtools::ScanBamParam(what="seq"))
+    bamFile = paste0(gene_dir,candidates$proband[rd$i()],"_sorted_chrN.bam")
+    bamAlign = readGAlignments(bamFile, param = Rsamtools::ScanBamParam(what="seq"))
     loadBamTrackFromLocalData(session, id="igvShiny", trackName=input$proband, data=bamAlign)
     runjs("document.getElementById('addBamLocalFileButton').style.backgroundColor = 'green';")
   })
-  
+
   ### Default hg38 view
-  output$igvShiny <- renderIgvShiny({
+  output$igvShiny = renderIgvShiny({
     runjs("document.getElementById('addBamLocalFileButton').style.backgroundColor = 'red';")
-    genomeOptions <- parseAndValidateGenomeSpec('hg38',initialLocus=paste0("chr",candidates$chromosome[rd$i()],":",candidates$start[rd$i()],"-",candidates$stop[rd$i()]))
+    genomeOptions = parseAndValidateGenomeSpec('hg38',initialLocus=paste0("chr",candidates$chromosome[rd$i()],":",candidates$start[rd$i()],"-",candidates$stop[rd$i()]))
     igvShiny(genomeOptions)
   })
-  
+
   ### genome-wide ASE table
-  output$gwASE_table <- renderDT({
+  output$gwASE_table = renderDT({
     datatable(
       rd$reactive_inputs()$gwASE_table,
-      rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))  
+      rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))
   })
-  
+
   ### genome-wide ASE Imprinted table
-  output$gwImprinted_table <- renderDT({
+  output$gwImprinted_table = renderDT({
     datatable(
       rd$reactive_inputs()$gwIMX_table[rd$reactive_inputs()$gwIMX_table$Type == 'I',1:12],
-      rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))  
+      rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))
   })
-  
+
   ### genome-wide ASE X table
-  output$gwX_table <- renderDT({
+  output$gwX_table = renderDT({
     datatable(
       rd$reactive_inputs()$gwIMX_table[rd$reactive_inputs()$gwIMX_table$Type == 'X',1:12],
-      rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))  
+      rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))
   })
-  
+
   ### genome-wide ASE manhattan
   output$gwASE = renderPlot({
     manhattan_plot(res_dt=gwASE,sample = candidates$proband[rd$i()],end= 'pos',pcutoff=0.01, pvalue='pvalue',geneID = 'geneID')
   })
-  
+
   ### FASTA
-  output$fasta <- renderUI({
+  output$fasta = renderUI({
     fasta.file = paste0(params$datadir,"/consensus/","gene",candidates$geneID[rd$i()],'_',candidates$proband[rd$i()],'.fasta')
     if(file.exists(fasta.file)) {lines = readLines(fasta.file)} else {lines = 'No gene specified'}
     HTML(paste0("<span style='color: black; font-family: Courier New; font-size: 16px;'>",paste0(lines,collapse = '<br>'),"</span>",collapse = "\n"))
   })
-  
-  ### Description    
-  output$description <- renderUI({
-    selected_ensembl <- candidates$ensembl[rd$i()]
-    selected_geneID <- candidates$geneID[rd$i()]
-    selected_patient <- candidates$proband[rd$i()]
-    selected_clinical <- clinical[clinical$`Patient ID` == selected_patient & clinical$Gène == selected_geneID,]
+
+  ### Description
+  output$description = renderUI({
+    selected_ensembl = candidates$ensembl[rd$i()]
+    selected_geneID = candidates$geneID[rd$i()]
+    selected_patient = candidates$proband[rd$i()]
+    selected_clinical = clinical[clinical$`Patient ID` == selected_patient & clinical$Gène == selected_geneID,]
     log_info(paste0('Selecting ~~~ ',selected_patient,' ~~~ ',selected_geneID,' ~~~ ',rd$i()))
     url = paste0("https://www.proteinatlas.org/", selected_ensembl)
     HTML(
@@ -505,13 +505,13 @@ server <- function(input, output, session) {
              "<br><br><b>Mutations: </b>",selected_clinical$Mutation,
              "<br><br><b>Candidate Gene hypothesis: </b>",selected_clinical$Hypothèse,
              "<br><br><b>HPO terms: </b>",selected_clinical$`HPO terms`,
-             "<br><br><b>Sex: </b>",selected_clinical$Sexe, 
-             "<br><br><b>Bam file location (Fir): </b>",system('echo ${HOME}',intern = T),"/scratch/raredisease_rnaseq/results_06_01_2026/star_salmon/",selected_patient,".sorted.bam<span>")
+             "<br><br><b>Sex: </b>",selected_clinical$Sexe,
+             "<br><br><b>Bam file location (Fir): </b>",system('echo ${HOME}',intern = TRUE),"/scratch/raredisease_rnaseq/results_06_01_2026/star_salmon/",selected_patient,".sorted.bam<span>")
     )
   })
-  
+
   ### Figure legends
-  output$Figure_genemodel_legend  <- renderUI({
+  output$Figure_genemodel_legend = renderUI({
     HTML(
       paste0("<span><b>Figure 2:</b> Visualisation des altérations d’épissage détectées par l'outil FRASER.
         <br><b>A:</b> Carte des introns/exons du gène ",candidates$geneID[rd$i()]," et localisation du/des variant.s (ligne bleue pointillée).
@@ -519,12 +519,12 @@ server <- function(input, output, session) {
         <br><b>C:</b>  Couverture de séquençage normalisée pour le probant ainsi que 25-75ième percentile de la population de référence (en orange).</span>")
     )
   })
-  
-  output$ase_legend  <- renderUI({
+
+  output$ase_legend = renderUI({
     HTML(
       paste0("<span>Identification of Allele Specific Expression based on SNV genotypes (.vcf) and short read RNAseq alignement (.bam) files.
                 <br>Called with GATK - ASEReadCounter. Significance tested with binomial t-tests. Visualised as Manhattan plots and dynamic table.
-                <br><b>ref/alt: </b>RNAseq reference/alternate count. 
+                <br><b>ref/alt: </b>RNAseq reference/alternate count.
                 <br><b>chr: </b>Chromosome.
 		<br><b>pos: </b>Position.
 		<br><b>RNA_DP: </b>RNA read depth for reference,alternate allele.
@@ -535,28 +535,29 @@ server <- function(input, output, session) {
                 <b>WGSratio: </b>WGS alternate allele/ (ref+alt).</span>")
     )
   })
-  
+
   ### Versioning
-  output$Version <- renderDT({
+  output$Version = renderDT({
     datatable(
       data.frame(Parameter=names(unlist(report_version)),Value=unlist(report_version)),
-      rownames = F,options = list(dom = 'p'))
+      rownames = FALSE,options = list(dom = 'p'))
   })
-  
-  #searh Gene expression
-  output$searchExpression <- renderDT({
-    datatable(fc_genes_raw_ALL[grepl(input$text, fc_genes_raw_ALL$geneID,ignore.case =T),],
-      rownames = F,options = list(dom = 'p'))
+
+  # searh Gene expression
+  output$searchExpression = renderDT({
+    datatable(fc_genes_raw_ALL[grepl(input$text, fc_genes_raw_ALL$geneID,ignore.case =TRUE),],
+      rownames = FALSE,options = list(dom = 'p'))
   })
-  
-  
+
+
   ### multiQC
-  output$htmlViewer <- renderUI({
+  output$htmlViewer = renderUI({
     HTML(paste(readLines(html_file), collapse = "\n"))
   })
 }
 
-######shiny app
+###### shiny app
 logger::log_info('Deploying app')
 app = shinyApp(ui, server, options = list(height = 900))
 runApp(app, launch.browser = TRUE)
+
