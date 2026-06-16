@@ -335,7 +335,7 @@ server = function(input, output, session) {
   output$Figure_genemodel = renderPlot({
     if(is.null(input$sliderxlims)) {genemodel = ggplot() +  theme_void() + geom_text(aes(0,0,label='Plotting in ¨Progress')) + xlab(NULL)} else {
       gene_dir = paste0(params$datadir,'/bams_subset/gene',candidates$geneID[rd$i()],'_chr',candidates$chromosome[rd$i()],'_',candidates$start[rd$i()]-5000,'_',candidates$stop[rd$i()]+5000,'/')
-      genemodel = plotting_coverage(
+      genemodel = genemodel_plot(
         candidate = candidates[rd$i(),],
         depth_file = paste0(gene_dir,"gene_",candidates$geneID[rd$i()],"_",candidates$proband[rd$i()],"_depth5.csv"),
         res_dt_candidate_gene_file = paste0(gene_dir,"gene_",candidates$geneID[rd$i()],"_",candidates$proband[rd$i()],"_res_dt_candidate_gene.csv"),
