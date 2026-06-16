@@ -105,7 +105,7 @@ plot_expression_family = function(data_family, data_patient) {
 ###
 ### plotting coverage
 ###
-plotting_coverage = function(candidate = candidates,
+genemodel_plot = function(candidate = candidates,
                              res_dt_candidate_gene_file = "resdet",
                              depth_file = "depth",
                              bam_file = "bam",

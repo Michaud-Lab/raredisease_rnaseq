@@ -119,7 +119,7 @@ system('rm temp.html grep_problematic_line')
 # -----------------------------------------------------------------------------
 # 9. Build transcript expression tables
 # -----------------------------------------------------------------------------
-ensembl_geneid = read.table(file.path(params$datadir, 'ensembl_geneid.tsv'), header = TRUE)
+ensembl_geneid = read.table(file.path(params$datadir, '/input/ensembl_geneid.tsv'), header = TRUE)
 clinical = read.table(file.path(params$datadir, 'clinical.tsv'), check.names = FALSE)
 
 transcripts = read.csv(
