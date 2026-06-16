@@ -89,9 +89,15 @@ for (i in 1:nrow(candidates)) {
   out_dir = paste0(params$datadir, gene_dir)
 
   dir.create(out_dir, showWarnings = TRUE)
-  system(paste0('cp ', in_dir, candidates$proband[i], '_sorted_chrN.bam* ', out_dir, '/.'))
-  system(paste0('cp ', in_dir, '*depth5.csv ', out_dir, '/.'))
-  system(paste0('cp ', in_dir, '*_res_dt_candidate_gene.csv ', out_dir, '/.'))
+
+  if (length(Sys.glob(paste0(in_dir, candidates$proband[i], '_sorted_chrN.bam*'))) > 0)
+    system(paste0('cp ', in_dir, candidates$proband[i], '_sorted_chrN.bam* ', out_dir, '/.'))
+
+  if (length(Sys.glob(paste0(in_dir, '*depth5.csv'))) > 0)
+    system(paste0('cp ', in_dir, '*depth5.csv ', out_dir, '/.'))
+
+  if (length(Sys.glob(paste0(in_dir, '*_res_dt_candidate_gene.csv'))) > 0)
+    system(paste0('cp ', in_dir, '*_res_dt_candidate_gene.csv ', out_dir, '/.'))
 }
 
 # -----------------------------------------------------------------------------

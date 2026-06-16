@@ -1,3 +1,9 @@
+# Hidden files under scripts/
+scripts/**/.*
+
+# macOS metadata files
+**/.DS_Store
+
 #data directories
 /results*/
 /consensus/

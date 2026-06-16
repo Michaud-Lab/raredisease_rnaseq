@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 
 ---
 
+## 2026-06-16 — minorfixes
+
+**Changed**
+- `RNAseq_shiny_v2.5.R`: updated BAM file path from `/scratch/raredisease_rnaseq/results_06_01_2026/star_salmon/` to `/project/def-rallard/COMMUN/raredisease_rnaseq/results_nextflow_rnasplice_09_05_2026/star_salmon/`.
+- `RNAseq_shiny_v2.5.R`: merged the gene model slider and plot into a single card so the slider is aligned with the plot.
+- `scripts/cp_and_cleanup.R`: section 7 cp commands now guarded by `Sys.glob()` checks — files are only copied if they exist.
+- `.gitignore`: added `scripts/**/.*` to exclude hidden files (e.g. `.DS_Store`) at any depth under `scripts/`.
+- `RNAseq_shiny_v2.5.R` show alll hpo terms for a proband.
+---
+
 ## 2026-06-15 — code-standardisation
 
 **Added**
