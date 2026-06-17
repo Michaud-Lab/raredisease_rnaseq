@@ -69,7 +69,7 @@ probands = colnames(genes_counts)[
 genes_counts = genes_counts[, colnames(genes_counts) %in% c('gene_id', probands)]
 
 ods = OutriderDataSet(countData = genes_counts)
-ods = filterExpression(ods, TxDb.Hsapiens.UCSC.hg38.knownGene, mapping = map[, 1:2], filterGenes = TRUE, savefpkm = TRUE, fpkmCutoff = 1)
+ods = filterExpression(ods, TxDb.Hsapiens.UCSC.hg38.knownGene, mapping = map[, 1:2], filterGenes = TRUE, savefpkm = TRUE, fpkmCutoff = 0.5)
 ods = filterExpression(ods)
 ods = OUTRIDER(ods)
 
