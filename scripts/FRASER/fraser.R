@@ -23,9 +23,9 @@ options(scipen = 999)
 candidates = read.csv(file.path(params$workdir, 'data/input/candidate_genes.csv'))
 params$output = paste0(params$FRASER, '/results/output_FRASER_', candidates$proband[i])
 
-dir.create(params$FRASER, showWarnings = TRUE)
-dir.create(file.path(params$FRASER, 'results'), showWarnings = TRUE)
-dir.create(params$output, showWarnings = TRUE)
+dir.create(params$FRASER, showWarnings = FALSE)
+dir.create(file.path(params$FRASER, 'results'), showWarnings = FALSE)
+dir.create(params$output, showWarnings = FALSE)
 
 chr = candidates$chromosome[i]
 start = candidates$start[i] - 5000
