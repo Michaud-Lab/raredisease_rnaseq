@@ -39,7 +39,7 @@ proband = candidates$proband[i]
 # -----------------------------------------------------------------------------
 if (geneID != "") {
   out_dir = paste0(params$FRASER, '/bams_subset/gene', geneID, '_chr', chr, '_', start, '_', stop)
-  dir.create(out_dir, showWarnings = TRUE, recursive = TRUE)
+  dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
   command = paste('./fraser.sh', chr, start, stop, geneID, proband,
                   params$rnasplice_bamdir, params$fraser_temp_bamdir, params$fraser_bamdir)
