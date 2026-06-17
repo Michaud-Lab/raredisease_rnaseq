@@ -19,6 +19,7 @@ mkdir -p $fraser_bamdir
 mkdir -p $fraser_perregion
 
 #subset all the big .bam file to keep only the region of interest.
+iteration=0
 for bam_in in $rnasplice_bamdir/*sorted.bam
   do
     bam_chr_out=${bam_in//'.bam'/'_chrN.bam'}
@@ -28,17 +29,16 @@ for bam_in in $rnasplice_bamdir/*sorted.bam
     nreads=$(samtools view -c $rnasplice_bamdir'HSJ_001_03_PAX_sorted.bam' $chromosome:$start-$stop)
 
     if [ "$nreads" -gt 2000000 ]; then
-       echo "Very high coverage ($nreads reads) → 0.1%"
-       echo "$bam_in"
+       [ "$iteration" -eq 0 ] && echo "Very high coverage ($nreads reads) → 0.1%"
        frac="0.001"
     elif [ "$nreads" -gt 1000000 ]; then
-       echo "High coverage ($nreads reads) → 10%"
-       echo "$bam_in"
+       [ "$iteration" -eq 0 ] && echo "High coverage ($nreads reads) → 10%"
        frac="0.10"
     else
-       echo "Regular coverage ($nreads reads) → no downsampling"
+       [ "$iteration" -eq 0 ] && echo "Regular coverage ($nreads reads) → no downsampling"
        frac=""
     fi
+    iteration=$((iteration + 1))
 
     if [ -n "$frac" ]; then
        samtools view -s "$frac" -b "$bam_in" $chromosome:$start-$stop > "$bam_chr_out"

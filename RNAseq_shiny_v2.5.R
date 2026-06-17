@@ -395,6 +395,7 @@ server = function(input, output, session) {
 
   ### genome-wide ASE table
   output$gwASE_table = renderDT({
+    req(!is.null(gwASE))
     datatable(
       rd$reactive_inputs()$gwASE_table,
       rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))
@@ -402,6 +403,7 @@ server = function(input, output, session) {
 
   ### genome-wide ASE Imprinted table
   output$gwImprinted_table = renderDT({
+    req(!is.null(gwASE_IMX))
     datatable(
       rd$reactive_inputs()$gwIMX_table[rd$reactive_inputs()$gwIMX_table$Type == 'I',1:12],
       rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))
@@ -409,6 +411,7 @@ server = function(input, output, session) {
 
   ### genome-wide ASE X table
   output$gwX_table = renderDT({
+    req(!is.null(gwASE_IMX))
     datatable(
       rd$reactive_inputs()$gwIMX_table[rd$reactive_inputs()$gwIMX_table$Type == 'X',1:12],
       rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))
@@ -416,6 +419,7 @@ server = function(input, output, session) {
 
   ### genome-wide ASE manhattan
   output$gwASE = renderPlot({
+    req(!is.null(gwASE))
     manhattan_plot(res_dt=gwASE,sample = candidates$proband[rd$i()],end= 'pos',pcutoff=0.01, pvalue='pvalue',geneID = 'geneID')
   })
 
