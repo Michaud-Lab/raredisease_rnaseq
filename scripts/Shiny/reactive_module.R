@@ -102,15 +102,23 @@ reactive_data_server = function(id, proband, pvalue, geneprior_rm) {
               table_perexons_OUTRIDER_significant$exonID), ]
 
       # ASE – genome-wide (p < 0.01)
-      gwASE_table = gwASE[gwASE$sampleID == candidates$proband[i()], ]
-      gwASE_table = gwASE_table[gwASE_table$pvalue < 0.01, ]
-      gwASE_table = gwASE_table[
-        order(gwASE_table$chr, gwASE_table$pos, gwASE_table$geneID), ]
+      if (!is.null(gwASE)) {
+        gwASE_table = gwASE[gwASE$sampleID == candidates$proband[i()], ]
+        gwASE_table = gwASE_table[gwASE_table$pvalue < 0.01, ]
+        gwASE_table = gwASE_table[
+          order(gwASE_table$chr, gwASE_table$pos, gwASE_table$geneID), ]
+      } else {
+        gwASE_table = data.frame()
+      }
 
       # ASE – imprinted & X-linked
-      gwIMX_table = gwASE_IMX[gwASE_IMX$sampleID == candidates$proband[i()], ]
-      gwIMX_table = gwIMX_table[
-        order(gwIMX_table$chr, gwIMX_table$pos, gwIMX_table$geneID), ]
+      if (!is.null(gwASE_IMX)) {
+        gwIMX_table = gwASE_IMX[gwASE_IMX$sampleID == candidates$proband[i()], ]
+        gwIMX_table = gwIMX_table[
+          order(gwIMX_table$chr, gwIMX_table$pos, gwIMX_table$geneID), ]
+      } else {
+        gwIMX_table = data.frame()
+      }
 
       # Plotly – family and per-age subsets
       fc_exons_ggplot_reactive = fc_exons_tpm_ggplot[

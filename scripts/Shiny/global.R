@@ -50,9 +50,20 @@ fc_genes_raw_ALL = read.table(file.path(params$datadir, 'fc_genes_raw_ALL.tsv'),
 gwOUTRIDER = read.csv(file.path(params$datadir, 'gw_OUTRIDER.tsv'), sep = '\t', check.names = FALSE)
 gwOUTRIDER$chr = factor(gwOUTRIDER$chr, levels = c(1:22, 'X', 'Y', 'MT'))
 
-gwASE = read.csv(file.path(params$datadir, 'gwASE.tsv'), row.names = 1, sep = '\t')
-gwASE$chr = factor(gwASE$chr, levels = c(1:22, 'X', 'Y', 'MT'))
-gwASE_IMX = read.csv(file.path(params$datadir, 'gwImprinted.tsv'), row.names = 1, sep = '\t')
+if (file.exists(file.path(params$datadir, 'gwASE.tsv'))) {
+  gwASE = read.csv(file.path(params$datadir, 'gwASE.tsv'), row.names = 1, sep = '\t')
+  gwASE$chr = factor(gwASE$chr, levels = c(1:22, 'X', 'Y', 'MT'))
+} else {
+  gwASE = NULL
+  logger::log_warn("gwASE.tsv not found — ASE results will not be available.")
+}
+
+if (file.exists(file.path(params$datadir, 'gwImprinted.tsv'))) {
+  gwASE_IMX = read.csv(file.path(params$datadir, 'gwImprinted.tsv'), row.names = 1, sep = '\t')
+} else {
+  gwASE_IMX = NULL
+  logger::log_warn("gwImprinted.tsv not found — imprinted/X-linked ASE results will not be available.")
+}
 
 significant_perexons_OUTRIDER = read.csv(file.path(params$datadir, 'exons_OUTRIDER.tsv'), sep = '\t', check.names = FALSE)
 significant_perexons_OUTRIDER$chr = factor(significant_perexons_OUTRIDER$chr, levels = c(1:22, 'X', 'Y', 'MT'))

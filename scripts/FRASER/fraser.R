@@ -46,7 +46,7 @@ if (geneID != "") {
 
   res_dt_outfile = paste0(out_dir, "/gene_", geneID, "_", proband, "_res_dt_candidate_gene.csv")
 
-  if (!file.exists(res_dt_outfile) | length(readLines(res_dt_outfile)) == 0) {
+   if (!file.exists(res_dt_outfile) | (file.exists(res_dt_outfile) && length(readLines(res_dt_outfile)) == 0)) {
     # Create an empty placeholder in case the analysis fails, to avoid re-running
     system(paste0('touch ', res_dt_outfile))
 
@@ -75,13 +75,32 @@ if (geneID != "") {
     )
     settings = FraserDataSet(colData = sampleTable[probands, ], workingDir = params$output)
 
-    fds = countRNAData(settings, recount = TRUE)
-    fds = calculatePSIValues(fds)
-    fds = annotateRanges(fds, GRCh = 38)
-    fds = fit(fds, q = c(jaccard = 2))
-    fds = calculatePvalues(fds)
-    fds = calculatePadjValues(fds, method = 'none', geneLevel = FALSE)
-    fds = calculateZscore(fds)
+    fds = tryCatch({
+      invisible(capture.output(
+        fds <- suppressMessages(suppressWarnings(
+          countRNAData(settings, recount = TRUE)
+        )),
+        file = nullfile()
+      ))
+      fds = calculatePSIValues(fds)
+      fds = annotateRanges(fds, GRCh = 38)
+      fds = fit(fds, q = c(jaccard = 2))
+      fds = calculatePvalues(fds)
+      fds = calculatePadjValues(fds, method = 'none', geneLevel = FALSE)
+      fds = calculateZscore(fds)
+      fds
+    }, error = function(e) {
+      print(paste0('FRASER failed for sample ~~~ ', i, ' ~~~ ', geneID,
+                   ' ~~~ ','likely because there were no splice junctions ~~~ ', conditionMessage(e)))
+      # Write an empty CSV (header only) so this sample is not re-run
+      write.csv(data.frame(), res_dt_outfile)
+      NULL
+    })
+
+    if (is.null(fds)) {
+      print(paste0('Skipping sample ~~~ ', i, ' ~~~ Time is: ', Sys.time()))
+      stop()
+    }
 
     res = results(fds, all = TRUE, padjCutoff = NA, deltaPsiCutoff = NA)
     res_dt = as.data.table(res)
@@ -131,10 +150,10 @@ if (geneID != "") {
     ), silent = TRUE)
     dev.off()
 
-    print(paste0('Done sample ~~~ ', i, ' ~~~ Time is: ', Sys.time()))
+    print(paste0('Done sample ~~~ ', i, ', gene: ',geneID,' ~~~ Time is: ', Sys.time()))
 
   } else {
-    print(paste0('Sample ~~~ ', i, ' already exists ~~~ Time is: ', Sys.time()))
+    print(paste0('Sample ~~~ ', i, ', gene: ',geneID,' already exists ~~~ Time is: ', Sys.time()))
   }
 } else {
   print(paste0('Sample ~~~ ', i, ' did not contain a candidate gene ~~~ Time is: ', Sys.time()))

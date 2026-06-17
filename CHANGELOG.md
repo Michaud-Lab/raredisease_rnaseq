@@ -10,6 +10,8 @@ All notable changes to this project are documented here.
 - `RNAseq_shiny_v2.5.R`: updated BAM file path from `/scratch/raredisease_rnaseq/results_06_01_2026/star_salmon/` to `/project/def-rallard/COMMUN/raredisease_rnaseq/results_nextflow_rnasplice_09_05_2026/star_salmon/`.
 - `RNAseq_shiny_v2.5.R`: merged the gene model slider and plot into a single card so the slider is aligned with the plot.
 - `scripts/Shiny/rnaseq_shinyhelper_functions.R`, `RNAseq_shiny_v2.5.R`, `RNAseq_shiny_v2.4.R`: renamed `plotting_coverage()` to `genemodel_plot()`.
+- `scripts/Shiny/global.R`, `scripts/Shiny/reactive_module.R`, `RNAseq_shiny_v2.5.R`: the app no longer throws an error when `gwASE.tsv` or `gwImprinted.tsv` are absent — missing files are handled gracefully with NULL checks, empty table fallbacks, and a logged warning.
+- `scripts/FRASER/fraser.R`: wrapped the FRASER pipeline in a `tryCatch()` block to handle the intermittent featureCounts SAF error ("no features were loaded"), which occurs when a candidate gene region has no split reads. On failure, an empty CSV is written to prevent the sample from being re-run indefinitely.
 - `scripts/cp_and_cleanup.R`: section 7 cp commands now guarded by `Sys.glob()` checks — files are only copied if they exist.
 - `.gitignore`: added `scripts/**/.*` to exclude hidden files (e.g. `.DS_Store`) at any depth under `scripts/`.
 - `RNAseq_shiny_v2.5.R` show alll hpo terms for a proband.
