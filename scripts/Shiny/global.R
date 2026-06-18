@@ -80,6 +80,8 @@ candidates = read.csv(file.path(params$datadir, 'input/candidate_genes.csv'))
 configs = read_json(file.path(params$datadir, 'input/configs.json'))
 candidates_extra = read_sheet(configs$general$candidate_genes_extra, skip = 1)
 candidates = rbind(candidates, candidates_extra)
+candidates = candidates[!grepl('bc',candidates$proband),]
+
 
 if (file.exists(file.path(params$datadir, 'input/candidate_genes_LR.csv'))) {
   candidates_LR = read.csv(file.path(params$datadir, 'input/candidate_genes_LR.csv'))

@@ -74,7 +74,7 @@ genes_counts = genes_counts[, colnames(genes_counts) %in% c('gene_id', probands)
 
 ods = OutriderDataSet(countData = genes_counts)
 ods = filterExpression(ods, TxDb.Hsapiens.UCSC.hg38.knownGene, mapping = map[, 1:2], filterGenes = TRUE, savefpkm = TRUE, fpkmCutoff = 0.5)
-ods = filterExpression(ods)
+#ods = filterExpression(ods)
 ods = OUTRIDER(ods)
 
 # Result tables
@@ -90,6 +90,9 @@ table_genes$ensemblID_sampleID = paste0(table_genes$geneID, '_', table_genes$sam
 candidate_table = table_genes[table_genes$ensemblID_sampleID %in% candidates$ensembl_proband, ]
 colnames(candidate_table)[1] = 'ensemblID'
 candidate_table = merge(candidate_table, map, by = 'ensemblID')
+
+
+print(table(significant_table$sampleID))
 
 # Output column sets
 colnames_ALL = c("sampleID", "geneID", "ensemblID", "chr", "start", "end", "pos", "width",
@@ -149,6 +152,8 @@ colnames_significant_exon = c("sampleID", "geneID", "ensemblID", "transcriptID",
 table = table[table$pValue < 0.01, ]
 significant_table_exon = merge(table, map[, -3], by = 'ensemblID')
 significant_table_exon = significant_table_exon[, colnames_significant_exon]
+print(table(significant_table_exon$sampleID))
+
 
 write.table(significant_table_exon, file.path(params$OUTRIDER, 'gw_exons_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
 write.table(candidate_table_exon, file.path(params$OUTRIDER, 'candidates_perexons_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
