@@ -7,8 +7,9 @@ All notable changes to this project are documented here.
 ## 2026-06-18 — candidates-extra
 
 **Changed**
-- `scripts/featureCounts/featureCounts.R`, `scripts/FRASER/fraser.R`, `scripts/OUTRIDER/outrider.R`, `scripts/consensus/consensus.R`, `scripts/cp_and_cleanup.R`, `scripts/Shiny/global.R`: all scripts now merge `candidates_extra` from a Google Spreadsheet (URL stored in `configs.json` under `general.candidate_genes_extra`) into `candidates` after loading the local CSV. `googlesheets4::gs4_deauth()` is used (public sheet, no authentication required). The URL is passed as a command-line argument in slurm scripts; `cp_and_cleanup.R` and `global.R` read it directly from `configs.json`.
+- `scripts/featureCounts/featureCounts.R`, `scripts/FRASER/fraser.R`, `scripts/OUTRIDER/outrider.R`, `scripts/consensus/consensus.R`, `scripts/cp_and_cleanup.R`, `scripts/Shiny/global.R`: all scripts now merge `candidates_extra` from a local CSV (path stored in `configs.json` under `general.candidate_genes_extra`) into `candidates` after loading `candidate_genes.csv`. The CSV is downloaded from Google Sheets by running `update_genes.sh` before the pipeline. The URL is passed as a command-line argument in slurm scripts; `cp_and_cleanup.R` and `global.R` read it directly from `configs.json`.
 - `scripts/FRASER/fraser.slurm`, `scripts/OUTRIDER/outrider.slurm`, `scripts/consensus/consensus.slurm`: updated to read `candidate_genes_extra` from `configs.json` and pass it as a new trailing argument to their respective R scripts.
+- `README.md`: added `update_genes.sh` as Step 2 in the pipeline overview diagram and usage section; renumbered subsequent steps accordingly.
 
 ---
 

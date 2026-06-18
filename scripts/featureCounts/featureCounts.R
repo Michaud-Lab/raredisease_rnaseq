@@ -6,7 +6,7 @@
 suppressMessages(suppressWarnings(library(readxl)))
 suppressMessages(suppressWarnings(library(tidyr)))
 suppressMessages(suppressWarnings(library(dplyr)))
-suppressMessages(suppressWarnings(library(googlesheets4)));gs4_deauth()
+
 
 # -----------------------------------------------------------------------------
 # 1. Arguments and parameters
@@ -36,7 +36,7 @@ candidates = read.csv(params$candidate_genes)
 #candidates_LR = candidates_LR[,c(2,3,10,4,5,6,7,8,9)]
 #colnames(candidates_LR) = colnames(candidates)
 #candidates = rbind(candidates,candidates_LR)
-candidates_extra = read_sheet(params$candidate_genes_extra,skip = 1)
+candidates_extra = read.csv(params$candidate_genes_extra)
 candidates = rbind(candidates,candidates_extra)
 
 # Clinical data

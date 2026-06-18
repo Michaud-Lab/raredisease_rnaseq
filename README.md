@@ -15,6 +15,9 @@ Raw reads (.fastq)
 nextflow rnasplice          →  BAM files, QC (MultiQC)
       │
       ▼
+update_genes.sh             →  Download candidate_genes_extra.csv from Google Sheets
+      │
+      ▼
 featureCounts.slurm         →  Per-gene and per-exon raw counts, TPM
       │
       ├──▶ outrider.slurm   →  Aberrant gene / exon expression (OUTRIDER)
@@ -95,37 +98,42 @@ nextflow run rnasplice \
   -w /home/renaut/scratch/nextflow_rnasplice/work
 ```
 
-**Step 2 — Feature counts**
+**Step 2 — Update candidate genes from Google Sheets**
+```bash
+bash $scriptsdir/update_genes.sh
+```
+
+**Step 3 — Feature counts**
 ```bash
 sbatch $scriptsdir/featureCounts/featureCounts.slurm
 ```
 
-**Step 3 — Aberrant expression (OUTRIDER)**
+**Step 4 — Aberrant expression (OUTRIDER)**
 ```bash
 sbatch $scriptsdir/OUTRIDER/outrider.slurm
 ```
 
-**Step 4 — Aberrant splicing (FRASER)**
+**Step 5 — Aberrant splicing (FRASER)**
 ```bash
 sbatch $scriptsdir/FRASER/fraser.slurm
 ```
 
-**Step 5 — Allele-specific expression**
+**Step 6 — Allele-specific expression**
 ```bash
 sbatch $scriptsdir/ASE/ase.slurm
 ```
 
-**Step 6 — Consensus sequences**
+**Step 7 — Consensus sequences**
 ```bash
 sbatch $scriptsdir/consensus/consensus.slurm
 ```
 
-**Step 7 — Consolidate outputs**
+**Step 8 — Consolidate outputs**
 ```bash
 Rscript $scriptsdir/cp_and_cleanup.R
 ```
 
-**Step 8 — Launch the Shiny dashboard** *(requires R ≥ 4.5, run in RStudio or locally)*
+**Step 9 — Launch the Shiny dashboard** *(requires R ≥ 4.5, run in RStudio or locally)*
 ```bash
 Rscript RNAseq_shiny_v2.5.R
 ```

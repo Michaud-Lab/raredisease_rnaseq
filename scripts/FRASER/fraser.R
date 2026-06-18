@@ -4,7 +4,7 @@
 
 # Libraries (loaded inside the main block to avoid loading on already-done runs)
 suppressMessages(suppressWarnings(library(data.table)))
-suppressMessages(suppressWarnings(library(googlesheets4))); gs4_deauth()
+
 
 # -----------------------------------------------------------------------------
 # 1. Arguments and parameters
@@ -23,7 +23,7 @@ options(scipen = 999)
 # 2. Setup output directories
 # -----------------------------------------------------------------------------
 candidates = read.csv(file.path(params$workdir, 'data/input/candidate_genes.csv'))
-candidates_extra = read_sheet(params$candidate_genes_extra, skip = 1)
+candidates_extra = read.csv(params$candidate_genes_extra)
 candidates = rbind(candidates, candidates_extra)
 params$output = paste0(params$FRASER, '/results/output_FRASER_', candidates$proband[i])
 

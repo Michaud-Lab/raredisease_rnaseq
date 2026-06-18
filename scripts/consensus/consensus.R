@@ -5,7 +5,6 @@
 # -----------------------------------------------------------------------------
 # 1. Arguments and parameters
 # -----------------------------------------------------------------------------
-suppressMessages(suppressWarnings(library(googlesheets4))); gs4_deauth()
 
 args = commandArgs(trailingOnly = TRUE)
 i = as.numeric(args[1])
@@ -19,7 +18,7 @@ params$ref_annot = args[6]
 params$candidate_genes_extra = args[7]
 
 candidates = read.csv(params$candidates)
-candidates_extra = read_sheet(params$candidate_genes_extra, skip = 1)
+candidates_extra = read.csv(params$candidate_genes_extra)
 candidates = rbind(candidates, candidates_extra)
 
 # Identify the MANE transcript for the candidate gene

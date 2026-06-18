@@ -4,7 +4,7 @@
 
 # Libraries
 suppressMessages(suppressWarnings(library(dplyr)))
-suppressMessages(suppressWarnings(library(googlesheets4))); gs4_deauth()
+
 suppressMessages(suppressWarnings(library(OUTRIDER)))
 suppressMessages(suppressWarnings(library(TxDb.Hsapiens.UCSC.hg38.knownGene)))
 suppressMessages(suppressWarnings(library(org.Hs.eg.db)))
@@ -28,7 +28,7 @@ register(MulticoreParam(ncores, ncores * 2, progressbar = TRUE))
 # 2. Load candidate genes and gene annotation map
 # -----------------------------------------------------------------------------
 candidates = read.csv(params$candidate_genes)
-candidates_extra = read_sheet(params$candidate_genes_extra, skip = 1)
+candidates_extra = read.csv(params$candidate_genes_extra)
 candidates = rbind(candidates, candidates_extra)
 candidates$ensembl_proband = apply(
   candidates[, colnames(candidates) %in% c('ensembl', 'proband')],
