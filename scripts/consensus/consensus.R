@@ -5,6 +5,8 @@
 # -----------------------------------------------------------------------------
 # 1. Arguments and parameters
 # -----------------------------------------------------------------------------
+suppressMessages(suppressWarnings(library(googlesheets4))); gs4_deauth()
+
 args = commandArgs(trailingOnly = TRUE)
 i = as.numeric(args[1])
 params = list(workdir = args[2])
@@ -14,8 +16,11 @@ params$FRASER = file.path(args[2], 'FRASER')
 params$fc_exons = args[4]
 params$ref_file = args[5]
 params$ref_annot = args[6]
+params$candidate_genes_extra = args[7]
 
 candidates = read.csv(params$candidates)
+candidates_extra = read_sheet(params$candidate_genes_extra, skip = 1)
+candidates = rbind(candidates, candidates_extra)
 
 # Identify the MANE transcript for the candidate gene
 dir.create(params$consensus, showWarnings = FALSE)

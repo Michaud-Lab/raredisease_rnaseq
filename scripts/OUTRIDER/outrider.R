@@ -4,6 +4,7 @@
 
 # Libraries
 suppressMessages(suppressWarnings(library(dplyr)))
+suppressMessages(suppressWarnings(library(googlesheets4))); gs4_deauth()
 suppressMessages(suppressWarnings(library(OUTRIDER)))
 suppressMessages(suppressWarnings(library(TxDb.Hsapiens.UCSC.hg38.knownGene)))
 suppressMessages(suppressWarnings(library(org.Hs.eg.db)))
@@ -17,6 +18,7 @@ params$candidate_genes = args[2]
 params$candidate_genes_LR = args[5]
 params$fc_pergene = args[3]
 params$fc_perexon = args[4]
+params$candidate_genes_extra = args[6]
 
 dir.create(params$OUTRIDER)
 ncores = 8
@@ -26,6 +28,8 @@ register(MulticoreParam(ncores, ncores * 2, progressbar = TRUE))
 # 2. Load candidate genes and gene annotation map
 # -----------------------------------------------------------------------------
 candidates = read.csv(params$candidate_genes)
+candidates_extra = read_sheet(params$candidate_genes_extra, skip = 1)
+candidates = rbind(candidates, candidates_extra)
 candidates$ensembl_proband = apply(
   candidates[, colnames(candidates) %in% c('ensembl', 'proband')],
   1, paste0, collapse = '_'

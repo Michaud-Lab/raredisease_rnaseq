@@ -6,6 +6,7 @@
 suppressMessages(suppressWarnings(library(readxl)))
 suppressMessages(suppressWarnings(library(tidyr)))
 suppressMessages(suppressWarnings(library(dplyr)))
+suppressMessages(suppressWarnings(library(googlesheets4)));gs4_deauth()
 
 # -----------------------------------------------------------------------------
 # 1. Arguments and parameters
@@ -21,7 +22,8 @@ params$masterlog = args[4]
 params$fc_exons = args[5]
 params$fc_genes = args[6]
 params$candidate_genes_LR = args[7]
-
+params$candidate_genes_extra = args[8]
+ 
 # -----------------------------------------------------------------------------
 # 2. Load reference data
 # -----------------------------------------------------------------------------
@@ -30,11 +32,12 @@ ensembl_geneid = read.table(params$ens_gene,header = TRUE)
 
 # candidate genes
 candidates = read.csv(params$candidate_genes)
-candidates_LR = read.csv(params$candidate_genes_LR)
-candidates_LR = candidates_LR[,c(2,3,10,4,5,6,7,8,9)]
-colnames(candidates_LR) = colnames(candidates)
-candidates = rbind(candidates,candidates_LR)
-
+#candidates_LR = read.csv(params$candidate_genes_LR)
+#candidates_LR = candidates_LR[,c(2,3,10,4,5,6,7,8,9)]
+#colnames(candidates_LR) = colnames(candidates)
+#candidates = rbind(candidates,candidates_LR)
+candidates_extra = read_sheet(params$candidate_genes_extra,skip = 1)
+candidates = rbind(candidates,candidates_extra)
 
 # Clinical data
 clinical = readxl::read_xlsx(params$masterlog, sheet = 'Suivi - RNAseq', skip = 1)

@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 # 1. Load packages
 # -----------------------------------------------------------------------------
-packages = c('DT', 'plotly', 'tidyr', 'shiny', 'shinyjs', 'jsonlite', 'igvShiny',
+packages = c('DT', 'plotly', 'tidyr', 'shiny', 'shinyjs', 'jsonlite', 'googlesheets4', 'igvShiny',
              'GenomicAlignments', 'dplyr', 'ggtranscript', 'patchwork', 'Hmisc',
              'bslib', 'RColorBrewer', 'ggrepel', 'R.utils', 'logger', 'rtracklayer')
 logger::log_info('Loading required packages')
@@ -75,7 +75,11 @@ transcripts_named_filtered = read.csv(file.path(params$datadir, 'transcripts_nam
 transcripts_named_filtered_ggplot = read.csv(file.path(params$datadir, 'transcripts_named_filtered_ggplot.tsv'), sep = '\t', check.names = FALSE)
 
 fc_exons_tpm_ggplot = read.csv(file.path(params$datadir, 'fc_exons_tpm_ggplot.tsv'), sep = '\t', check.names = FALSE)
+gs4_deauth()
 candidates = read.csv(file.path(params$datadir, 'input/candidate_genes.csv'))
+configs = read_json(file.path(params$datadir, 'input/configs.json'))
+candidates_extra = read_sheet(configs$general$candidate_genes_extra, skip = 1)
+candidates = rbind(candidates, candidates_extra)
 
 if (file.exists(file.path(params$datadir, 'input/candidate_genes_LR.csv'))) {
   candidates_LR = read.csv(file.path(params$datadir, 'input/candidate_genes_LR.csv'))

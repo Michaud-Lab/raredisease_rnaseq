@@ -11,8 +11,8 @@ module load samtools
 module load r
 
 #read configs.json
-read workdir candidate_genes < <(
-  jq -r '.general | [.workdir, .candidate_genes] | @tsv' ../../data/input/configs.json
+read workdir candidate_genes candidate_genes_extra < <(
+  jq -r '.general | [.workdir, .candidate_genes, .candidate_genes_extra] | @tsv' ../../data/input/configs.json
 )
 
 
@@ -26,7 +26,7 @@ count=$((temp - 1))
 #R script launches the bash script to prepare data (i.e. subset the big bam files) and continues with FRASER analysis and plots.
 #Can add new genes specified in candidate_genes_3.txt to the for loop below:
 for i in $(seq 1 $count); do
-  Rscript fraser.R $i $workdir $rnasplice_bamdir $fraser_temp_bamdir $fraser_bamdir
+  Rscript fraser.R $i $workdir $rnasplice_bamdir $fraser_temp_bamdir $fraser_bamdir $candidate_genes_extra
 done
 
 
