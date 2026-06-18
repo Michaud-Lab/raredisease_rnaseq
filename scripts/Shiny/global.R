@@ -76,6 +76,8 @@ transcripts_named_filtered_ggplot = read.csv(file.path(params$datadir, 'transcri
 
 fc_exons_tpm_ggplot = read.csv(file.path(params$datadir, 'fc_exons_tpm_ggplot.tsv'), sep = '\t', check.names = FALSE)
 candidates = read.csv(file.path(params$datadir, 'input/candidate_genes.csv'))
+candidates = candidates[!grepl('bc',candidates$proband),]
+
 
 if (file.exists(file.path(params$datadir, 'input/candidate_genes_LR.csv'))) {
   candidates_LR = read.csv(file.path(params$datadir, 'input/candidate_genes_LR.csv'))
