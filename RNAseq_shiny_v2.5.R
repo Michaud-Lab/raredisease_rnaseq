@@ -21,16 +21,23 @@ ui = page_fluid(
     ###  Selection & Info
     tabPanel('Proband Selection',
              card(
-               selectInput(
-                 inputId = "proband",
-                 label = h4("Select a proband:"),
-                 choices = sort(unique(candidates$proband)),
-                 selected = 'HSJ_001_03_PAX'),
-               reactive_data_UI("reactive_data"),
-               div(
-                 imageOutput("mainimage"),
-                 class = "text-center"
-               )),
+               layout_columns(
+                 col_widths = c(7,5),
+                 div(
+                   selectInput(
+                     inputId = "proband",
+                     label = h4("Select a proband:"),
+                     choices = sort(unique(candidates$proband)),
+                     selected = 'HSJ_001_03_PAX'),
+                   reactive_data_UI("reactive_data"),
+                   div(imageOutput("mainimage"), class = "text-center")
+                 ),
+                 div(
+                   h4("Search genes/probands:"),
+                   DTOutput("candidates_table")
+                 )
+               )
+             ),
              card(
                card_header("Information"),
                htmlOutput("description")),
@@ -480,6 +487,19 @@ server = function(input, output, session) {
     datatable(
       data.frame(Parameter=names(unlist(report_version)),Value=unlist(report_version)),
       rownames = FALSE,options = list(dom = 'p'))
+  })
+
+  ### Candidate genes table
+  output$candidates_table = renderDT({
+    tbl = candidates %>%
+      group_by(proband) %>%
+      summarise(geneID = paste(geneID, collapse = ', '), .groups = 'drop') %>%
+      arrange(proband)
+    datatable(
+      tbl,
+      rownames = FALSE,
+      options = list(pageLength = 6,
+                     columnDefs = list(list(className = 'dt-left', targets = '_all'))))
   })
 
   # searh Gene expression
