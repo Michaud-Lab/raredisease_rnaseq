@@ -46,12 +46,12 @@ ls -1 $bamdir*bam >bamlist
 bams_SR=$(tr '\n' ' ' < "bamlist")
 rm bamlist
 
-#per gene and exon
-if [ ! -f "$workdir/featureCounts/feature_counts_pergene_SR.txt" ]; then
+#per gene and exon (or called feature_counts_pergene_SR.txt)
+if [ ! -f "$workdir/featureCounts/feature_counts_pergene.txt" ]; then
   featureCounts -a $genome_in -o $workdir/featureCounts/feature_counts_pergene.txt -T $cpu -p -B -C -g gene_id -t exon -O --fraction $bams_SR
   featureCounts -a $genome_out -o $workdir/featureCounts/feature_counts_perexon_pertranscript.txt -T $cpu  -p -B -C -g exon_id -t exon -O $bams_SR
 else
-  echo "~~~ File $workdir/featureCounts/feature_counts_pergene_SR.txt already exists. No action taken ~~~"
+  echo "~~~ File $workdir/featureCounts/feature_counts_pergene.txt already exists. No action taken ~~~"
 fi 
 
 

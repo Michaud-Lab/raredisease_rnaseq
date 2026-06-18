@@ -3,15 +3,15 @@
 ############################
 REF="/home/renaut/scratch/reference/Homo_sapiens_autosomesXYMT/Homo_sapiens.GRCh38.dna.autosomesXYMT.fa"
 GTF="/home/renaut/scratch/reference/Homo_sapiens/Homo_sapiens.GRCh38.114.gtf"
-BAM_DIR="/home/renaut/scratch/raredisease_rnaseq/results_06_01_2026/star_salmon/"
-VCF_DIR="/home/renaut/scratch/raredisease_rnaseq/ASE/vcf/"
-ASE_DIR="/home/renaut/scratch/raredisease_rnaseq/ASE/"
-INPUT_DIR="/home/renaut/scratch/raredisease_rnaseq/data/input/"
+BAM_DIR="/project/def-rallard/COMMUN/raredisease_rnaseq/results_nextflow_rnasplice_09_05_2026/star_salmon/"
+VCF_DIR="/project/def-rallard/COMMUN/raredisease_rnaseq/ASE/vcf/"
+ASE_DIR="/project/def-rallard/COMMUN/raredisease_rnaseq/ASE/"
+INPUT_DIR="/project/def-rallard/COMMUN/raredisease_rnaseq/data/input/"
 export REF ASE_DIR BAM_DIR VCF_DIR INPUT_DIR
 
-mkdir -p $ASE/ase
-mkdir -p $ASE/bed
-mkdir -p $ASE/plots
+mkdir -p $ASE_DIR/ase
+mkdir -p $ASE_DIR/bed
+mkdir -p $ASE_DIR/plots
 
 echo "DONE ~~~ STEP0 ~~~ define inputs ~~~ $(date)"
 
