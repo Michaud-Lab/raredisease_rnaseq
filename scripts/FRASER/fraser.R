@@ -4,6 +4,7 @@
 
 # Libraries (loaded inside the main block to avoid loading on already-done runs)
 suppressMessages(suppressWarnings(library(data.table)))
+suppressMessages(suppressWarnings(library(googlesheets4))); gs4_deauth()
 
 # -----------------------------------------------------------------------------
 # 1. Arguments and parameters
@@ -15,12 +16,15 @@ params$FRASER = file.path(params$workdir, 'FRASER')
 params$rnasplice_bamdir = args[3]
 params$fraser_temp_bamdir = args[4]
 params$fraser_bamdir = args[5]
+params$candidate_genes_extra = args[6]
 options(scipen = 999)
 
 # -----------------------------------------------------------------------------
 # 2. Setup output directories
 # -----------------------------------------------------------------------------
 candidates = read.csv(file.path(params$workdir, 'data/input/candidate_genes.csv'))
+candidates_extra = read_sheet(params$candidate_genes_extra, skip = 1)
+candidates = rbind(candidates, candidates_extra)
 params$output = paste0(params$FRASER, '/results/output_FRASER_', candidates$proband[i])
 
 dir.create(params$FRASER, showWarnings = FALSE)

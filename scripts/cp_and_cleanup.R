@@ -9,6 +9,8 @@ library(tidyr)
 library(data.table)
 library(dplyr)
 library(zip)
+library(jsonlite)
+suppressMessages(suppressWarnings(library(googlesheets4))); gs4_deauth()
 
 # -----------------------------------------------------------------------------
 # 1. Parameters
@@ -79,6 +81,9 @@ candidates_LR = read.csv(file.path(params$datadir, 'input/candidate_genes_LR.csv
 candidates_LR = candidates_LR[, c(2, 3, 10, 4, 5, 6, 7, 8, 9)]
 colnames(candidates_LR) = colnames(candidates)
 candidates = rbind(candidates, candidates_LR)
+configs = read_json(file.path(params$datadir, 'input/configs.json'))
+candidates_extra = read_sheet(configs$general$candidate_genes_extra, skip = 1)
+candidates = rbind(candidates, candidates_extra)
 
 for (i in 1:nrow(candidates)) {
   gene_dir = paste0('bams_subset/gene', candidates$geneID[i],

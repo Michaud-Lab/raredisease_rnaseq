@@ -9,8 +9,8 @@
 module load r
 
 #read configs.json
-read workdir candidate_genes candidate_genes_LR < <(
-  jq -r '.general | [.workdir, .candidate_genes, .candidate_genes_LR] | @tsv' ../../data/input/configs.json
+read workdir candidate_genes candidate_genes_LR candidate_genes_extra < <(
+  jq -r '.general | [.workdir, .candidate_genes, .candidate_genes_LR, .candidate_genes_extra] | @tsv' ../../data/input/configs.json
 )
 
 read fc_pergene fc_perexon < <(
@@ -18,6 +18,6 @@ read fc_pergene fc_perexon < <(
 )
 
 #R script launches the bash script to prepare data and continues with analysis.
-Rscript outrider.R $workdir $candidate_genes $fc_pergene $fc_perexon $candidate_genes_LR
+Rscript outrider.R $workdir $candidate_genes $fc_pergene $fc_perexon $candidate_genes_LR $candidate_genes_extra
 
 #echo  $workdir $candidate_genes $fc_pergene $fc_perexon $candidate_genes_LR
