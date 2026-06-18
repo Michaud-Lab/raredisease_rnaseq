@@ -15,6 +15,8 @@ All notable changes to this project are documented here.
 - `scripts/cp_and_cleanup.R`: section 7 cp commands now guarded by `Sys.glob()` checks — files are only copied if they exist.
 - `.gitignore`: added `scripts/**/.*` to exclude hidden files (e.g. `.DS_Store`) at any depth under `scripts/`.
 - `RNAseq_shiny_v2.5.R` show alll hpo terms for a proband.
+- `RNAseq_shiny_v2.5.R`: added a `candidates_table` to the Proband Selection tab listing all probands with their candidate gene IDs (comma-separated per proband); table is placed to the right of the `selectInput` using a `layout_columns(col_widths = c(3, 9))` layout; displays 10 rows per page.
+
 ---
 
 ## 2026-06-15 — code-standardisation

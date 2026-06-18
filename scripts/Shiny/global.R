@@ -47,7 +47,7 @@ fc_exons_tpm = read.table(file.path(params$datadir, 'fc_exons_tpm.tsv'), sep = '
 fc_genes_tpm = read.table(file.path(params$datadir, 'fc_genes_tpm.tsv'), sep = '\t', check.names = FALSE)
 fc_genes_raw_ALL = read.table(file.path(params$datadir, 'fc_genes_raw_ALL.tsv'), sep = '\t', check.names = FALSE)
 
-gwOUTRIDER = read.csv(file.path(params$datadir, 'gw_OUTRIDER.tsv'), sep = '\t', check.names = FALSE)
+gwOUTRIDER = read.csv(file.path(params$datadir, 'gw_genes_OUTRIDER.tsv'), sep = '\t', check.names = FALSE)
 gwOUTRIDER$chr = factor(gwOUTRIDER$chr, levels = c(1:22, 'X', 'Y', 'MT'))
 
 if (file.exists(file.path(params$datadir, 'gwASE.tsv'))) {
@@ -65,7 +65,7 @@ if (file.exists(file.path(params$datadir, 'gwImprinted.tsv'))) {
   logger::log_warn("gwImprinted.tsv not found — imprinted/X-linked ASE results will not be available.")
 }
 
-significant_perexons_OUTRIDER = read.csv(file.path(params$datadir, 'exons_OUTRIDER.tsv'), sep = '\t', check.names = FALSE)
+significant_perexons_OUTRIDER = read.csv(file.path(params$datadir, 'gw_exons_OUTRIDER.tsv'), sep = '\t', check.names = FALSE)
 significant_perexons_OUTRIDER$chr = factor(significant_perexons_OUTRIDER$chr, levels = c(1:22, 'X', 'Y', 'MT'))
 
 candidates_OUTRIDER = read.csv(file.path(params$datadir, 'candidates_OUTRIDER.tsv'), sep = '\t', check.names = FALSE)

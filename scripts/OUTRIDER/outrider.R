@@ -146,7 +146,7 @@ table = table[table$pValue < 0.01, ]
 significant_table_exon = merge(table, map[, -3], by = 'ensemblID')
 significant_table_exon = significant_table_exon[, colnames_significant_exon]
 
-write.table(significant_table_exon, file.path(params$OUTRIDER, 'exons_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
+write.table(significant_table_exon, file.path(params$OUTRIDER, 'gw_exons_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
 write.table(candidate_table_exon, file.path(params$OUTRIDER, 'candidates_perexons_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
 
 # Aggregate min p-value and max z-score per gene per sample
@@ -171,7 +171,7 @@ significant_table = merge(
 # -----------------------------------------------------------------------------
 # 5. Save results
 # -----------------------------------------------------------------------------
-write.table(significant_table[, colnames_ALL], file.path(params$OUTRIDER, 'gw_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
+write.table(significant_table[, colnames_ALL], file.path(params$OUTRIDER, 'gw_genes_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
 write.table(candidate_table[, colnames_candidate_genes], file.path(params$OUTRIDER, 'candidates_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
 
 print(paste0('Done OUTRIDER per exon --- Time is: ', Sys.time()))

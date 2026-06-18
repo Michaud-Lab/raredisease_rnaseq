@@ -64,7 +64,7 @@ system(cp_data_fc)
 system(cp_rda_fc)
 
 # -----------------------------------------------------------------------------
-# 6. Copy sashimi plots and consensus sequences
+# 6. Copy sashimi plots, consensus sequences and OUTRIDER
 # -----------------------------------------------------------------------------
 dir.create(file.path(params$datadir, 'sashimis'), showWarnings = FALSE)
 system(paste0('cp ', params$workdir, '/FRASER/results/*/*_sashimi.png ', params$datadir, '/sashimis/.'))
