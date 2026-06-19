@@ -16,7 +16,7 @@ library(jsonlite)
 # -----------------------------------------------------------------------------
 params = list(workdir = "/project/def-rallard/COMMUN/raredisease_rnaseq/")
 params$datadir = file.path(params$workdir, '/data/')
-params$resultdir = file.path(params$workdir, '/results_nextflow_rnasplice_09_05_2026/')
+params$resultdir = file.path(params$workdir, '/rnasplice/')
 
 dir.create(params$datadir, showWarnings = FALSE)
 dir.create(paste0(params$datadir, 'bams_subset'), showWarnings = FALSE)
@@ -107,19 +107,23 @@ for (i in 1:nrow(candidates)) {
 # -----------------------------------------------------------------------------
 # 8. Fix and copy MultiQC HTML report (remove malformed JS line)
 # -----------------------------------------------------------------------------
-html_file = file.path(params$resultdir, '/multiqc/multiqc_report.html')
-grep_cmd = paste0(
-  "grep 'this.renderTo.parentNode.insertBefore(this.dataTableDiv,this.renderTo.nextSibling)),",
-  "this.dataTableDiv.innerHTML=this.getTable()},a.getOptions().exporting&&",
-  "a.getOptions().exporting.buttons.contextButton.menuItems.push({textKey:' ",
-  html_file, " -n | cut -d: -f1 >grep_problematic_line"
-)
-system(grep_cmd)
-line = read.table('grep_problematic_line')
-system(paste0("sed '", line, "d' ", html_file, " >temp.html"))
-file.copy('temp.html', file.path(params$datadir, 'multiqc_report.html'), overwrite = TRUE)
-system('rm temp.html grep_problematic_line')
+html_dirs = list.dirs(params$resultdir,recursive = F)
+html_files = paste0(html_dirs, '/multiqc/multiqc_report.html')
 
+for(i in 1:length(html_files)){
+  grep_cmd = paste0(
+    "grep 'this.renderTo.parentNode.insertBefore(this.dataTableDiv,this.renderTo.nextSibling)),",
+    "this.dataTableDiv.innerHTML=this.getTable()},a.getOptions().exporting&&",
+    "a.getOptions().exporting.buttons.contextButton.menuItems.push({textKey:' ",
+    html_files[i], " -n | cut -d: -f1 >grep_problematic_line"
+  )
+  system(grep_cmd)
+  line = read.table('grep_problematic_line')
+  system(paste0("sed '", line, "d' ", html_file, " >temp.html"))
+  file.copy('temp.html', file.path(params$datadir, paste0('multiqc_report_',i,'.html'), overwrite = TRUE)
+  
+  system('rm temp.html grep_problematic_line')
+}
 # -----------------------------------------------------------------------------
 # 9. Build transcript expression tables
 # -----------------------------------------------------------------------------
