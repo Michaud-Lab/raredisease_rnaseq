@@ -19,7 +19,8 @@ deprecated/
 /scripts/FRASER/.Rsubread_*
 /.nextflow
 /.nextflow.log*
-
+/zips
+/ASE
 
 # History files
 .Rhistory

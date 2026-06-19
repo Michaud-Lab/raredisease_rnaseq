@@ -21,7 +21,8 @@ read rnasplice_bamdir fraser_temp_bamdir fraser_bamdir fraser_chr_bamdir  < <(
 )
 
 temp=$(wc -l < $candidate_genes)
-count=$((temp - 1))
+temp_extra=$(wc -l < $candidate_genes_extra)
+count=$((temp - 1 + temp_extra - 2))
 
 #R script launches the bash script to prepare data (i.e. subset the big bam files) and continues with FRASER analysis and plots.
 #Can add new genes specified in candidate_genes_3.txt to the for loop below:

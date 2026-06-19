@@ -2,7 +2,7 @@
 
 cpu=$1
 genome_in=$2
-genome_out$3
+genome_out=$3
 bamdir=$4
 workdir=$5
 MANE=$6 
@@ -12,6 +12,7 @@ ens_gene=$8
 masterlog=$9
 fc_exons="${10}"
 fc_genes="${11}"
+candidate_genes_extra="${13}"
 
 mkdir -p $workdir/featureCounts  
 
@@ -75,7 +76,7 @@ fi
 #paste $workdir/featureCounts/feature_counts_perexon_pertranscript_SR.txt  <(cut -f7-  $workdir/featureCounts/feature_counts_perexon_pertranscript_LR.txt) >$workdir/featureCounts/feature_counts_perexon_pertranscript.txt
 
 #Rscript for data clean-up
-Rscript featureCounts.R $workdir $candidate_genes $ens_gene $masterlog $fc_exons $fc_genes $candidate_genes_LR
+Rscript featureCounts.R $workdir $candidate_genes $ens_gene $masterlog $fc_exons $fc_genes $candidate_genes_LR $candidate_genes_extra
 
 echo $workdir $candidate_genes $ens_gene $masterlog $fc_exons $fc_genes $candidate_genes_LR
 echo 'Done featureCounts.R Rscript'
