@@ -119,7 +119,7 @@ for(i in 1:length(html_files)){
   )
   system(grep_cmd)
   line = read.table('grep_problematic_line')
-  system(paste0("sed '", line, "d' ", html_file, " >temp.html"))
+  system(paste0("sed '", line, "d' ", html_files[i], " >temp.html"))
   file.copy('temp.html', file.path(params$datadir, paste0('multiqc_report_',i,'.html'), overwrite = TRUE)
   
   system('rm temp.html grep_problematic_line')

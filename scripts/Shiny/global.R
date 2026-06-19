@@ -81,7 +81,7 @@ candidates = rbind(candidates, candidates_extra)
 candidates = candidates[!grepl('bc',candidates$proband),]
 
 clinical = read.csv(file.path(params$datadir, 'clinical.tsv'), sep = '\t', check.names = FALSE)
-html_file = file.path(params$datadir, 'multiqc_report.html')
+html_files = list.files(params$datadir,pattern = 'multiqc_report',full.names = T) 
 gwFRASER = read.csv(file.path(params$datadir, 'gwFRASER.csv'), row.names = 1)
 
 report_version = read_json(file.path(params$datadir, '/VERSION.json'))
