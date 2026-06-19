@@ -76,8 +76,7 @@ transcripts_named_filtered_ggplot = read.csv(file.path(params$datadir, 'transcri
 
 fc_exons_tpm_ggplot = read.csv(file.path(params$datadir, 'fc_exons_tpm_ggplot.tsv'), sep = '\t', check.names = FALSE)
 candidates = read.csv(file.path(params$datadir, 'input/candidate_genes.csv'))
-configs = read_json(file.path(params$datadir, 'input/configs.json'))
-candidates_extra = read.table(configs$general$candidate_genes_extra,comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
+candidates_extra = read.table(file.path(params$datadir, 'input/candidate_genes_extra.csv'),comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
 candidates = rbind(candidates, candidates_extra)
 candidates = candidates[!grepl('bc',candidates$proband),]
 
