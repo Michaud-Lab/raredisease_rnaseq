@@ -362,9 +362,9 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
 gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clinical,hpo_all='genes_to_phenotype.txt',fraser="",outrider="",geneprior_rm = "gene score"){
 
   # hpo
-  hpo_all = file.path("temp",hpo_all)
+  hpo_all = file.path("tmp",hpo_all)
   if(!file.exists(hpo_all)) {
-        dir.create("temp",showWarnings = TRUE)
+        dir.create("tmp",showWarnings = FALSE)
         download.file(url='https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/genes_to_phenotype.txt',dest=hpo_all)
         } else {print(paste0('file ', hpo_all,' exists'))}
   if(!exists('hpo')) hpo = read.delim(hpo_all)

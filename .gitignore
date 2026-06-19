@@ -13,13 +13,11 @@ deprecated/
 /featureCounts/
 /FRASER/
 /OUTRIDER/
-/temp/
 /scripts/deprecated
 /scripts/*/slurm-*
 /scripts/FRASER/.Rsubread_*
 /.nextflow
 /.nextflow.log*
-/zips
 /ASE
 
 # History files
