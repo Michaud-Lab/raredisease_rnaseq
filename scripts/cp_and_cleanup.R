@@ -165,7 +165,7 @@ write.table(clinical, file.path(params$datadir, 'clinical.tsv'), sep = '\t', quo
 # 10. Zip everything for transfer
 # -----------------------------------------------------------------------------
 setwd(params$workdir)
-zip(zipfile = paste0('zips/data_', as.character(format(Sys.time(), format = "%Y_%m_%d_%H_%M")), '.zip'),
+zip(zipfile = paste0('tmp/data_', as.character(format(Sys.time(), format = "%Y_%m_%d_%H_%M")), '.zip'),
     files = 'data')
 
 print(paste0('All done, Time is: ', Sys.time()))

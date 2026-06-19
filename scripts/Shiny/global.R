@@ -80,14 +80,6 @@ candidates_extra = read.table(file.path(params$datadir, 'input/candidate_genes_e
 candidates = rbind(candidates, candidates_extra)
 candidates = candidates[!grepl('bc',candidates$proband),]
 
-
-if (file.exists(file.path(params$datadir, 'input/candidate_genes_LR.csv'))) {
-  candidates_LR = read.csv(file.path(params$datadir, 'input/candidate_genes_LR.csv'))
-  candidates_LR = candidates_LR[, c(2, 3, 10, 4, 5, 6, 7, 8, 9)]
-  colnames(candidates_LR) = colnames(candidates)
-  candidates = rbind(candidates, candidates_LR)
-}
-
 clinical = read.csv(file.path(params$datadir, 'clinical.tsv'), sep = '\t', check.names = FALSE)
 html_file = file.path(params$datadir, 'multiqc_report.html')
 gwFRASER = read.csv(file.path(params$datadir, 'gwFRASER.csv'), row.names = 1)
