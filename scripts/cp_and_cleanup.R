@@ -81,7 +81,7 @@ candidates_LR = candidates_LR[, c(2, 3, 10, 4, 5, 6, 7, 8, 9)]
 colnames(candidates_LR) = colnames(candidates)
 candidates = rbind(candidates, candidates_LR)
 configs = read_json(file.path(params$datadir, 'input/configs.json'))
-candidates_extra = read.csv(configs$general$candidate_genes_extra)
+candidates_extra = read.table(configs$general$candidate_genes_extra,comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
 candidates = rbind(candidates, candidates_extra)
 
 for (i in 1:nrow(candidates)) {
@@ -165,7 +165,7 @@ write.table(clinical, file.path(params$datadir, 'clinical.tsv'), sep = '\t', quo
 # 10. Zip everything for transfer
 # -----------------------------------------------------------------------------
 setwd(params$workdir)
-zip(zipfile = paste0('data_', as.character(format(Sys.time(), format = "%Y_%m_%d_%H_%M")), '.zip'),
+zip(zipfile = paste0('zips/data_', as.character(format(Sys.time(), format = "%Y_%m_%d_%H_%M")), '.zip'),
     files = 'data')
 
 print(paste0('All done, Time is: ', Sys.time()))

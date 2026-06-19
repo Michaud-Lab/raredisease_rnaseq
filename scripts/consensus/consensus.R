@@ -18,7 +18,7 @@ params$ref_annot = args[6]
 params$candidate_genes_extra = args[7]
 
 candidates = read.csv(params$candidates)
-candidates_extra = read.csv(params$candidate_genes_extra)
+candidates_extra = read.table(params$candidate_genes_extra,comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
 candidates = rbind(candidates, candidates_extra)
 
 # Identify the MANE transcript for the candidate gene

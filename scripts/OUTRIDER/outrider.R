@@ -28,7 +28,7 @@ register(MulticoreParam(ncores, ncores * 2, progressbar = TRUE))
 # 2. Load candidate genes and gene annotation map
 # -----------------------------------------------------------------------------
 candidates = read.csv(params$candidate_genes)
-candidates_extra = read.csv(params$candidate_genes_extra)
+candidates_extra = read.table(params$candidate_genes_extra,comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
 candidates = rbind(candidates, candidates_extra)
 candidates$ensembl_proband = apply(
   candidates[, colnames(candidates) %in% c('ensembl', 'proband')],
