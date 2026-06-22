@@ -195,7 +195,7 @@ ui = page_fluid(
         selectInput("multiQCs", "Select a multiQC:",
                     choices = c(1,2),
                     selected = 1),
-        height = "100px"),
+        height = "200px"),
       card(
         htmlOutput("htmlViewer"))
     )
