@@ -107,23 +107,15 @@ for (i in 1:nrow(candidates)) {
 # -----------------------------------------------------------------------------
 # 8. Fix and copy MultiQC HTML report (remove malformed JS line)
 # -----------------------------------------------------------------------------
-html_dirs = list.dirs(params$resultdir,recursive = F)
-html_files = paste0(html_dirs, '/multiqc/multiqc_report.html')
+html_files = paste0(list.dirs(params$resultdir,recursive = F), '/multiqc/multiqc_report.html')
 
 for(i in 1:length(html_files)){
-  grep_cmd = paste0(
-    "grep 'this.renderTo.parentNode.insertBefore(this.dataTableDiv,this.renderTo.nextSibling)),",
-    "this.dataTableDiv.innerHTML=this.getTable()},a.getOptions().exporting&&",
-    "a.getOptions().exporting.buttons.contextButton.menuItems.push({textKey:' ",
-    html_files[i], " -n | cut -d: -f1 >grep_problematic_line"
-  )
-  system(grep_cmd)
-  line = read.table('grep_problematic_line')
-  system(paste0("sed '", line, "d' ", html_file, " >temp.html"))
-  file.copy('temp.html', file.path(params$datadir, paste0('multiqc_report_',i,'.html'), overwrite = TRUE)
-  
-  system('rm temp.html grep_problematic_line')
+  lines = readLines(html_files[i])
+  problematic_line = grep("this.renderTo.parentNode.insertBefore", lines, fixed = TRUE)
+  lines = lines[-problematic_line]
+  writeLines(lines, file.path(params$datadir, paste0('multiqc_report_', i, '.html')))
 }
+
 # -----------------------------------------------------------------------------
 # 9. Build transcript expression tables
 # -----------------------------------------------------------------------------
@@ -131,7 +123,7 @@ ensembl_geneid = read.table(file.path(params$datadir, '/input/ensembl_geneid.tsv
 clinical = read.table(file.path(params$datadir, 'clinical.tsv'), check.names = FALSE)
 
 transcripts = read.csv(
-  file.path(params$resultdir, '/star_salmon/tximport/salmon.merged.transcript_tpm.tsv'),
+  file.path(params$resultdir, '/results_09_05_2026//star_salmon/tximport/salmon.merged.transcript_tpm.tsv'),
   sep = '\t', check.names = FALSE
 )
 transcripts[, -c(1:2)] = round(transcripts[, -c(1:2)], 2)
