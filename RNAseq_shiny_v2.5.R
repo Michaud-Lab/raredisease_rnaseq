@@ -187,12 +187,17 @@ ui = page_fluid(
              )
     ),
 
-
     ### multiQC
     tabPanel(
       "MultiQC",
-      h3('Quality Control metrics'),
-      htmlOutput("htmlViewer")
+      card(
+        card_header(h3('Quality Control metrics')),
+        selectInput("multiQCs", "Select a multiQC:",
+                    choices = c(1,2),
+                    selected = 1),
+        height = "100px"),
+      card(
+        htmlOutput("htmlViewer"))
     )
   )
 )
@@ -511,10 +516,10 @@ server = function(input, output, session) {
 
   ### multiQC
   output$htmlViewer = renderUI({
-    HTML(paste(readLines(html_file), collapse = "\n"))
+    HTML(paste(readLines(html_files[as.numeric(input$multiQCs)]), collapse = "\n"))
   })
 }
-
+  
 ###### shiny app
 logger::log_info('Deploying app')
 app = shinyApp(ui, server, options = list(height = 900))
