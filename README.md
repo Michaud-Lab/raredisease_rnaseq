@@ -9,30 +9,30 @@ RNA-seq analysis pipeline for rare disease candidate gene investigation at CHU S
 ## Pipeline overview
 
 ```
-Raw reads (.fastq)
+Raw reads (.fastq.gz)
       │
       ▼
-nextflow rnasplice          →  BAM files, QC (MultiQC)
+nextflow rnasplice         →  BAM files, QC (MultiQC)
       │
       ▼
-update_genes.sh             →  Download candidate_genes_extra.csv from Google Sheets
+update_genes.sh            → Run locally to download candidate_genes_extra.csv and push to server (Fir).
       │
       ▼
-featureCounts.slurm         →  Per-gene and per-exon raw counts, TPM
+featureCounts.slurm        →  Per-gene and per-exon raw counts, TPM
       │
-      ├──▶ outrider.slurm   →  Aberrant gene / exon expression (OUTRIDER)
+      ├─▶ outrider.slurm   →  Aberrant gene / exon expresper candidate gene and genome wide sion (OUTRIDER)
       │
-      ├──▶ fraser.slurm     →  Aberrant splicing per candidate gene (FRASER)
+      ├─▶ fraser.slurm     →  Aberrant splicing per candidate and genome-wide gene (FRASER)
       │
-      ├──▶ ase.slurm        →  Allele-specific expression (GATK ASEReadCounter)
+      ├─▶  ase.slurm       →  Allele-specific expression (GATK ASEReadCounter)
       │
-      └──▶ consensus.slurm  →  Consensus/alternate FASTA sequences
+      └─▶ consensus.slurm  →  Consensus/alternate FASTA sequ per candidate genences
                     │
                     ▼
-             cp_and_cleanup.R   →  Consolidate outputs → data.zip
+              cp_and_cleanup.R     →  Consolidate output indo data/  → data.zip
                     │
                     ▼
-          RNAseq_shiny_v2.5.R  →  Interactive Shiny dashboard
+           RNAseq_shiny_v2.5.R     →  Interactive Shiny dashboard
 ```
 
 > **Cohort size:** A minimum of ~10 samples is required for OUTRIDER and FRASER to produce statistically meaningful outlier calls; >30 is recommended.
@@ -51,45 +51,49 @@ module load r        # R >= 4.5
 ### R packages
 Each script loads its own dependencies at runtime. Key packages: `OUTRIDER`, `FRASER`, `dplyr`, `tidyr`, `data.table`, `shiny`, `bslib`, `plotly`, `DT`, `igvShiny`, `ggtranscript`, `patchwork`, `biomaRt`.
 
-Install `ggtranscript` from GitHub if not available via CRAN:
-```r
-remotes::install_github("dzhang32/ggtranscript")
-```
-
 ---
 
 ## Input files
-
-| File | Description |
-|------|-------------|
-| `data/input/candidate_genes.csv` | Candidate genes and mutations per proband |
-| `data/input/CHUSJ_Master_Linking_Log_modif.xlsx` | Clinical metadata (age, sex, HPO terms, etc.) |
-| `data/input/nextflow_config.json` | Nextflow configuration |
-| `data/input/nextflow_params.json` | Nextflow rnasplice parameters |
-| `data/input/nextflow_contrast.csv` | Nextflow contrast file (currently unused) |
-| `sequences/` | Raw paired-end FASTQ files |
-| `reference/` | Reference genome and annotation files (GRCh38) |
-
-Verify all inputs are in place before running:
 ```bash
-datadir="${HOME}/scratch/raredisease_rnaseq/data"
-scriptsdir="${HOME}/scratch/raredisease_rnaseq/scripts"
-
-ls $datadir/input/candidate_genes.csv
-ls $datadir/input/CHUSJ_Master_Linking_Log_modif.xlsx
-ls $datadir/input/nextflow_config.json
-ls $datadir/input/nextflow_params.json
-ls sequences/
-ls reference/
+datadir="/project/def-rallard/COMMUN/raredisease_rnaseq/data/input"
+scriptsdir="/project/def-rallard/COMMUN/raredisease_rnaseq/scripts"
 ```
 
----
+| Files | Description |
+|------|-------------|
+| `$datadir/nextflow_config.json` | Nextflow configuration |
+| `$datadir/nextflow_params.json` | Nextflow rnasplice parameters |
+| `$datadir/configs.json` | Paths to all necessary files |
+
+### Input files (nextflow)
+
+| Nextflow | Description | format |
+|------|-------------|-------------|
+| `$datadir/nextflow_contrast.csv` | Nextflow contrast file (currently unused) | .csv
+| `$datadir/nextflow_samples.csv` | .fastq.gz files |.csv
+| `sequences/` | Raw paired-end FASTQ files | fastq.gz
+
+### Input files (configs.json)
+| configs.json | Description | format |
+|------|-------------|-------------|
+| `workdir` | Candidate genes and mutations per proband | directory
+| `candidate_genes` | Candidate genes and mutations per proband | `candidate_genes.csv`
+| `candidate_genes_extra` | More candidate genes | `candidate_genes_extra.csv`
+| `rnasplice_bamdir` | aligned files | `*.bam` and `*bam.bai`
+| `genome_in` | More candidate genes | `Homo_sapiens.GRCh38.114.gtf`
+| `masterlog` | Anonymized clinical metadata (age, sex, HPO, etc.) | `.xlsx`
+| `MANE` | MANE| `MANE.GRCh38.v1.5.refseq_genomic.gtf`
+| `ens_gene` | ens_gene files | `ensembl_geneid.tsv`
+| `ref_file/` | Reference genome (GRCh38) | `Homo_sapiensChr.GRCh38.dna.primary_assembly.fa`
+| `ref_annot/` | ref_annot | `Homo_sapiens.GRCh38.114.gtf`
+
+> **Notes:** Verify all inputs are in place before running.
 
 ## Usage
 
 Run each step in order. Steps 2–6 submit Slurm jobs and can run in parallel once Step 1 is complete.
 
-**Step 1 — Alignment and QC**
+**Step 1 — Alignment and QC**. 
 ```bash
 nextflow run rnasplice \
   -params-file data/input/nextflow_params.json \
@@ -98,10 +102,14 @@ nextflow run rnasplice \
   -w /home/renaut/scratch/nextflow_rnasplice/work
 ```
 
-**Step 2 — Update candidate genes from Google Sheets**
+> **Notes:** Run this everytime you have a new batch of samples sequenced. You will have to modify `$datadir/nextflow_params.json` to specify a new `outdir` and `input` to list samples in `nextflow_samples.csv`.
+
+**Step 2 — Update candidate genes from Google Sheets**. 
 ```bash
 bash $scriptsdir/update_genes.sh
 ```
+
+> **Notes:** Run this if/when you have new genes you want to add to the report. If you had new genes, you will need to rerun Step 3-9 below to update report. Note however that this will be relatively quick since most analyses will not be run if already present.
 
 **Step 3 — Feature counts**
 ```bash
