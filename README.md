@@ -15,24 +15,24 @@ Raw reads (.fastq.gz)
 nextflow rnasplice         →  BAM files, QC (MultiQC)
       │
       ▼
-update_genes.sh            → Run locally to download candidate_genes_extra.csv and push to server (Fir).
+update_genes.sh            →  Run locally to download candidate_genes_extra.csv and push to serve (Fir)
       │
       ▼
 featureCounts.slurm        →  Per-gene and per-exon raw counts, TPM
       │
-      ├─▶ outrider.slurm   →  Aberrant gene / exon expresper candidate gene and genome wide sion (OUTRIDER)
+      ├──▶ outrider.slurm  →  Aberrant gene / exon expression per candidate gene and genome-wide (OUTRIDER)
       │
-      ├─▶ fraser.slurm     →  Aberrant splicing per candidate and genome-wide gene (FRASER)
+      ├──▶ fraser.slurm    →  Aberrant splicing per candidate gene and genome-wide (FRASER)
       │
-      ├─▶  ase.slurm       →  Allele-specific expression (GATK ASEReadCounter)
+      ├──▶ ase.slurm       →  Allele-specific expression (GATK ASEReadCounter)
       │
-      └─▶ consensus.slurm  →  Consensus/alternate FASTA sequ per candidate genences
+      └──▶ consensus.slurm →  Consensus/alternate FASTA sequences per candidate gene
                     │
                     ▼
-              cp_and_cleanup.R     →  Consolidate output indo data/  → data.zip
+           cp_and_cleanup.R    →  Consolidate outputs into data/  →  data.zip
                     │
                     ▼
-           RNAseq_shiny_v2.5.R     →  Interactive Shiny dashboard
+        RNAseq_shiny_v2.5.R   →  Interactive Shiny dashboard
 ```
 
 > **Cohort size:** A minimum of ~10 samples is required for OUTRIDER and FRASER to produce statistically meaningful outlier calls; >30 is recommended.
@@ -80,18 +80,18 @@ scriptsdir="/project/def-rallard/COMMUN/raredisease_rnaseq/scripts"
 | `candidate_genes` | Candidate genes and mutations per proband | `candidate_genes.csv`
 | `candidate_genes_extra` | More candidate genes | `candidate_genes_extra.csv`
 | `rnasplice_bamdir` | aligned files | `*.bam` and `*bam.bai`
-| `genome_in` | More candidate genes | `Homo_sapiens.GRCh38.114.gtf`
+| `genome_in` | Reference genome annotation (GTF) | `Homo_sapiens.GRCh38.114.gtf`
 | `masterlog` | Anonymized clinical metadata (age, sex, HPO, etc.) | `.xlsx`
-| `MANE` | MANE| `MANE.GRCh38.v1.5.refseq_genomic.gtf`
-| `ens_gene` | ens_gene files | `ensembl_geneid.tsv`
-| `ref_file/` | Reference genome (GRCh38) | `Homo_sapiensChr.GRCh38.dna.primary_assembly.fa`
-| `ref_annot/` | ref_annot | `Homo_sapiens.GRCh38.114.gtf`
+| `MANE` | MANE transcript reference | `MANE.GRCh38.v1.5.refseq_genomic.gtf`
+| `ens_gene` | Ensembl gene ID mapping file | `ensembl_geneid.tsv`
+| `ref_file` | Reference genome (GRCh38) | `Homo_sapiensChr.GRCh38.dna.primary_assembly.fa`
+| `ref_annot` | Reference genome annotation (GTF) | `Homo_sapiens.GRCh38.114.gtf`
 
 > **Notes:** Verify all inputs are in place before running.
 
 ## Usage
 
-Run each step in order. Steps 2–6 submit Slurm jobs and can run in parallel once Step 1 is complete.
+Run each step in order. Steps 3–7 submit Slurm jobs and can run in parallel once Steps 1–2 are complete.
 
 **Step 1 — Alignment and QC**. 
 ```bash
@@ -109,7 +109,7 @@ nextflow run rnasplice \
 bash $scriptsdir/update_genes.sh
 ```
 
-> **Notes:** Run this if/when you have new genes you want to add to the report. If you had new genes, you will need to rerun Step 3-9 below to update report. Note however that this will be relatively quick since most analyses will not be run if already present.
+> **Notes:** Run this if/when you have new genes to add to the report. If you have new genes, you will need to re-run Steps 3–9 to update the report. This will be relatively quick since most analyses are skipped if already present.
 
 **Step 3 — Feature counts**
 ```bash
