@@ -7,7 +7,6 @@ scripts/**/.*
 #data directories
 /results*/
 /consensus/
-/data/
 /data_*
 deprecated/
 /featureCounts/
