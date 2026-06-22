@@ -13,12 +13,12 @@ module load samtools
 module load r
 
 #read configs.json
-read workdir candidate_genes candidate_genes_extra < <(
-  jq -r '.general | [.workdir, .candidate_genes, .candidate_genes_extra] | @tsv' ../../data/input/configs.json
+read workdir gtf candidate_genes candidate_genes_extra < <(
+  jq -r '.general | [.workdir, .gtf, .candidate_genes, .candidate_genes_extra] | @tsv' ../../data/input/configs.json
 )
 
-read fc_exons ref_file ref_annot < <(
-  jq -r '.consensus | [.fc_exons, .ref_file, .ref_annot] | @tsv' ../../data/input/configs.json
+read fc_exons genome < <(
+  jq -r '.consensus | [.fc_exons, .ref_file, .genome] | @tsv' ../../data/input/configs.json
 )
 
 #
@@ -29,11 +29,11 @@ count=$((temp - 1 + temp_extra - 2))
 
 #R script launches the bash script to annotated variant file and continues with consensus.R to produce the reference sequence.
 for i in $(seq 1 $count); do
-  Rscript consensus.R $i $workdir $candidate_genes $fc_exons $ref_file $ref_annot $candidate_genes_extra
+  Rscript consensus.R $i $workdir $candidate_genes $fc_exons $ref_file $genome $candidate_genes_extra
 done
 
 
-echo 'Done Rscript Rscript consensus.R' $i $workdir $candidate_genes $fc_exons $ref_file $ref_annot $candidate_genes_extra
+echo 'Done Rscript Rscript consensus.R' $i $workdir $candidate_genes $fc_exons $ref_file $genome $candidate_genes_extra
 
 
 

@@ -4,7 +4,6 @@
 
 # Libraries
 suppressMessages(suppressWarnings(library(dplyr)))
-
 suppressMessages(suppressWarnings(library(OUTRIDER)))
 suppressMessages(suppressWarnings(library(TxDb.Hsapiens.UCSC.hg38.knownGene)))
 suppressMessages(suppressWarnings(library(org.Hs.eg.db)))
@@ -19,10 +18,10 @@ params$candidate_genes_LR = args[5]
 params$fc_pergene = args[3]
 params$fc_perexon = args[4]
 params$candidate_genes_extra = args[6]
+params$cpu=as.numeric(args[7])
 
 dir.create(params$OUTRIDER)
-ncores = 8
-register(MulticoreParam(ncores, ncores * 2, progressbar = TRUE))
+register(MulticoreParam(params$cpu, params$cpu * 2, progressbar = TRUE))
 
 # -----------------------------------------------------------------------------
 # 2. Load candidate genes and gene annotation map

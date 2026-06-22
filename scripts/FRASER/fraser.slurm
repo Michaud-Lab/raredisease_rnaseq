@@ -11,13 +11,13 @@ module load samtools
 module load r
 
 #read configs.json
-read workdir candidate_genes candidate_genes_extra < <(
-  jq -r '.general | [.workdir, .candidate_genes, .candidate_genes_extra] | @tsv' ../../data/input/configs.json
+read workdir rnasplice_bamdir candidate_genes candidate_genes_extra < <(
+  jq -r '.general | [.workdir, .rnasplice_bamdir, .candidate_genes, .candidate_genes_extra] | @tsv' ../../data/input/configs.json
 )
 
 
-read rnasplice_bamdir fraser_temp_bamdir fraser_bamdir fraser_chr_bamdir  < <(
-  jq -r '.FRASER | [.rnasplice_bamdir, .fraser_temp_bamdir, .fraser_bamdir, .fraser_chr_bamdir] | @tsv' ../../data/input/configs.json
+read fraser_temp_bamdir fraser_bamdir fraser_chr_bamdir  < <(
+  jq -r '.FRASER | [.fraser_temp_bamdir, .fraser_bamdir, .fraser_chr_bamdir] | @tsv' ../../data/input/configs.json
 )
 
 temp=$(wc -l < $candidate_genes)
