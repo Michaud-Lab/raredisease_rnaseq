@@ -182,8 +182,13 @@ ui = page_fluid(
     ### Data table
     tabPanel("Search expression",
              card(
-               textInput("text", label = "Find gene expression (raw) of a gene", value = "HBA"),
+               card_header(strong("Find gene expression (raw) of a gene")),
+               textInput("text", label = "Search: ", value = "HBA"),
                DTOutput("searchExpression")
+             ),
+             card(
+               card_header(strong("Haemoglobin gene expression (fraction of total reads)")),
+               plotlyOutput("hb_barplot", height = "600px")
              )
     ),
 
@@ -513,6 +518,11 @@ server = function(input, output, session) {
       rownames = FALSE,options = list(dom = 'p'))
   })
 
+
+  ### Haemoglobin barplot
+  output$hb_barplot = renderPlotly({
+    plot_hb_fraction(fc_genes_raw_ALL)
+  })
 
   ### multiQC
   output$htmlViewer = renderUI({

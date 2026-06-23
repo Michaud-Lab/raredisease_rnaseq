@@ -42,7 +42,7 @@ candidates = rbind(candidates,candidates_extra)
 # Clinical data
 clinical = readxl::read_xlsx(params$masterlog, sheet = 'Suivi - RNAseq', skip = 1)
 clinical$type = "Parent"
-clinical$type[!is.na(clinical$Mutation)] = 'Proband' # Parent versus Proband
+clinical$type[grepl(pattern = '_0[34]_', x = clinical$`Patient ID`)] = 'Proband' # Parent versus Proband
 clinical = clinical[order(clinical$`Patient ID`), ] # Same order as the transcript expression data
 clinical$age = as.numeric(clinical$`Âge (années)`)
 clinical$age[clinical$`Âge (années)` == '0 (3 mois)'] = 0.25

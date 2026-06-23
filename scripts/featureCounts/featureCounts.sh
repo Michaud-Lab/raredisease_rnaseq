@@ -78,6 +78,5 @@ fi
 #Rscript for data clean-up
 Rscript featureCounts.R $workdir $candidate_genes $ens_gene $masterlog $fc_exons $fc_genes $candidate_genes_LR $candidate_genes_extra
 
-echo $workdir $candidate_genes $ens_gene $masterlog $fc_exons $fc_genes $candidate_genes_LR
 echo 'Done featureCounts.R Rscript'
 

@@ -1,3 +1,33 @@
+# plot_hb_fraction: stacked bar chart of haemoglobin gene read fractions per sample.
+# Arguments:
+#   fc_genes_raw_ALL - data.frame: raw gene counts with columns geneID, ensemblID, then one column per sample
+#   hb_genes         - character vector: gene names to include (default: HBA1, HBA2, HBB, HBG1, HBG2)
+plot_hb_fraction = function(fc_genes_raw_ALL,
+                            hb_genes = c('HBA1', 'HBA2', 'HBB', 'HBG1', 'HBG2')) {
+  non_sample_cols = c('geneID', 'ensemblID', 'Length')
+  sample_cols = !colnames(fc_genes_raw_ALL) %in% non_sample_cols
+  hb = fc_genes_raw_ALL[fc_genes_raw_ALL$geneID %in% hb_genes, ]
+  col_totals = colSums(fc_genes_raw_ALL[, sample_cols], na.rm = TRUE)
+  hb_frac = hb
+  hb_frac[, sample_cols] = sweep(hb[, sample_cols], 2, col_totals, '/') * 100
+  hb_long = tidyr::pivot_longer(hb_frac, cols = all_of(colnames(hb_frac)[sample_cols]),
+                                names_to = 'sample', values_to = 'fraction')
+  plot_ly(hb_long, x = ~sample, y = ~fraction, color = ~geneID, type = 'bar',
+          customdata = ~geneID,
+          hovertemplate = paste(
+            '<b>Sample</b>: %{x}',
+            '<br><b>Gene</b>: %{customdata}',
+            '<br><b>Percentage</b>: %{y:.2f}%',
+            '<extra></extra>'
+          )) %>%
+    layout(
+      barmode = 'stack',
+      xaxis = list(title = 'Sample', tickangle = -45),
+      yaxis = list(title = '% of total reads'),
+      legend = list(title = list(text = 'Gene'))
+    )
+}
+
 # plot_expression_cohort: per-exon TPM box plots for the cohort (children / adults)
 #   overlaid with the proband's individual data points.
 # Arguments:
