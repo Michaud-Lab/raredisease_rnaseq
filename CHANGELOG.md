@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 
 ---
 
+## 2026-06-23 — new-plots
+
+**Added**
+- `scripts/Shiny/rnaseq_shinyhelper_functions.R`: new `plot_hb_fraction()` function — stacked bar chart showing the fraction of total reads attributed to a user-specified set of genes (default: HBA1, HBA2, HBB, HBG1, HBG2) per sample. Hover tooltip shows sample name, gene ID, percentage of total reads, and raw read count.
+- `scripts/tests/testthat/test_helper_functions.R`: 7 unit tests for `plot_hb_fraction()` covering return type, bar chart trace type, fraction range (0–100%), correct trace count, single-gene edge case, custom gene list, and exclusion of the `Length` column.
+
+**Changed**
+- `RNAseq_shiny_v2.5.R`: replaced the "Search expression" datatable with a per-gene fraction-of-total-reads bar plot using `plot_hb_fraction()`; gene selection uses `selectizeInput` with server-side loading to handle the full genome-wide gene list efficiently. A fixed haemoglobin multi-gene stacked bar plot is shown below as a second card in the same tab.
+
+---
+
 ## 2026-06-18 — candidates-extra
 
 **Changed**

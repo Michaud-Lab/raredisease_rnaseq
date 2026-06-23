@@ -529,3 +529,67 @@ test_that("plot_expression_family: all traces are scatter plots", {
   types <- vapply(p$x$data, `[[`, character(1), "type")
   expect_true(all(types == "scatter"))
 })
+
+
+# =============================================================================
+# 6.  plot_hb_fraction()
+# =============================================================================
+
+make_fc_genes_raw_ALL <- function() {
+  data.frame(
+    geneID    = c('HBA1', 'HBA2', 'HBB', 'HBG1', 'HBG2', 'TTN', 'ACTB'),
+    ensemblID = paste0('ENSG', sprintf('%011d', 1:7)),
+    Length    = c(429, 429, 444, 444, 444, 100000, 1122),
+    S1        = c(1000, 800, 500, 200, 100, 50000, 10000),
+    S2        = c(500,  400, 300, 100,  50, 60000,  8000),
+    stringsAsFactors = FALSE
+  )
+}
+
+test_that("plot_hb_fraction: returns a plotly object", {
+  skip_if_not_installed("plotly")
+  p <- plot_hb_fraction(make_fc_genes_raw_ALL())
+  expect_s3_class(p, "plotly")
+})
+
+test_that("plot_hb_fraction: all traces are bar charts", {
+  skip_if_not_installed("plotly")
+  p <- plotly::plotly_build(plot_hb_fraction(make_fc_genes_raw_ALL()))
+  types <- vapply(p$x$data, `[[`, character(1), "type")
+  expect_true(all(types == "bar"))
+})
+
+test_that("plot_hb_fraction: fraction values are between 0 and 100", {
+  skip_if_not_installed("plotly")
+  p <- plotly::plotly_build(plot_hb_fraction(make_fc_genes_raw_ALL()))
+  y_vals <- unlist(lapply(p$x$data, `[[`, "y"))
+  expect_true(all(y_vals >= 0 & y_vals <= 100))
+})
+
+test_that("plot_hb_fraction: one trace per hb gene (default 5 genes)", {
+  skip_if_not_installed("plotly")
+  p <- plotly::plotly_build(plot_hb_fraction(make_fc_genes_raw_ALL()))
+  expect_equal(length(p$x$data), 5)
+})
+
+test_that("plot_hb_fraction: works with a single gene", {
+  skip_if_not_installed("plotly")
+  expect_no_error(
+    plot_hb_fraction(make_fc_genes_raw_ALL(), hb_genes = 'TTN')
+  )
+})
+
+test_that("plot_hb_fraction: works with a custom gene list", {
+  skip_if_not_installed("plotly")
+  p <- plotly::plotly_build(
+    plot_hb_fraction(make_fc_genes_raw_ALL(), hb_genes = c('TTN', 'ACTB'))
+  )
+  expect_equal(length(p$x$data), 2)
+})
+
+test_that("plot_hb_fraction: Length column is not treated as a sample", {
+  skip_if_not_installed("plotly")
+  p <- plotly::plotly_build(plot_hb_fraction(make_fc_genes_raw_ALL()))
+  sample_names <- unlist(lapply(p$x$data, function(tr) tr$x))
+  expect_false('Length' %in% sample_names)
+})
