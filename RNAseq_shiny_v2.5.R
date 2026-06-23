@@ -179,12 +179,15 @@ ui = page_fluid(
              )
     ),
 
-    ### Data table
+    ### Search expression
     tabPanel("Search expression",
              card(
-               card_header(strong("Find gene expression (raw) of a gene")),
-               textInput("text", label = "Search: ", value = "HBA"),
-               DTOutput("searchExpression")
+               card_header(strong("Gene expression across samples (fraction of total reads)")),
+               selectizeInput("gene_search", label = "Select a gene:",
+                              choices = NULL,
+                              selected = NULL,
+                              options = list(placeholder = 'Type a gene name...')),
+               plotlyOutput("searchExpression", height = "600px")
              ),
              card(
                card_header(strong("Haemoglobin gene expression (fraction of total reads)")),
@@ -512,10 +515,15 @@ server = function(input, output, session) {
                      columnDefs = list(list(className = 'dt-left', targets = '_all'))))
   })
 
-  # searh Gene expression
-  output$searchExpression = renderDT({
-    datatable(fc_genes_raw_ALL[grepl(input$text, fc_genes_raw_ALL$geneID,ignore.case =TRUE),],
-      rownames = FALSE,options = list(dom = 'p'))
+  # Search gene expression — populate choices server-side to avoid sending 20k options to browser
+  updateSelectizeInput(session, "gene_search",
+                       choices = sort(unique(fc_genes_raw_ALL$geneID)),
+                       selected = 'HBA1',
+                       server = TRUE)
+
+  output$searchExpression = renderPlotly({
+    req(input$gene_search)
+    plot_hb_fraction(fc_genes_raw_ALL, hb_genes = input$gene_search)
   })
 
 

@@ -10,14 +10,16 @@ plot_hb_fraction = function(fc_genes_raw_ALL,
   col_totals = colSums(fc_genes_raw_ALL[, sample_cols], na.rm = TRUE)
   hb_frac = hb
   hb_frac[, sample_cols] = sweep(hb[, sample_cols], 2, col_totals, '/') * 100
-  hb_long = tidyr::pivot_longer(hb_frac, cols = all_of(colnames(hb_frac)[sample_cols]),
+  hb_long = pivot_longer(hb_frac, cols = all_of(colnames(hb_frac)[sample_cols]),
                                 names_to = 'sample', values_to = 'fraction')
+  hb_counts_long = pivot_longer(hb, cols = all_of(colnames(hb)[sample_cols]),
+                                       names_to = 'sample', values_to = 'raw_counts')
   plot_ly(hb_long, x = ~sample, y = ~fraction, color = ~geneID, type = 'bar',
-          customdata = ~geneID,
+          customdata = ~ round(hb_counts_long$raw_counts,0),
           hovertemplate = paste(
             '<b>Sample</b>: %{x}',
-            '<br><b>Gene</b>: %{customdata}',
             '<br><b>Percentage</b>: %{y:.2f}%',
+            '<br><b>Raw counts</b>: %{customdata}',
             '<extra></extra>'
           )) %>%
     layout(
