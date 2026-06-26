@@ -378,6 +378,8 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
       panel.border = element_blank(),
       panel.grid.major.x = element_blank(),
       panel.grid.minor.x = element_blank(),
+      axis.ticks = element_blank(),
+      axis.text = element_text(size = 22),
       axis.title = element_text(size = 20),
       plot.title = element_text(hjust = 0.5, color = "darkred", face = "bold")) +
       ggtitle(title)

@@ -284,12 +284,12 @@ server = function(input, output, session) {
     )
   })
 
-  ### Plotly expression per family
-  output$Expression_perfamily = renderPlotly({
-    plot_expression_family(
-      data_family  = rd$reactive_inputs()$fc_exons_ggplot_reactive_family,
-      data_patient = rd$reactive_inputs()$fc_exons_ggplot_reactive_patient
-    )
+  ### Plotly expression per family (only when n_members > 1)
+  output$Expression_perfamily_ui = renderUI({
+    data_family = rd$reactive_inputs()$fc_exons_ggplot_reactive_family
+    n_members = length(unique(data_family$PatientID))
+    req(n_members > 1)
+    card(plotlyOutput("Expression_perfamily", width = "1500px"))
   })
 
   ### OUTRIDER table
@@ -353,6 +353,7 @@ server = function(input, output, session) {
 
   ### Coverage ggplots
   output$Figure_genemodel = renderPlot({
+    req(candidates$geneID[rd$i()]!="")
     if(is.null(input$sliderxlims)) {genemodel = ggplot() +  theme_void() + geom_text(aes(0,0,label='Plotting in ¨Progress')) + xlab(NULL)} else {
       gene_dir = paste0(params$datadir,'/bams_subset/gene',candidates$geneID[rd$i()],'_chr',candidates$chromosome[rd$i()],'_',candidates$start[rd$i()]-5000,'_',candidates$stop[rd$i()]+5000,'/')
       genemodel = genemodel_plot(
