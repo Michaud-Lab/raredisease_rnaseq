@@ -18,7 +18,7 @@ read workdir gtf candidate_genes candidate_genes_extra < <(
 )
 
 read fc_exons genome < <(
-  jq -r '.consensus | [.fc_exons, .ref_file, .genome] | @tsv' ../../data/input/configs.json
+  jq -r '.consensus | [.fc_exons, .genome] | @tsv' ../../data/input/configs.json
 )
 
 #
@@ -29,11 +29,11 @@ count=$((temp - 1 + temp_extra - 2))
 
 #R script launches the bash script to annotated variant file and continues with consensus.R to produce the reference sequence.
 for i in $(seq 1 $count); do
-  Rscript consensus.R $i $workdir $candidate_genes $fc_exons $ref_file $genome $candidate_genes_extra
+  Rscript consensus.R $i $workdir $candidate_genes $fc_exons $genome $gtf $candidate_genes_extra
 done
 
 
-echo 'Done Rscript Rscript consensus.R' $i $workdir $candidate_genes $fc_exons $ref_file $genome $candidate_genes_extra
+echo 'Done Rscript Rscript consensus.R' $i $workdir $candidate_genes $fc_exons $genome $gtf $candidate_genes_extra
 
 
 
