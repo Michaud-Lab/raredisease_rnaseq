@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ---
 
+## 2026-07-02 — candidates-extra-column
+
+**Changed**
+- `scripts/featureCounts/featureCounts.R`, `scripts/FRASER/fraser.R`, `scripts/OUTRIDER/outrider.R`, `scripts/consensus/consensus.R`, `scripts/cp_and_cleanup.R`, `scripts/Shiny/global.R`: added `candidates_extra = candidates_extra[, colnames(candidates)]` before every `rbind(candidates, candidates_extra)` to drop any extra columns in `candidate_genes_extra.csv` before merging. This prevents column-mismatch errors when the extra CSV has more columns than `candidate_genes.csv`.
+
+---
+
 ## 2026-06-23 — new-plots
 
 **Added**

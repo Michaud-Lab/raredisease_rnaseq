@@ -82,6 +82,7 @@ colnames(candidates_LR) = colnames(candidates)
 candidates = rbind(candidates, candidates_LR)
 configs = read_json(file.path(params$datadir, 'input/configs.json'))
 candidates_extra = read.table(configs$general$candidate_genes_extra,comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
+candidates_extra = candidates_extra[, colnames(candidates)]
 candidates = rbind(candidates, candidates_extra)
 
 for (i in 1:nrow(candidates)) {

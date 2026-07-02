@@ -24,6 +24,7 @@ options(scipen = 999)
 # -----------------------------------------------------------------------------
 candidates = read.csv(file.path(params$workdir, 'data/input/candidate_genes.csv'))
 candidates_extra = read.table(params$candidate_genes_extra,comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
+candidates_extra = candidates_extra[, colnames(candidates)]
 candidates = rbind(candidates, candidates_extra)
 params$output = paste0(params$FRASER, '/results/output_FRASER_', candidates$proband[i])
 

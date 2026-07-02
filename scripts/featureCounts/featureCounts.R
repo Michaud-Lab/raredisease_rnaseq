@@ -37,6 +37,7 @@ candidates = read.csv(params$candidate_genes)
 #colnames(candidates_LR) = colnames(candidates)
 #candidates = rbind(candidates,candidates_LR)
 candidates_extra = read.table(params$candidate_genes_extra,comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
+candidates_extra = candidates_extra[, colnames(candidates)]
 candidates = rbind(candidates,candidates_extra)
 
 # Clinical data
