@@ -16,7 +16,7 @@ library(jsonlite)
 # -----------------------------------------------------------------------------
 params = list(workdir = "/project/def-rallard/COMMUN/raredisease_rnaseq/")
 params$datadir = file.path(params$workdir, '/data/')
-params$resultdir = file.path(params$workdir, '/rnasplice/')
+params$resultdir = file.path(params$workdir, '/rnasplice_results')
 
 dir.create(params$datadir, showWarnings = FALSE)
 dir.create(paste0(params$datadir, 'bams_subset'), showWarnings = FALSE)
