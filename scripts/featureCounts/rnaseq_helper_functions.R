@@ -12,7 +12,7 @@ gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcript
   suppressMessages(suppressWarnings(library(GenomicAlignments)))
 
   # Connect to Ensembl and select the human dataset for hg38 (GRCh38)
-  ensembl = biomaRt::useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", GRCh = 38)
+  ensembl = biomaRt::useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", GRCh = 38, mirror = 'useast')
 
   # Get gene annotations
   genes = biomaRt::getBM(attributes = c("chromosome_name", "start_position", "end_position",
