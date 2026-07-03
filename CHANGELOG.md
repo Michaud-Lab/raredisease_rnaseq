@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ---
 
+## 2026-07-03 — outrider-hb-filter
+
+**Changed**
+- `scripts/OUTRIDER/outrider.R`: haemoglobin genes (`HBB`, `HBA-1`, `HBA-2`) are now excluded from `genes_counts` before both `OutriderDataSet()` calls (gene-level and exon-level). Gene-level filtering uses `%in%` on rownames; exon-level filtering uses `grepl('^(HBB|HBA-1|HBA-2)_', ...)` to match the `geneID_ensemblID_transcriptID_exonID` rowname format.
+
+---
+
 ## 2026-07-02 — candidates-extra-column
 
 **Changed**

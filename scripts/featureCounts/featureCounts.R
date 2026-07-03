@@ -95,7 +95,10 @@ colnames(fc_exons_raw_ALL)[1] = 'geneID'
 colnames(fc_exons_raw_ALL)[-c(1:5)] = sapply(lapply(strsplit(colnames(fc_exons_raw_ALL),'/'),'['),tail,1)[-c(1:5)]
 colnames(fc_exons_raw_ALL)[-c(1:5)] = gsub('_sorted.bam','',colnames(fc_exons_raw_ALL)[-c(1:5)])
 
-fc_exons_tpm = fc_exons_raw_ALL
+#remove hemoglobing gens
+hemo_ensembl = ensembl_geneid$gene_id[ensembl_geneid$gene_name %in% c('HBB','HBA1','HBA2','HBD')]
+
+fc_exons_tpm = fc_exons_raw_ALL[!fc_exons_raw_ALL$ensemblID %in% hemo_ensembl, ]
 fc_exons_tpm[,-c(1:5)]  = fc_exons_tpm[,-c(1:5)]  / fc_exons_tpm[,5] * 1000
 fc_exons_tpm[,-c(1:5)] = lapply(fc_exons_tpm[,-c(1:5)] , function(x) x/sum(x)* 1000000)
 fc_exons_tpm[,-c(1:5)] =  round(fc_exons_tpm[,-c(1:5)],2)

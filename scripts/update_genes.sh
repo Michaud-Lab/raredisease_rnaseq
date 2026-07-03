@@ -3,4 +3,4 @@ curl "https://docs.google.com/spreadsheets/d/1FUBfBHiFseFQ5iJKXaoXmbx3vbuBNreRsr
   -L -o candidate_genes_extra.csv
 echo "" >>candidate_genes_extra.csv
 scp candidate_genes_extra.csv renaut@fir.alliancecan.ca:/project/def-rallard/COMMUN/raredisease_rnaseq/data/input/.
-rm candidate_genes_extra.csv
+#rm candidate_genes_extra.csv

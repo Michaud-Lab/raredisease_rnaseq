@@ -72,6 +72,11 @@ probands = colnames(genes_counts)[
 ]
 genes_counts = genes_counts[, colnames(genes_counts) %in% c('gene_id', probands)]
 
+
+
+# Remove haemoglobin genes before running OUTRIDER
+hemo_ensembl = map$ensemblID[map$geneID %in% c('HBB','HBA1','HBA2','HBD')]
+genes_counts = genes_counts[!rownames(genes_counts) %in% hemo_ensembl, ]
 ods = OutriderDataSet(countData = genes_counts)
 ods = filterExpression(ods, TxDb.Hsapiens.UCSC.hg38.knownGene, mapping = map[, 1:2], filterGenes = TRUE, savefpkm = TRUE, fpkmCutoff = 0.5)
 #ods = filterExpression(ods)
@@ -109,6 +114,9 @@ print(paste0('Done OUTRIDER per gene --- Time is: ', Sys.time()))
 fc_exons_raw_ALL = read.table(params$fc_perexon, sep = '\t', check.names = FALSE)
 fc_exons_raw_ALL = fc_exons_raw_ALL[, grepl('^bc', colnames(fc_exons_raw_ALL)) == FALSE]
 
+#remove hemoglobin genes
+ensemblID
+
 # HSJ samples appear with two naming conventions; add '_PAX' suffix to align them
 colnames(fc_exons_raw_ALL)[grep('HSJ', colnames(fc_exons_raw_ALL))] =
   paste0(colnames(fc_exons_raw_ALL)[grep('HSJ', colnames(fc_exons_raw_ALL))], '_PAX')
@@ -120,7 +128,8 @@ rownames(fc_exons_raw_ALL) = paste0(
   fc_exons_raw_ALL$exonID
 )
 
-# Filter out very low-expression exons
+# Filter out very low-expression exons and hemo
+genes_counts = fc_exons_raw_ALL[!fc_exons_raw_ALL$ensemblID %in% hemo_ensembl,]
 genes_counts = fc_exons_raw_ALL[, -c(1:5)]
 genes_counts = genes_counts[rowMeans(genes_counts) > 1, ]
 
