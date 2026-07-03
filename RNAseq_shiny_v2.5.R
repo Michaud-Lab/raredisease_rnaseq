@@ -192,6 +192,10 @@ ui = page_fluid(
              card(
                card_header(strong("Haemoglobin gene expression (fraction of total reads)")),
                plotlyOutput("hb_barplot", height = "600px")
+             ),
+             card(
+               card_header(strong("Total reads assigned to a genic region per sample")),
+               plotlyOutput("total_reads_barplot", height = "600px")
              )
     ),
 
@@ -531,6 +535,11 @@ server = function(input, output, session) {
   ### Haemoglobin barplot
   output$hb_barplot = renderPlotly({
     plot_hb_fraction(fc_genes_raw_ALL)
+  })
+
+  ### Total reads barplot
+  output$total_reads_barplot = renderPlotly({
+    plot_total_reads(fc_genes_raw_ALL)
   })
 
   ### multiQC

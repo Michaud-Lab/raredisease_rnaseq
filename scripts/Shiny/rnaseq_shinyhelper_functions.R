@@ -30,6 +30,27 @@ plot_hb_fraction = function(fc_genes_raw_ALL,
     )
 }
 
+# plot_total_reads: bar chart of total read counts per sample from fc_genes_raw_ALL.
+# Arguments:
+#   fc_genes_raw_ALL - data.frame: raw gene counts with columns geneID, ensemblID, then one column per sample
+plot_total_reads = function(fc_genes_raw_ALL) {
+  non_sample_cols = c('geneID', 'ensemblID', 'Length')
+  sample_cols = !colnames(fc_genes_raw_ALL) %in% non_sample_cols
+  col_totals = colSums(fc_genes_raw_ALL[, sample_cols], na.rm = TRUE)
+  df = data.frame(sample = names(col_totals), total_reads = as.numeric(col_totals))
+  plot_ly(df, x = ~sample, y = ~total_reads, type = 'bar',
+          hovertemplate = paste(
+            '<b>Sample</b>: %{x}',
+            '<br><b>Total reads</b>: %{y:,}',
+            '<extra></extra>'
+          )) %>%
+    layout(
+      xaxis = list(title = 'Sample', tickangle = -45),
+      yaxis = list(title = 'Total reads'),
+      showlegend = FALSE
+    )
+}
+
 # plot_expression_cohort: per-exon TPM box plots for the cohort (children / adults)
 #   overlaid with the proband's individual data points.
 # Arguments:
