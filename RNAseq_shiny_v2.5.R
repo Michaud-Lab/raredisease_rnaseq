@@ -1,7 +1,21 @@
+# Parse command-line arguments
+# Usage: Rscript RNAseq_shiny_v2.5.R --data_minimal
+args = commandArgs(trailingOnly = TRUE)
+use_data_minimal = "--data_minimal" %in% args
+
+# Resolve directories:
+data_dir = if (exists("use_data_minimal") && use_data_minimal) "data_minimal" else "data"
+scripts_dir = if (dir.exists(file.path(data_dir,"scripts"))) {
+  file.path(data_dir,"scripts")} else {
+  "scripts"
+}
+
 # source
-source("data/scripts/Shiny/global.R")
-source("data/scripts/Shiny/rnaseq_shinyhelper_functions.R")
-source("data/scripts/Shiny/reactive_module.R")
+source(file.path(scripts_dir, "Shiny/global.R"))
+source(file.path(scripts_dir, "Shiny/rnaseq_shinyhelper_functions.R"))
+source(file.path(scripts_dir, "Shiny/reactive_module.R"))
+
+
 #####
 ##### UI
 #####

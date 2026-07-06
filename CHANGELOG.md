@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 
 ---
 
+## 2026-07-06 — data-minimal-and-bugfixes
+
+**Added**
+- `data_minimal/`: minimal synthetic dataset (2 probands: RNA_101_03_PAX / MCM5, RNA_106_03_PAX / TTI1; 5 cohort samples; 25 chromosomes represented in OUTRIDER and FRASER results) for fast local development and testing of the Shiny app.
+
+**Changed**
+- `RNAseq_shiny_v2.5.R`: added `--data_minimal` command-line argument; when passed, the app loads from `data_minimal/` instead of `data/`.
+- `scripts/Shiny/global.R`: `params$datadir` now resolves to `data_minimal/` when `use_data_minimal` is `TRUE`; added `header = TRUE` to all four `read.table()` calls (`fc_exons_raw.tsv`, `fc_exons_tpm.tsv`, `fc_genes_tpm.tsv`, `fc_genes_raw_ALL.tsv`) to support files without an implicit row-name column.
+- `scripts/Shiny/rnaseq_shinyhelper_functions.R`: `genemodel_plot()` — `candidate$position` is now coerced with `as.character()` before `strsplit()` and resulting NAs are filtered out, preventing a crash when position is empty; `manhattan_plot()` — returns `plot(0, main = 'no data available')` early when the input data frame is NULL, empty, or contains no rows for the requested sample.
+
+---
+
 ## 2026-07-03 — outrider-hb-filter
 
 **Changed**

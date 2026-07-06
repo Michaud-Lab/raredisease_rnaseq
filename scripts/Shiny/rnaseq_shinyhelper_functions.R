@@ -194,7 +194,8 @@ wh = wh[wh$gene_id == candidate$ensembl,]
 
   if(all.equal(xlims,candidate_limit) ==TRUE) merged_exons_df$exonsnb[!(1:nrow(merged_exons_df) %in% seq(1,nrow(merged_exons_df),by = 5))]= ""
 
-  mut_pos = as.numeric(strsplit(candidate$position,'_')[[1]])
+  mut_pos = as.numeric(strsplit(as.character(candidate$position), '_')[[1]])
+  mut_pos = mut_pos[!is.na(mut_pos)]
   xintercept = mut_pos/1000
   if(length(mut_pos) == 0) {xintercept = (min(merged_exons_df$start)+max(merged_exons_df$end))/2}
   if(length(mut_pos) == 0) mut_pos = xintercept
@@ -326,6 +327,10 @@ gwFRASER_table = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',pcutoff=0.05
 ### this is to do a manhattan plot of the p-values of the splicing test.
 ###
 manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcutoff=0.05, pvalue='padjust', geneID = 'hgncSymbol',shape = FALSE, end = 'end'){
+
+  if (is.null(res_dt) || nrow(res_dt) == 0 || !sample %in% res_dt$sampleID) {
+    return(plot(0, main = 'no data available'))
+  }
 
   # title definition
   summarise_outliers = res_dt %>%

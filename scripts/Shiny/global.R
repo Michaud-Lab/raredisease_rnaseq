@@ -23,8 +23,9 @@ for (p in 1:length(packages)) {
 # -----------------------------------------------------------------------------
 # 2. Parameters and theme
 # -----------------------------------------------------------------------------
+data_dir = if (exists("use_data_minimal") && use_data_minimal) "data_minimal" else "data"
 params = list(
-  datadir = file.path(getwd(), "data/")
+  datadir = file.path(getwd(), data_dir)
 )
 
 theme = bs_theme(
@@ -41,11 +42,11 @@ load(file = file.path(params$datadir, "gene_annotations.rda"))
 # -----------------------------------------------------------------------------
 logger::log_info("Loading datasets")
 
-fc_exons_raw = read.table(file.path(params$datadir, 'fc_exons_raw.tsv'), sep = '\t', check.names = FALSE)
+fc_exons_raw = read.table(file.path(params$datadir, 'fc_exons_raw.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
 fc_exons_raw[, -c(1:5)] = round(fc_exons_raw[, -c(1:5)])
-fc_exons_tpm = read.table(file.path(params$datadir, 'fc_exons_tpm.tsv'), sep = '\t', check.names = FALSE)
-fc_genes_tpm = read.table(file.path(params$datadir, 'fc_genes_tpm.tsv'), sep = '\t', check.names = FALSE)
-fc_genes_raw_ALL = read.table(file.path(params$datadir, 'fc_genes_raw_ALL.tsv'), sep = '\t', check.names = FALSE)
+fc_exons_tpm = read.table(file.path(params$datadir, 'fc_exons_tpm.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
+fc_genes_tpm = read.table(file.path(params$datadir, 'fc_genes_tpm.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
+fc_genes_raw_ALL = read.table(file.path(params$datadir, 'fc_genes_raw_ALL.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
 
 gwOUTRIDER = read.csv(file.path(params$datadir, 'gw_genes_OUTRIDER.tsv'), sep = '\t', check.names = FALSE)
 gwOUTRIDER$chr = factor(gwOUTRIDER$chr, levels = c(1:22, 'X', 'Y', 'MT'))
