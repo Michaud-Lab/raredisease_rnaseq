@@ -141,9 +141,14 @@ sbatch $scriptsdir/consensus/consensus.slurm
 Rscript $scriptsdir/cp_and_cleanup.R
 ```
 
-**Step 9 — Launch the Shiny dashboard** *(requires R ≥ 4.5, run in RStudio or locally)*
+**Step 9a — Launch the Shiny dashboard** *(requires R ≥ 4.5, run in RStudio or locally)*
 ```bash
 Rscript RNAseq_shiny_v2.5.R
+```
+**Step 9b — Launch the Shiny dashboard (synthetic dataset)**
+To launch with the minimal synthetic dataset (`data_minimal/`) for local development and testing without real patient data:
+```bash
+Rscript RNAseq_shiny_v2.5.R --data_minimal
 ```
 
 > Long-read FRASER analysis (`lr_quant/lr_quant.slurm`) is available but not part of the standard run.
