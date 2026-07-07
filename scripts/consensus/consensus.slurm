@@ -33,7 +33,7 @@ for i in $(seq 1 $count); do
 done
 
 
-echo 'Done Rscript Rscript consensus.R' $i $workdir $candidate_genes $fc_exons $genome $gtf $candidate_genes_extra
+echo 'Done Rscript consensus.R' $i $workdir $candidate_genes $fc_exons $genome $gtf $candidate_genes_extra
 
 
 

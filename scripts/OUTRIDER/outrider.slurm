@@ -20,5 +20,4 @@ read fc_pergene fc_perexon < <(
 
 #R script launches the bash script to prepare data and continues with analysis.
 Rscript outrider.R $workdir $candidate_genes $fc_pergene $fc_perexon $candidate_genes_LR $candidate_genes_extra $cpu
-
-#echo  $workdir $candidate_genes $fc_pergene $fc_perexon $candidate_genes_LR
+#echo $workdir $candidate_genes $fc_pergene $fc_perexon $candidate_genes_LR $candidate_genes_extra $cpu
