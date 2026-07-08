@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 # 1. Load packages
 # -----------------------------------------------------------------------------
-packages = c('DT', 'plotly', 'tidyr', 'shiny', 'shinyjs', 'jsonlite', 'igvShiny',
+packages = c('DT', 'plotly', 'tidyr', 'shiny', 'shinyjs', 'jsonlite', 'igvShiny', 'shinymanager',
              'GenomicAlignments', 'dplyr', 'ggtranscript', 'patchwork', 'Hmisc',
              'bslib', 'RColorBrewer', 'ggrepel', 'R.utils', 'logger', 'rtracklayer')
 logger::log_info('Loading required packages')
