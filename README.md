@@ -150,6 +150,17 @@ To launch with the minimal synthetic dataset (`data_minimal/`) for local develop
 ```bash
 Rscript RNAseq_shiny_v2.5.R --data_minimal
 ```
+**Step 9c — Launch the Shiny dashboard with password protection**
+To require a username and password before accessing the dashboard, pass `--use_password`. A credentials database must exist at `data/credentials.sqlite`; create it once by running:
+```bash
+Rscript scripts/Shiny/create_credentials_db.R   # fill in passwords first — do not commit them
+```
+Then launch with:
+```bash
+Rscript RNAseq_shiny_v2.5.R --use_password
+# flags can be combined:
+Rscript RNAseq_shiny_v2.5.R --data_minimal --use_password
+```
 
 > Long-read FRASER analysis (`lr_quant/lr_quant.slurm`) is available but not part of the standard run.
 

@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 
 ---
 
+## 2026-07-08 — password_protection
+
+**Added**
+- `scripts/Shiny/create_credentials_db.R`: one-time setup script that creates `data/credentials.sqlite` (bcrypt-hashed passwords via `shinymanager::create_db()`). Passwords are replaced with `"CHANGE_ME"` placeholders — fill them in locally before running. The script aborts with a clear error if any placeholder is left unchanged. The database file is gitignored.
+- `RNAseq_shiny_v2.5.R`: new `--use_password` command-line flag; when passed, the UI is wrapped with `shinymanager::secure_app()` and the server calls `shinymanager::secure_server()` to enforce login. Without the flag the app launches as before with no authentication. Flags can be combined: `Rscript RNAseq_shiny_v2.5.R --data_minimal --use_password`.
+- `scripts/Shiny/global.R`: added `shinymanager` to the package list.
+- `data/credentials.sqlite` added to `.gitignore`.
+
+---
+
 ## 2026-07-06 — data-minimal-and-bugfixes
 
 **Added**

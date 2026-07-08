@@ -1,7 +1,8 @@
 # Parse command-line arguments
-# Usage: Rscript RNAseq_shiny_v2.5.R --data_minimal
+# Usage: Rscript RNAseq_shiny_v2.5.R --data_minimal --use_password
 args = commandArgs(trailingOnly = TRUE)
 use_data_minimal = "--data_minimal" %in% args
+use_password     = "--use_password"  %in% args
 
 # Resolve directories:
 data_dir = if (exists("use_data_minimal") && use_data_minimal) "data_minimal" else "data"
@@ -17,10 +18,19 @@ source(file.path(scripts_dir, "Shiny/reactive_module.R"))
 
 
 #####
+##### Credentials (SQLite database — run scripts/Shiny/create_credentials_db.R once to create it)
+#####
+if (use_password) {
+  credentials_db = file.path(data_dir, "credentials.sqlite")
+  if (!file.exists(credentials_db))
+    stop("Credentials database not found. Run: Rscript scripts/Shiny/create_credentials_db.R")
+}
+
+#####
 ##### UI
 #####
 logger::log_info('Defining UI')
-ui = page_fluid(
+app_ui = page_fluid(
   theme = theme,
 
   # Dark title header
@@ -227,6 +237,7 @@ ui = page_fluid(
     )
   )
 )
+ui = if (use_password) secure_app(app_ui) else app_ui
 
 
 
@@ -235,6 +246,9 @@ ui = page_fluid(
 #####
 logger::log_info('Defining back-end server')
 server = function(input, output, session) {
+
+  if (use_password)
+    auth = secure_server(check_credentials = check_credentials(credentials_db))
 
   #####
   ##### reactive data (module)
