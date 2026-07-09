@@ -485,10 +485,13 @@ server = function(input, output, session) {
 
   ### Description
   output$description = renderUI({
+    req(candidates$proband[rd$i()]!="")
     selected_ensembl = candidates$ensembl[rd$i()]
     selected_geneID = candidates$geneID[rd$i()]
     selected_patient = candidates$proband[rd$i()]
     selected_clinical = clinical[clinical$`Patient ID` == selected_patient,]
+    selected_bam = paste0(params$datadir,'/bams_subset/gene',selected_geneID,'_chr',candidates$chromosome[rd$i()],'_',candidates$start[rd$i()]-5000,'_',candidates$stop[rd$i()]+5000,'/',selected_patient,"_sorted_chrN.bam")
+    if(selected_geneID == "") selected_bam = ''
     log_info(paste0('Selecting ~~~ ',selected_patient,' ~~~ ',selected_geneID,' ~~~ ',rd$i()))
     url = paste0("https://www.proteinatlas.org/", selected_ensembl)
     HTML(
@@ -498,7 +501,8 @@ server = function(input, output, session) {
              "<br><br><b>Candidate Gene hypothesis: </b>",selected_clinical$Hypothèse,
              "<br><br><b>HPO terms: </b>",selected_clinical$`HPO terms`,
              "<br><br><b>Sex: </b>",selected_clinical$Sexe,
-             "<br><br><b>Bam file location (Fir): </b>",system('echo ${HOME}',intern = TRUE),"/project/def-rallard/COMMUN/raredisease_rnaseq/results_nextflow_rnasplice_09_05_2026/star_salmon/",selected_patient,".sorted.bam<span>")
+             "<br><br><b>Gene .bam location: </b>",selected_bam,
+             "<br><br><b>Complete .bam location (Fir): </b>",system('echo ${HOME}',intern = TRUE),"/project/def-rallard/COMMUN/raredisease_rnaseq/results_nextflow_rnasplice_09_05_2026/star_salmon/",selected_patient,".sorted.bam<span>")
     )
   })
 
