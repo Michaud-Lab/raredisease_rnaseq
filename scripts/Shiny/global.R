@@ -3,29 +3,13 @@
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# 1. Load or Install spackages
+# 1. Load or Install packages
 # -----------------------------------------------------------------------------
-packages = c('remotes','BiocManager','GenomeInfoDb','DT', 'plotly', 'tidyr', 'shiny', 'shinyjs', 'jsonlite', 'igvShiny', 'shinymanager',
-             'GenomicAlignments', 'dplyr', 'ggtranscript', 'patchwork', 'Hmisc',
-             'bslib', 'RColorBrewer', 'ggrepel', 'R.utils', 'logger', 'rtracklayer')
+source('../rnaseq_helper_functions.R')
 
-for (p in 1:length(packages)) {
-  if (packages[p] %in% installed.packages()) {
-    suppressMessages(suppressWarnings(library(packages[p], character.only = TRUE)))
-  } else if (packages[p] == 'ggtranscript') {
-    remotes::install_github("dzhang32/ggtranscript")
-    library(packages[p], character.only = TRUE)
-  } else {
-    bioc_pkgs = BiocManager::available()
-    if(packages[p] %in% bioc_pkgs) {
-      BiocManager::install(packages[p])
-    } else {
-      install.packages(packages[p])
-    }
-    library(packages[p], character.only = TRUE)
-  }
-  if(p == length(packages)) print('Finished installing required packages')
-}
+load_install_library(c('remotes','BiocManager','GenomeInfoDb','DT', 'plotly', 'tidyr', 'shiny', 'shinyjs', 'jsonlite', 'igvShiny', 'shinymanager',
+             'GenomicAlignments', 'dplyr', 'ggtranscript', 'patchwork', 'Hmisc',
+             'bslib', 'RColorBrewer', 'ggrepel', 'R.utils', 'logger', 'rtracklayer'))
 
 
 # -----------------------------------------------------------------------------

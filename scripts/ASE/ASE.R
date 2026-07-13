@@ -1,13 +1,9 @@
 # =============================================================================
 # ASE.R - Allele-specific expression analysis from ASEReadCounter files
 # =============================================================================
-suppressMessages(suppressWarnings(library(dplyr)))
-suppressMessages(suppressWarnings(library(tidyr)))
-suppressMessages(suppressWarnings(library(DESeq2)))
-suppressMessages(suppressWarnings(library(vcfR)))
-suppressMessages(suppressWarnings(library(ggplot2)))
-suppressMessages(suppressWarnings(library(TxDb.Hsapiens.UCSC.hg38.knownGene)))
-suppressMessages(suppressWarnings(library(org.Hs.eg.db)))
+source("../rnaseq_helper_functions.R")
+load_install_library(c('dplyr', 'tidyr', 'DESeq2', 'vcfR', 'ggplot2',
+                       'TxDb.Hsapiens.UCSC.hg38.knownGene', 'org.Hs.eg.db'))
 
 # -----------------------------------------------------------------------------
 # 1. Arguments and parameters

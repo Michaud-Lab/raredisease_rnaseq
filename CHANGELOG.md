@@ -4,6 +4,22 @@ All notable changes to this project are documented here.
 
 ---
 
+## 2026-07-13 — centralized-package-loading
+
+**Changed**
+- Pipeline and analysis scripts now load packages through the shared `load_install_library()` helper instead of individual `library()` calls, so missing packages are installed on demand. Consecutive `library()` calls were collapsed into single grouped `load_install_library(c(...))` calls, and each standalone script gained a `source()` of the helper file:
+  - `scripts/ASE/ASE.R`
+  - `scripts/OUTRIDER/outrider.R`
+  - `scripts/featureCounts/featureCounts.R`
+  - `scripts/featureCounts/rnaseq_helper_functions.R` (inside `gene_annotation()`; relies on the helper being sourced by its caller)
+  - `scripts/lr_quant/lr_quant.R`
+  - `scripts/FRASER/fraser.R`
+  - `scripts/FRASER/fraser_gw.R`
+  - `scripts/consensus/consensus.R`
+- The recursive `library()` calls inside `load_install_library()` itself, plus `scripts/Shiny/create_credentials_db.R` and the `testthat` suite, were intentionally left using `library()`.
+
+---
+
 ## 2026-07-08 — password_protection
 
 **Added**

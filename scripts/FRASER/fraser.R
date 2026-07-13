@@ -3,7 +3,8 @@
 # =============================================================================
 
 # Libraries (loaded inside the main block to avoid loading on already-done runs)
-suppressMessages(suppressWarnings(library(data.table)))
+source("../rnaseq_helper_functions.R")
+load_install_library('data.table')
 
 
 # -----------------------------------------------------------------------------
@@ -58,10 +59,7 @@ if (geneID != "") {
     # Subset BAM to gene region
     system(command)
 
-    suppressMessages(suppressWarnings(library(dplyr)))
-    suppressMessages(suppressWarnings(library(patchwork)))
-    suppressMessages(suppressWarnings(library(FRASER)))
-    suppressMessages(suppressWarnings(library(tidyr)))
+    load_install_library(c('dplyr', 'patchwork', 'FRASER', 'tidyr', 'GenomeInfoDb'))
 
     sampleTable = data.table(data.frame(
       sampleID = gsub('_sorted_chrN.bam', '', list.files(out_dir, pattern = '*bam$')),
@@ -114,8 +112,7 @@ if (geneID != "") {
     print(paste0('Dimensions of res_dt: ', paste(dim(res_dt), collapse = ' x ')))
 
     # Annotation packages
-    suppressMessages(suppressWarnings(library(TxDb.Hsapiens.UCSC.hg38.knownGene)))
-    suppressMessages(suppressWarnings(library(org.Hs.eg.db)))
+    load_install_library(c('TxDb.Hsapiens.UCSC.hg38.knownGene', 'org.Hs.eg.db'))
 
     txdb_chr = keepSeqlevels(
       TxDb.Hsapiens.UCSC.hg38.knownGene,

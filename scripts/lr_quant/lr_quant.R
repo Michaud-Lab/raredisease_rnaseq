@@ -14,9 +14,8 @@ options(scipen = 999)
 
 
 # Load required packages
-suppressMessages(suppressWarnings(library(dplyr)))
-suppressMessages(suppressWarnings(library(FRASER)))
-suppressMessages(suppressWarnings(library(tidyr)))
+source("../Shiny/rnaseq_shinyhelper_functions.R")
+load_install_library(c('dplyr', 'FRASER', 'tidyr'))
 
 # CPUs
 ncores = 8
@@ -105,8 +104,7 @@ print('DONE subsetting')
     res_dt = res_dt[sampleID == proband,]
 
     # load more annotation packages
-    suppressMessages(suppressWarnings(library(TxDb.Hsapiens.UCSC.hg38.knownGene)))
-    suppressMessages(suppressWarnings(library(org.Hs.eg.db)))
+    load_install_library(c('TxDb.Hsapiens.UCSC.hg38.knownGene', 'org.Hs.eg.db'))
 
     txdb_chr = keepSeqlevels(TxDb.Hsapiens.UCSC.hg38.knownGene,paste0('chr',c(1:22,'X','Y','M')), pruning.mode = "coarse")
 
