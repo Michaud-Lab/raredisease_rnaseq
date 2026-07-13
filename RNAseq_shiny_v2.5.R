@@ -555,7 +555,7 @@ server = function(input, output, session) {
   # Search gene expression — populate choices server-side to avoid sending 20k options to browser
   updateSelectizeInput(session, "gene_search",
                        choices = sort(unique(fc_genes_raw_ALL$geneID)),
-                       selected = 'HBA1',
+                       selected = 'LDHA',
                        server = TRUE)
 
   output$searchExpression = renderPlotly({

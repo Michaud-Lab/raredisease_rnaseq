@@ -2,6 +2,8 @@
 # fraser_gw.R - Genome-wide splicing analysis with FRASER (per chromosome)
 # =============================================================================
 
+source("../rnaseq_helper_functions.R")
+
 # -----------------------------------------------------------------------------
 # 1. Arguments and parameters
 # -----------------------------------------------------------------------------
@@ -31,7 +33,7 @@ if (is.na(list.files(params$bams_subset)[1])) {
 if (file.exists(paste0(params$bams_subset, 'res_dt.csv')) == TRUE) {
   print(paste0('Already done chr ', params$chromosome, ': Sys.time is: ', Sys.time()))
 } else {
-  suppressMessages(suppressWarnings(library(FRASER)))
+  load_install_library('FRASER')
 
   register(MulticoreParam(params$ncores, params$ncores * 2, progressbar = TRUE))
 

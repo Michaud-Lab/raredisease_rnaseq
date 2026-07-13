@@ -3,10 +3,9 @@
 # =============================================================================
 
 # Libraries
-suppressMessages(suppressWarnings(library(dplyr)))
-suppressMessages(suppressWarnings(library(OUTRIDER)))
-suppressMessages(suppressWarnings(library(TxDb.Hsapiens.UCSC.hg38.knownGene)))
-suppressMessages(suppressWarnings(library(org.Hs.eg.db)))
+source("../rnaseq_helper_functions.R")
+load_install_library(c('dplyr', 'OUTRIDER', 'TxDb.Hsapiens.UCSC.hg38.knownGene',
+                       'org.Hs.eg.db', 'data.table'))
 
 # -----------------------------------------------------------------------------
 # 1. Arguments and parameters

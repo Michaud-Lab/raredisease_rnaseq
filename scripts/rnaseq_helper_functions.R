@@ -1,4 +1,28 @@
 # =============================================================================
+# Load or Install packages 
+# =============================================================================
+
+load_install_library = function(packages,silent = T) {
+  for (p in 1:length(packages)) {
+    if (packages[p] %in% installed.packages()) {
+      if(silent) suppressMessages(suppressWarnings(library(packages[p], character.only = TRUE))) else library(packages[p], character.only = TRUE)
+    } else if (packages[p] == 'ggtranscript') {
+      remotes::install_github("dzhang32/ggtranscript")
+      if(silent) suppressMessages(suppressWarnings(library(packages[p], character.only = TRUE))) else library(packages[p], character.only = TRUE)
+    } else {
+      bioc_pkgs = BiocManager::available()
+      if(packages[p] %in% bioc_pkgs) {
+        BiocManager::install(packages[p])
+      } else {
+        install.packages(packages[p])
+      }
+      if(silent) suppressMessages(suppressWarnings(library(packages[p], character.only = TRUE))) else library(packages[p], character.only = TRUE)
+    }
+    if(p == length(packages)) print('Finished installing required packages')
+  }
+}
+
+# =============================================================================
 # rnaseq_helper_functions.R - Helper functions for featureCounts processing
 # =============================================================================
 
@@ -7,9 +31,7 @@
 gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcriptID),
                            candidates = candidates){
 
-  suppressMessages(suppressWarnings(library(biomaRt)))
-  suppressMessages(suppressWarnings(library(ggbio)))
-  suppressMessages(suppressWarnings(library(GenomicAlignments)))
+  load_install_library(c('biomaRt', 'ggbio', 'GenomicAlignments'))
 
   # Connect to Ensembl and select the human dataset for hg38 (GRCh38)
   ensembl = biomaRt::useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", GRCh = 38, mirror = 'useast')

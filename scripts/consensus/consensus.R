@@ -2,6 +2,8 @@
 # consensus.R - Build consensus/alternate sequence for splicing visualisation
 # =============================================================================
 
+source("../rnaseq_helper_functions.R")
+
 # -----------------------------------------------------------------------------
 # 1. Arguments and parameters
 # -----------------------------------------------------------------------------
@@ -47,8 +49,7 @@ if (params$geneID != "") {
                   params$ref_annot, params$out_dir, params$bam_file, params$consensus, params$region)
 
   if (!file.exists(params$fasta_out)) {
-    suppressMessages(suppressWarnings(library(dplyr)))
-    suppressMessages(suppressWarnings(library(seqinr)))
+    load_install_library(c('dplyr', 'seqinr'))
 
     # Write placeholder FASTA to avoid re-running if the analysis fails
     write.table(c('>reference', 'ACTG'), params$fasta_out, row.names = FALSE, quote = FALSE, col.names = FALSE)

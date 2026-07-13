@@ -3,9 +3,8 @@
 # =============================================================================
 
 # Libraries
-suppressMessages(suppressWarnings(library(readxl)))
-suppressMessages(suppressWarnings(library(tidyr)))
-suppressMessages(suppressWarnings(library(dplyr)))
+source(file.path(params$workdir,'scripts/rnaseq_helper_functions.R'))
+load_install_library(c('readxl', 'tidyr', 'dplyr'))
 
 
 # -----------------------------------------------------------------------------
@@ -153,7 +152,6 @@ fc_genes_raw = fc_genes_raw[fc_genes_raw$geneID %in% candidates$geneID, ]
 # -----------------------------------------------------------------------------
 # 6. Gene model annotation and save outputs
 # -----------------------------------------------------------------------------
-source(file.path(params$workdir,'scripts/featureCounts/rnaseq_helper_functions.R'))
 gene_annotations = gene_annotation(unique_transcript_id = unique(fc_exons_raw$transcriptID),candidates = candidates)
 save(gene_annotations, file= file.path(params$FCdir,"gene_annotations.rda"))
 
