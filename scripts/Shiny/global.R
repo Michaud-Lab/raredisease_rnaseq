@@ -75,9 +75,9 @@ candidates = candidates[!grepl('bc',candidates$proband),]
 
 if(file.exists(file.path(params$datadir, 'input/candidate_genes_automated.csv'))) {
   candidate_genes_automated = read.csv(file.path(params$datadir, 'input/candidate_genes_automated.csv'));candidate_genes_automated[is.na(candidate_genes_automated)] = ''
-} else {candidates_genes_automated = NULL}
+} else {candidate_genes_automated = NULL}
 
-candidates = rbind(candidates,candidates_extra,candidates_genes_automated) %>%
+candidates = rbind(candidates,candidates_extra,candidate_genes_automated) %>%
   distinct(geneID,ensembl, proband, .keep_all = TRUE)
 
 

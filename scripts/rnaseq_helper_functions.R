@@ -61,7 +61,7 @@ load_install_library = function(packages,silent = T) {
       }
       if(silent) suppressMessages(suppressWarnings(library(packages[p], character.only = TRUE))) else library(packages[p], character.only = TRUE)
     }
-    if(p == length(packages)) print(paste0('Finished installing/loading required packages: ',paste0(packages,collapse=', ')))
+    if((p == length(packages)) & silent == F) print(paste0('Finished installing/loading required packages: ',paste0(packages,collapse=', ')))
   }
 }
 
