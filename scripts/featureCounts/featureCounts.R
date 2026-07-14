@@ -31,13 +31,16 @@ ensembl_geneid = read.table(params$ens_gene,header = TRUE)
 
 # candidate genes
 candidates = read.csv(params$candidate_genes)
-#candidates_LR = read.csv(params$candidate_genes_LR)
-#candidates_LR = candidates_LR[,c(2,3,10,4,5,6,7,8,9)]
-#colnames(candidates_LR) = colnames(candidates)
-#candidates = rbind(candidates,candidates_LR)
 candidates_extra = read.table(params$candidate_genes_extra,comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
 candidates_extra = candidates_extra[, colnames(candidates)]
-candidates = rbind(candidates,candidates_extra)
+
+if(file.exists(file.path(params$datadir, 'gwFRASER.csv'))){
+  candidate_genes_automated = candidate_genes_automated(gwfile = file.path(params$datadir, 'gwFRASER.csv'))
+  write.csv(candidate_genes_automated,file.path(params$datadir, 'input/candidate_genes_automated.csv'),quote = F, row.names = F)
+} else {candidate_genes_automated = NULL}
+
+candidates = rbind(candidates,candidates_extra,candidate_genes_automated) %>%
+  distinct(geneID,ensembl, proband, .keep_all = TRUE)
 
 # Clinical data
 clinical = readxl::read_xlsx(params$masterlog, sheet = 'Suivi - RNAseq', skip = 1)
@@ -80,7 +83,7 @@ MANE = read.table(paste0(params$FCdir,"/MANE.tsv"))
 MANE = MANE %>% group_by(V2) %>% slice_max(V1, n = 1, with_ties = FALSE)
 MANE = as.data.frame(MANE[,c(1,3)])
 
-MANE = rbind(MANE, c(7, "ENST00000374555")) # MDS2 not in MANE (it is a lncRNA) but exon data exists
+MANE = rbind(MANE, c(7, "ENST00000374555")) # MDS2 not in MANE (it is a lncRNA) but exon data exists ALTERNATIVELY IF ONE OF THE GENE IS NOT IN THE MANE, WE CAN POTENTIALLY FIND IT USING THE FUNCTION GENE_ANNOTATION...       
 MT = fc_exons$transcriptID[fc_exons$Chr == 'MT']
 MANE = rbind(MANE, data.frame(V1 = rep(1, length(MT)), V3 = MT)) # add mitochondrial genes
 

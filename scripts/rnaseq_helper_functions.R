@@ -1,4 +1,47 @@
 # =============================================================================
+# Generate automatically new candidate genes based on FRASER, OUTRIDER, ASE.
+# =============================================================================
+
+candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASER.csv')){
+  #Generate the gene annotation  
+  gene_annotations = gene_annotation(full =T)
+  
+  #Load files
+  if (gwfile == 'gwFRASER.csv') {gw = read.csv(gwfile, row.names = 1)} else {gw =  read.csv(gwfile, row.names = 1, sep = '\t')}
+  
+  #get the candidate genes
+  gwFRASER_top = gwFRASER %>%
+    filter(!grepl("HBA|HBB|HLA", hgncSymbol), !is.na(hgncSymbol)) %>%
+    group_by(sampleID) %>%
+    filter(padjust < 0.001) %>%
+    slice_min(padjust, n = 5) %>%
+    select(hgncSymbol, sampleID) %>%
+    distinct(hgncSymbol, sampleID)
+  
+  gwFRASER_top$hgncSymbol = sapply(strsplit(gwFRASER_top$hgncSymbol,';'),'[[',1)
+  
+  #format them to the candidate format.
+  candidates_automated = candidates[1,]
+  candidates_automated[1:57,c(1,3)] = gwFRASER_top
+  candidates_automated[,4:6] = 1
+  candidates_automated[,8:9] = ''
+  candidates_automated$proband2 = gsub('_PAX','',candidates_automated$proband)
+  
+  for(i in 1:nrow(candidates_automated))
+  {
+    temp = gene_annotations[[2]][gene_annotations[[2]]$symbol == candidates_automated[i,1],]
+    candidates_automated$start[i] = temp@ranges@start
+    candidates_automated$stop[i] = temp@ranges@start + temp@ranges@width
+    candidates_automated$ensembl[i] = temp$gene_id
+    candidates_automated$chromosome[i] = as.numeric(gsub('chr','',temp@seqnames@values))
+    
+    if(i == nrow(candidates_automated)) candidates_automated = candidates_automated[!is.na(candidates_automated$chromosome),]
+  }
+  print('Done candidates_automated')
+  return(candidates_automated)
+}
+
+# =============================================================================
 # Load or Install packages 
 # =============================================================================
 
@@ -18,7 +61,7 @@ load_install_library = function(packages,silent = T) {
       }
       if(silent) suppressMessages(suppressWarnings(library(packages[p], character.only = TRUE))) else library(packages[p], character.only = TRUE)
     }
-    if(p == length(packages)) print('Finished installing required packages')
+    if(p == length(packages)) print(paste0('Finished installing/loading required packages: ',paste0(packages,collapse=', ')))
   }
 }
 
@@ -29,7 +72,7 @@ load_install_library = function(packages,silent = T) {
 # gene_annotation: fetch exon-level gene models from Ensembl via biomaRt
 # Returns a list: [[1]] GRanges of exons, [[2]] GRanges of gene bodies
 gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcriptID),
-                           candidates = candidates){
+                           candidates = candidates, full = F){
 
   load_install_library(c('biomaRt', 'ggbio', 'GenomicAlignments'))
 
@@ -52,50 +95,51 @@ gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcript
                 ensembl_id = genes$ensembl_gene_id)
 
   # Preview result
-  wh = gr[gr$symbol %in% candidates$geneID[candidates$geneID !=""]]
-  wh = wh[wh@seqnames %in% paste0('chr',candidates$chromosome),]
+  if(full == F) {
+    wh = gr[gr$symbol %in% candidates$geneID[candidates$geneID !=""]]
+    wh = wh[wh@seqnames %in% paste0('chr',candidates$chromosome),]
+  
+    # genemodel
+    exons_df = biomaRt::getBM(
+      attributes = c(
+        "ensembl_gene_id",
+        "ensembl_transcript_id",
+        "ensembl_exon_id",
+        "chromosome_name",
+        "exon_chrom_start",
+        "exon_chrom_end",
+        "strand",
+        "rank"
+      ),
+      filters = "hgnc_symbol",
+      values = candidates$geneID,
+      mart = ensembl
+    )
 
-  # genemodel
-  exons_df = biomaRt::getBM(
-    attributes = c(
-      "ensembl_gene_id",
-      "ensembl_transcript_id",
-      "ensembl_exon_id",
-      "chromosome_name",
-      "exon_chrom_start",
-      "exon_chrom_end",
-      "strand",
-      "rank"
-    ),
-    filters = "hgnc_symbol",
-    values = candidates$geneID,
-    mart = ensembl
-  )
+    # Rename columns for clarity
+    colnames(exons_df) = c(
+      "gene_id", "transcript_id", "exon_id",
+      "chromosome", "start", "end",
+      "strand", "exon_rank"
+    )
 
-  # Rename columns for clarity
-  colnames(exons_df) = c(
-    "gene_id", "transcript_id", "exon_id",
-    "chromosome", "start", "end",
-    "strand", "exon_rank"
-  )
+    # Convert strand from numeric (1/-1) to "+" or "-"
+    exons_df$strand = ifelse(exons_df$strand == 1, "+", "-")
 
-  # Convert strand from numeric (1/-1) to "+" or "-"
-  exons_df$strand = ifelse(exons_df$strand == 1, "+", "-")
+    # Filter to MANE-selected transcripts
+    exons_df = exons_df[exons_df$transcript_id %in% unique_transcript_id, ]
 
-  # Filter to MANE-selected transcripts
-  exons_df = exons_df[exons_df$transcript_id %in% unique_transcript_id, ]
+    # Create GRanges object
+    gr_exons = GenomicRanges::GRanges(
+      seqnames = exons_df$chromosome,
+      ranges = IRanges::IRanges(start = exons_df$start, end = exons_df$end),
+      strand = exons_df$strand,
+      gene_id = exons_df$gene_id,
+      transcript_id = exons_df$transcript_id,
+      exon_id = exons_df$exon_id,
+      exon_rank = exons_df$exon_rank
+    )} else {wh = gr; gr_exons = NULL}
 
-  # Create GRanges object
-  gr_exons = GenomicRanges::GRanges(
-    seqnames = exons_df$chromosome,
-    ranges = IRanges::IRanges(start = exons_df$start, end = exons_df$end),
-    strand = exons_df$strand,
-    gene_id = exons_df$gene_id,
-    transcript_id = exons_df$transcript_id,
-    exon_id = exons_df$exon_id,
-    exon_rank = exons_df$exon_rank
-  )
-
-  # return output
-  list(gr_exons,wh)
+    # return output
+    list(gr_exons,wh)
 }
