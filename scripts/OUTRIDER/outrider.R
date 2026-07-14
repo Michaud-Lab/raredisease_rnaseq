@@ -28,7 +28,16 @@ register(MulticoreParam(params$cpu, params$cpu * 2, progressbar = TRUE))
 candidates = read.csv(params$candidate_genes)
 candidates_extra = read.table(params$candidate_genes_extra,comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
 candidates_extra = candidates_extra[, colnames(candidates)]
-candidates = rbind(candidates, candidates_extra)
+
+if(file.exists(file.path(args[1], 'data/input/candidate_genes_automated.csv'))) {
+  candidate_genes_automated = read.csv(file.path(args[1], 'data/input/candidate_genes_automated.csv'));candidate_genes_automated[is.na(candidate_genes_automated)] = ''
+} else {candidates_genes_automated = NULL}
+
+candidates = rbind(candidates,candidates_extra,candidates_genes_automated) %>%
+  distinct(geneID,ensembl, proband, .keep_all = TRUE)
+
+
+
 candidates$ensembl_proband = apply(
   candidates[, colnames(candidates) %in% c('ensembl', 'proband')],
   1, paste0, collapse = '_'

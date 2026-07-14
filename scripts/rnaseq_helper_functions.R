@@ -7,15 +7,15 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
   gene_annotations = gene_annotation(full =T)
   
   #Load files
-  if (gwfile == 'gwFRASER.csv') {gw = read.csv(gwfile, row.names = 1)} else {gw =  read.csv(gwfile, row.names = 1, sep = '\t')}
+  if(grep('FRASER',gwfile)) {gw = read.csv(gwfile, row.names = 1)} else {gw =  read.csv(gwfile, row.names = 1, sep = '\t')}
   
   #get the candidate genes
-  gwFRASER_top = gwFRASER %>%
+  gwFRASER_top = gw %>%
     filter(!grepl("HBA|HBB|HLA", hgncSymbol), !is.na(hgncSymbol)) %>%
     group_by(sampleID) %>%
     filter(padjust < 0.001) %>%
     slice_min(padjust, n = 5) %>%
-    select(hgncSymbol, sampleID) %>%
+    dplyr::select(hgncSymbol, sampleID) %>%
     distinct(hgncSymbol, sampleID)
   
   gwFRASER_top$hgncSymbol = sapply(strsplit(gwFRASER_top$hgncSymbol,';'),'[[',1)

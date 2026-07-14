@@ -22,7 +22,15 @@ params$candidate_genes_extra = args[7]
 candidates = read.csv(params$candidates)
 candidates_extra = read.table(params$candidate_genes_extra,comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
 candidates_extra = candidates_extra[, colnames(candidates)]
-candidates = rbind(candidates, candidates_extra)
+
+if(file.exists(file.path(params$workdir, 'data/input/candidate_genes_automated.csv'))) {
+  candidate_genes_automated = read.csv(file.path(params$workdir, 'data/input/candidate_genes_automated.csv'));candidate_genes_automated[is.na(candidate_genes_automated)] = ''
+} else {candidates_genes_automated = NULL}
+
+candidates = rbind(candidates,candidates_extra,candidates_genes_automated) %>%
+  distinct(geneID,ensembl, proband, .keep_all = TRUE)
+
+
 
 # Identify the MANE transcript for the candidate gene
 dir.create(params$consensus, showWarnings = FALSE)

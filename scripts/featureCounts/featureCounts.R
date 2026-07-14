@@ -1,12 +1,6 @@
 # =============================================================================
 # featureCounts.R - Compute raw counts and TPM from featureCounts output
 # =============================================================================
-
-# Libraries
-source(file.path(params$workdir,'scripts/rnaseq_helper_functions.R'))
-load_install_library(c('readxl', 'tidyr', 'dplyr'))
-
-
 # -----------------------------------------------------------------------------
 # 1. Arguments and parameters
 # -----------------------------------------------------------------------------
@@ -26,6 +20,10 @@ params$candidate_genes_extra = args[8]
 # -----------------------------------------------------------------------------
 # 2. Load reference data
 # -----------------------------------------------------------------------------
+# Libraries
+source(file.path(params$workdir,'scripts/rnaseq_helper_functions.R'))
+load_install_library(c('readxl', 'tidyr', 'dplyr'))
+
 # Ensembl - GeneID correspondence file
 ensembl_geneid = read.table(params$ens_gene,header = TRUE)
 

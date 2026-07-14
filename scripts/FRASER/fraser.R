@@ -26,7 +26,8 @@ options(scipen = 999)
 candidates = read.csv(file.path(params$workdir, 'data/input/candidate_genes.csv'))
 candidates_extra = read.table(params$candidate_genes_extra,comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
 candidates_extra = candidates_extra[, colnames(candidates)]
-if(file.exists(file.path(params$datadir, 'gwFRASER.csv'))){
+
+if(file.exists(file.path(params$datadir, 'input/candidate_genes_automated.csv'))) {
   candidate_genes_automated = read.csv(file.path(params$datadir, 'input/candidate_genes_automated.csv'));candidate_genes_automated[is.na(candidate_genes_automated)] = ''
 } else {candidates_genes_automated = NULL}
 
