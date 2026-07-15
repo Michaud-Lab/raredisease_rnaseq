@@ -11,7 +11,7 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
   
   #get the candidate genes
   gwFRASER_top = gw %>%
-    filter(!grepl("HBA|HBB|HLA", hgncSymbol), !is.na(hgncSymbol)) %>%
+    filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ", hgncSymbol), !is.na(hgncSymbol)) %>%
     group_by(sampleID) %>%
     filter(padjust < 0.001) %>%
     slice_min(padjust, n = 5) %>%

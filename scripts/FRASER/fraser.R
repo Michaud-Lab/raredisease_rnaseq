@@ -2,16 +2,17 @@
 # fraser.R - Per-candidate-gene splicing analysis with FRASER
 # =============================================================================
 
-# Libraries (loaded inside the main block to avoid loading on already-done runs)
-source("../rnaseq_helper_functions.R")
-load_install_library(c('data.table','dplyr'))
+
 
 
 # -----------------------------------------------------------------------------
 # 1. Arguments and parameters
 # -----------------------------------------------------------------------------
+# Libraries (loaded inside the main block to avoid loading on already-done runs)
+source("../rnaseq_helper_functions.R")
+load_install_library(c('data.table','dplyr'))
+
 args = commandArgs(trailingOnly = TRUE)
-#i = as.numeric(args[1])
 params = list(workdir = args[1])
 params$FRASER = file.path(params$workdir, 'FRASER')
 params$rnasplice_bamdir = args[2]
@@ -21,7 +22,7 @@ params$candidate_genes_extra = args[5]
 options(scipen = 999)
 
 # -----------------------------------------------------------------------------
-# 2. Setup output directories
+# 2. candidate genes to run
 # -----------------------------------------------------------------------------
 candidates = read.csv(file.path(params$workdir, 'data/input/candidate_genes.csv'))
 candidates_extra = read.table(file.path(params$workdir, 'data/input/candidate_genes_extra.csv'),comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
@@ -34,11 +35,8 @@ if(file.exists(file.path(params$workdir, 'data/input/candidate_genes_automated.c
 candidates = rbind(candidates,candidates_extra,candidate_genes_automated) %>%
   distinct(geneID,ensembl, proband, .keep_all = TRUE)
 
-
-
-
 # -----------------------------------------------------------------------------
-# 3. Run FRASER
+# 3. fraser_pipeline function
 # -----------------------------------------------------------------------------
 fraser_pipeline = function(candidates = candidates, i = 1){
   params$output = paste0(params$FRASER, '/results/output_FRASER_', candidates$proband[i])
@@ -54,7 +52,7 @@ fraser_pipeline = function(candidates = candidates, i = 1){
   geneID = candidates$geneID[i]
   proband = candidates$proband[i]
 
-  #if statement  
+  #if statement to run only if there is a gene present 
   if (geneID != "") {
     out_dir = paste0(params$FRASER, '/bams_subset/gene', geneID, '_chr', chr, '_', start, '_', stop)
     dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
@@ -64,6 +62,7 @@ fraser_pipeline = function(candidates = candidates, i = 1){
 
    res_dt_outfile = paste0(out_dir, "/gene_", geneID, "_", proband, "_res_dt_candidate_gene.csv")
 
+    #if statement to run only if file does not exist or is empty
     if (!file.exists(res_dt_outfile) | (file.exists(res_dt_outfile) && length(readLines(res_dt_outfile)) == 0)) {
      # Create an empty placeholder in case the analysis fails, to avoid re-running
      system(paste0('touch ', res_dt_outfile))
@@ -107,6 +106,7 @@ fraser_pipeline = function(candidates = candidates, i = 1){
       }, error = function(e) {
         print(paste0('FRASER failed for sample ~~~ ', i, ' ~~~ ', geneID,
                      ' ~~~ ','likely because there were no splice junctions ~~~ ', conditionMessage(e)))
+        
         # Write an empty CSV (header only) so this sample is not re-run
         write.csv(data.frame(), res_dt_outfile)
        NULL
@@ -174,8 +174,6 @@ fraser_pipeline = function(candidates = candidates, i = 1){
   }
 }
 
-
 ###run the fraser_pipeline()
-for(i in 1 : nrow(candidates)){
-  fraser_pipeline(candidates,i=i)
-  }
+print(paste0('RUNNING fraser_pipeline() ~~~ ', nrow(candidates), ', samples. ~~~ Time is: ', Sys.time()))
+for(i in 1 : nrow(candidates)){fraser_pipeline(candidates,i=i)}

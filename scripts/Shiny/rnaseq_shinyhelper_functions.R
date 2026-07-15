@@ -26,7 +26,8 @@ plot_hb_fraction = function(fc_genes_raw_ALL,
       barmode = 'stack',
       xaxis = list(title = 'Sample', tickangle = -45),
       yaxis = list(title = '% of total reads'),
-      legend = list(title = list(text = 'Gene'))
+      legend = list(title = list(text = 'Gene'), orientation = 'h',
+                    x = 0, xanchor = 'left', y = 1, yanchor = 'bottom')
     )
 }
 

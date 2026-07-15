@@ -63,10 +63,10 @@ app_ui = page_fluid(
                )
              ),
              card(
-               card_header("Information"),
+               card_header(strong("Information")),
                htmlOutput("description")),
              card(
-               card_header("Software Version"),
+               card_header(strong("Software Version")),
                DTOutput("Version")
              )
     ),
@@ -74,7 +74,7 @@ app_ui = page_fluid(
     ### Data table
     tabPanel("Expression",
              card(
-               'Reference transcript based on Matched Annotation from NCBI and EMBL-EBI (MANE)',
+               card_header(strong("Reference transcript based on Matched Annotation from NCBI and EMBL-EBI (MANE)")),
                selectInput("table_choice", "Choose an expression metric: ",
                            choices = c("Normalised expression", "Raw counts","Isoform-specific expression"),
                            selected = "Normalised expression"),
