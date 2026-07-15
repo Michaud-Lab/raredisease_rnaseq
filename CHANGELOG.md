@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 
 ---
 
+## 2026-07-15 — refactor-fraser-consensus
+
+**Changed**
+- `scripts/FRASER/fraser.R`: per-candidate logic wrapped into a `fraser_pipeline(candidates, i)` function, called from a loop over all candidates; added a progress print statement before the loop.
+- `scripts/consensus/consensus.R`: per-candidate logic wrapped into a `consensus_pipeline(candidates, i)` function, called from a loop over all candidates. The script now reads `candidate_genes.csv`, `candidate_genes_extra.csv`, and `candidate_genes_automated.csv` itself (matching `fraser.R`) instead of receiving `candidates`/`candidate_genes_extra` paths and a proband index `i` as command-line arguments.
+- `scripts/consensus/consensus.slurm`: updated to match the new `consensus.R` argument signature (`workdir`, `fc_exons`, `genome`, `gtf`); removed the per-candidate `Rscript` loop and `candidate_genes`/`candidate_genes_extra` line-count logic, since looping is now handled inside `consensus.R`.
+- `scripts/rnaseq_helper_functions.R`: `candidate_genes_automated()` haemoglobin gene exclusion regex broadened from `HBA|HBB|HLA` to anchored prefixes covering `HBA, HBB, HLA, HBG, HBD, HBQ, HBE, HBZ`.
+- `scripts/Shiny/rnaseq_shinyhelper_functions.R`: `plot_hb_fraction()` legend moved to a horizontal orientation anchored to the top-right corner of the plot (was default right-side vertical legend).
+- `RNAseq_shiny_v2.5.R`: bolded the "Information", "Software Version", and MANE reference card headers.
+
+---
+
 ## 2026-07-13 — centralized-package-loading
 
 **Changed**
