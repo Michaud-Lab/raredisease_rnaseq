@@ -68,19 +68,17 @@ transcripts_named_filtered = read.csv(file.path(params$datadir, 'transcripts_nam
 transcripts_named_filtered_ggplot = read.csv(file.path(params$datadir, 'transcripts_named_filtered_ggplot.tsv'), sep = '\t', check.names = FALSE)
 
 fc_exons_tpm_ggplot = read.csv(file.path(params$datadir, 'fc_exons_tpm_ggplot.tsv'), sep = '\t', check.names = FALSE)
-candidates = read.csv(file.path(params$datadir, 'input/candidate_genes.csv'))
-candidates_extra = read.table(file.path(params$datadir, 'input/candidate_genes_extra.csv'),comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
-candidates_extra = candidates_extra[, colnames(candidates)]
-candidates = candidates[!grepl('bc',candidates$proband),]
+candidates = read.csv(file.path(params$datadir, 'input/candidate_genes_ALL.csv'))
+#candidates_extra = read.table(file.path(params$datadir, 'input/candidate_genes_extra.csv'),comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
+#candidates_extra = candidates_extra[, colnames(candidates)]
+#candidates = candidates[!grepl('bc',candidates$proband),]
 
-if(file.exists(file.path(params$datadir, 'input/candidate_genes_automated.csv'))) {
-  candidate_genes_automated = read.csv(file.path(params$datadir, 'input/candidate_genes_automated.csv'));candidate_genes_automated[is.na(candidate_genes_automated)] = ''
-} else {candidate_genes_automated = NULL}
+#if(file.exists(file.path(params$datadir, 'input/candidate_genes_automated.csv'))) {
+#  candidate_genes_automated = read.csv(file.path(params$datadir, 'input/candidate_genes_automated.csv'));candidate_genes_automated[is.na(candidate_genes_automated)] = ''
+#} else {candidate_genes_automated = NULL}
 
-candidates = rbind(candidates,candidates_extra,candidate_genes_automated) %>%
-  distinct(geneID,ensembl, proband, .keep_all = TRUE)
-
-
+#candidates = rbind(candidates,candidates_extra,candidate_genes_automated) %>%
+#  distinct(geneID,ensembl, proband, .keep_all = TRUE)
 
 clinical = read.csv(file.path(params$datadir, 'clinical.tsv'), sep = '\t', check.names = FALSE)
 html_files = list.files(params$datadir,pattern = 'multiqc_report',full.names = T) 

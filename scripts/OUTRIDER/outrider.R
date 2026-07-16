@@ -17,7 +17,7 @@ params$candidate_genes_LR = args[5]
 params$fc_pergene = args[3]
 params$fc_perexon = args[4]
 params$candidate_genes_extra = args[6]
-params$cpu=as.numeric(args[7])
+params$cpu = as.numeric(args[7])
 
 dir.create(params$OUTRIDER)
 register(MulticoreParam(params$cpu, params$cpu * 2, progressbar = TRUE))
@@ -25,23 +25,21 @@ register(MulticoreParam(params$cpu, params$cpu * 2, progressbar = TRUE))
 # -----------------------------------------------------------------------------
 # 2. Load candidate genes and gene annotation map
 # -----------------------------------------------------------------------------
-candidates = read.csv(params$candidate_genes)
-candidates_extra = read.table(params$candidate_genes_extra,comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
-candidates_extra = candidates_extra[, colnames(candidates)]
+candidates = read.csv(file.path(args[1], 'data/input/candidate_genes_ALL.csv'))
+#candidates_extra = read.table(params$candidate_genes_extra,comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
+#candidates_extra = candidates_extra[, colnames(candidates)]
 
-if(file.exists(file.path(args[1], 'data/input/candidate_genes_automated.csv'))) {
-  candidate_genes_automated = read.csv(file.path(args[1], 'data/input/candidate_genes_automated.csv'));candidate_genes_automated[is.na(candidate_genes_automated)] = ''
-} else {candidate_genes_automated = NULL}
+#if(file.exists(file.path(args[1], 'data/input/candidate_genes_ALL.csv'))) {
+#  candidate_genes_automated = read.csv(file.path(args[1], 'data/input/candidate_genes_automated.csv'));candidate_genes_automated[is.na(candidate_genes_automated)] = ''
+#} else {candidate_genes_automated = NULL}
 
-candidates = rbind(candidates,candidates_extra,candidate_genes_automated) %>%
-  distinct(geneID,ensembl, proband, .keep_all = TRUE)
+#candidates = rbind(candidates,candidates_extra,candidate_genes_automated) %>%
+#  distinct(geneID,ensembl, proband, .keep_all = TRUE)
 
-
-
-candidates$ensembl_proband = apply(
-  candidates[, colnames(candidates) %in% c('ensembl', 'proband')],
-  1, paste0, collapse = '_'
-)
+#candidates$ensembl_proband = apply(
+#  candidates[, colnames(candidates) %in% c('ensembl', 'proband')],
+#  1, paste0, collapse = '_'
+#)
 
 # Map Entrez IDs to Ensembl IDs and gene symbols
 map = select(

@@ -7,22 +7,57 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
   gene_annotations = gene_annotation(full =T)
   
   #Load files
-  if(grep('FRASER',gwfile)) {gw = read.csv(gwfile, row.names = 1)} else {gw =  read.csv(gwfile, row.names = 1, sep = '\t')}
+  if(grepl('gwFRASER',gwfile)) {sep = ','} else {sep = '\t'}
+  
+  gw = read.csv(gwfile, row.names = 1,sep = sep)
+
+  #get the candidate genes
+  if(grepl('gwFRASER',gwfile)) {
+    gw_top = gw %>%
+      filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ", hgncSymbol), !is.na(hgncSymbol)) %>%
+      group_by(sampleID) %>%
+      filter(padjust < 0.0001) %>%
+      slice_min(padjust, n = 5) %>%
+      dplyr::select(hgncSymbol, sampleID) %>%
+      distinct(hgncSymbol, sampleID)
+  
+      gw_top$hgncSymbol = sapply(strsplit(gw_top$hgncSymbol,';'),'[[',1)
+      origin = 'gw FRASER extra genes'
+  }
   
   #get the candidate genes
-  gwFRASER_top = gw %>%
-    filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ", hgncSymbol), !is.na(hgncSymbol)) %>%
-    group_by(sampleID) %>%
-    filter(padjust < 0.001) %>%
-    slice_min(padjust, n = 5) %>%
-    dplyr::select(hgncSymbol, sampleID) %>%
-    distinct(hgncSymbol, sampleID)
+  if(grepl('OUTRIDER',gwfile)) {
+    gw_top = gw %>%
+      filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ", geneID), !is.na(geneID)) %>%
+      group_by(sampleID) %>%
+      filter(pValue < 0.000001) %>%
+      slice_min(pValue, n = 2) %>%
+      dplyr::select(geneID, sampleID) %>%
+      distinct(geneID, sampleID)
+    
+    gw_top$geneID = sapply(strsplit(gw_top$geneID,';'),'[[',1)
+    origin = 'gw OUTRIDER extra genes'
+  }
   
-  gwFRASER_top$hgncSymbol = sapply(strsplit(gwFRASER_top$hgncSymbol,';'),'[[',1)
+  #get the candidate genes
+  if(grepl('gwASE',gwfile)) {
+    gw_top = gw %>%
+      filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ", geneID), !is.na(geneID)) %>%
+      group_by(sampleID,geneID) %>%
+      filter(pvalue < 1e-49) %>%
+      dplyr::filter(dplyr::n() >= 2) %>%
+     # slice_min(pvalue, n = 2)  %>%
+      dplyr::select(geneID, sampleID) %>%
+      distinct(geneID, sampleID)
+    
+    gw_top$geneID = sapply(strsplit(gw_top$geneID,';'),'[[',1)
+    origin = 'gw ASE extra genes'
+  }
   
   #format them to the candidate format.
-  candidates_automated = candidates[1,]
-  candidates_automated[1:57,c(1,3)] = gwFRASER_top
+  candidates_automated = data.frame(matrix(ncol = 9, nrow = 0))
+  colnames(candidates_automated) = c('geneID','ensembl','proband','chromosome','start','stop','proband2','mutation','position')
+  candidates_automated[1:nrow(gw_top),c(1,3)] = gw_top
   candidates_automated[,4:6] = 1
   candidates_automated[,8:9] = ''
   candidates_automated$proband2 = gsub('_PAX','',candidates_automated$proband)
@@ -30,14 +65,16 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
   for(i in 1:nrow(candidates_automated))
   {
     temp = gene_annotations[[2]][gene_annotations[[2]]$symbol == candidates_automated[i,1],]
-    candidates_automated$start[i] = temp@ranges@start
-    candidates_automated$stop[i] = temp@ranges@start + temp@ranges@width
-    candidates_automated$ensembl[i] = temp$gene_id
-    candidates_automated$chromosome[i] = as.numeric(gsub('chr','',temp@seqnames@values))
-    
-    if(i == nrow(candidates_automated)) candidates_automated = candidates_automated[!is.na(candidates_automated$chromosome),]
+    if(length(temp@seqnames)==1) {
+      candidates_automated$start[i] = temp@ranges@start
+      candidates_automated$stop[i] = temp@ranges@start + temp@ranges@width
+      candidates_automated$ensembl[i] = temp$gene_id
+      candidates_automated$chromosome[i] = as.numeric(gsub('chr','',temp@seqnames@values))}
   }
-  print('Done candidates_automated')
+  candidates_automated = candidates_automated[!is.na(candidates_automated$chromosome),]
+  candidates_automated = candidates_automated[candidates_automated$start != 1,]
+  candidates_automated$origin = origin
+  print(paste0('Done candidates_automated, found ', nrow(candidates_automated), ' new candidates'))
   return(candidates_automated)
 }
 
@@ -77,7 +114,7 @@ gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcript
   load_install_library(c('biomaRt', 'ggbio', 'GenomicAlignments'))
 
   # Connect to Ensembl and select the human dataset for hg38 (GRCh38)
-  ensembl = biomaRt::useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", GRCh = 38, mirror = 'useast')
+  ensembl = biomaRt::useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", mirror = 'useast')
 
   # Get gene annotations
   genes = biomaRt::getBM(attributes = c("chromosome_name", "start_position", "end_position",
