@@ -17,46 +17,45 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
       group_by(sampleID) %>%
       filter(padjust < 0.0001) %>%
       slice_min(padjust, n = 5) %>%
-      dplyr::select(hgncSymbol, sampleID) %>%
-      distinct(hgncSymbol, sampleID)
+      distinct(hgncSymbol, sampleID,.keep_all = T)
   
       gw_top$hgncSymbol = sapply(strsplit(gw_top$hgncSymbol,';'),'[[',1)
-      origin = 'gw FRASER candidate gene'
+      gw_top$origin = paste('gw FRASER',gw_top$padjust,gw_top$deltaPsi,sep = ', ')
+      gw_top = gw_top[,c('hgncSymbol','sampleID','origin')]
   }
   
   #get the candidate genes
   if(grepl('OUTRIDER',gwfile)) {
     gw_top = gw %>%
-      filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ", geneID), !is.na(geneID)) %>%
+      filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ|^HBM", geneID), !is.na(geneID)) %>%
       group_by(sampleID) %>%
       filter(pValue < 0.000001) %>%
       slice_min(pValue, n = 2) %>%
-      dplyr::select(geneID, sampleID) %>%
-      distinct(geneID, sampleID)
+      distinct(geneID, sampleID,.keep_all = T)
     
     gw_top$geneID = sapply(strsplit(gw_top$geneID,';'),'[[',1)
-    origin = 'gw OUTRIDER candidate gene'
+    gw_top$origin = paste('gw OUTRIDER',gw_top$pValue,gw_top$l2fc,sep = ', ')
+    gw_top = gw_top[,c('geneID','sampleID','origin')]
   }
   
   #get the candidate genes
   if(grepl('gwASE',gwfile)) {
     gw_top = gw %>%
-      filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ", geneID), !is.na(geneID)) %>%
+      filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ|^HBM", geneID), !is.na(geneID)) %>%
       group_by(sampleID,geneID) %>%
       filter(pvalue < 1e-49) %>%
       dplyr::filter(dplyr::n() >= 2) %>%
-     # slice_min(pvalue, n = 2)  %>%
-      dplyr::select(geneID, sampleID) %>%
-      distinct(geneID, sampleID)
+      distinct(geneID, sampleID,.keep_all = T)
     
     gw_top$geneID = sapply(strsplit(gw_top$geneID,';'),'[[',1)
-    origin = 'gw ASE candidate gene'
+    gw_top$origin = paste('gw ASE (at least 2 markers)',gw_top$pvalue,gw_top$RNA_DP,sep = ', ')
+    gw_top = gw_top[,c('geneID','sampleID','origin')]
   }
   
   #format them to the candidate format.
-  candidates_automated = data.frame(matrix(ncol = 9, nrow = 0))
-  colnames(candidates_automated) = c('geneID','ensembl','proband','chromosome','start','stop','proband2','mutation','position')
-  candidates_automated[1:nrow(gw_top),c(1,3)] = gw_top
+  candidates_automated = data.frame(matrix(ncol = 10, nrow = 0))
+  colnames(candidates_automated) = c('geneID','ensembl','proband','chromosome','start','stop','proband2','mutation','position','origin')
+  candidates_automated[1:nrow(gw_top),c(1,3,10)] = gw_top
   candidates_automated[,4:6] = 1
   candidates_automated[,8:9] = ''
   candidates_automated$proband2 = gsub('_PAX','',candidates_automated$proband)
@@ -72,7 +71,6 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
   }
   candidates_automated = candidates_automated[!is.na(candidates_automated$chromosome),]
   candidates_automated = candidates_automated[candidates_automated$start != 1,]
-  candidates_automated$origin = origin
   print(paste0('Done candidates_automated, found ', nrow(candidates_automated), ' new candidates'))
   return(candidates_automated)
 }
