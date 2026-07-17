@@ -489,13 +489,14 @@ server = function(input, output, session) {
     selected_ensembl = candidates$ensembl[rd$i()]
     selected_geneID = candidates$geneID[rd$i()]
     selected_patient = candidates$proband[rd$i()]
+    selected_origin = candidates$origin[rd$i()]
     selected_clinical = clinical[clinical$`Patient ID` == selected_patient,]
     selected_bam = paste0(params$datadir,'/bams_subset/gene',selected_geneID,'_chr',candidates$chromosome[rd$i()],'_',candidates$start[rd$i()]-5000,'_',candidates$stop[rd$i()]+5000,'/',selected_patient,"_sorted_chrN.bam")
     if(selected_geneID == "") selected_bam = ''
     log_info(paste0('Selecting ~~~ ',selected_patient,' ~~~ ',selected_geneID,' ~~~ ',rd$i()))
     url = paste0("https://www.proteinatlas.org/", selected_ensembl)
     HTML(
-      paste0("<span><b>Notes: </b>",selected_clinical$Notes,
+      paste0("<span><b>Notes: </b>",paste(selected_origin,', ',selected_clinical$Notes),
              "<br><br><b>Gene description for ",selected_geneID,": </b> <a href='", url, "' target='_self'>",selected_ensembl,"</a>",
              "<br><br><b>Mutations: </b>",selected_clinical$Mutation,
              "<br><br><b>Candidate Gene hypothesis: </b>",selected_clinical$Hypothèse,

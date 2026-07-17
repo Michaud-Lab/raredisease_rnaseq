@@ -22,7 +22,7 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
       distinct(hgncSymbol, sampleID)
   
       gw_top$hgncSymbol = sapply(strsplit(gw_top$hgncSymbol,';'),'[[',1)
-      origin = 'gw FRASER extra genes'
+      origin = 'gw FRASER gene'
   }
   
   #get the candidate genes
@@ -36,7 +36,7 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
       distinct(geneID, sampleID)
     
     gw_top$geneID = sapply(strsplit(gw_top$geneID,';'),'[[',1)
-    origin = 'gw OUTRIDER extra genes'
+    origin = 'gw OUTRIDER gene'
   }
   
   #get the candidate genes
@@ -51,7 +51,7 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
       distinct(geneID, sampleID)
     
     gw_top$geneID = sapply(strsplit(gw_top$geneID,';'),'[[',1)
-    origin = 'gw ASE extra genes'
+    origin = 'gw ASE gene'
   }
   
   #format them to the candidate format.

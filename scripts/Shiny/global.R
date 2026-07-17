@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 # 1. Load or Install packages
 # -----------------------------------------------------------------------------
-source('../rnaseq_helper_functions.R')
+source('data/scripts/rnaseq_helper_functions.R')
 
 load_install_library(c('remotes','BiocManager','GenomeInfoDb','DT', 'plotly', 'tidyr', 'shiny', 'shinyjs', 'jsonlite', 'igvShiny', 'shinymanager',
              'GenomicAlignments', 'dplyr', 'ggtranscript', 'patchwork', 'Hmisc',

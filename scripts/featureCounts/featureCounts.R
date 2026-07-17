@@ -41,8 +41,8 @@ for(i in 1:3)
   if(file.exists(gwfiles[i])){candidate_genes_automated_list[[i]] = candidate_genes_automated(gwfile = gwfiles[i])}
   }
 
-candidates_original$origin = 'original genes added by geneticists'
-candidates_extra$origin = 'extra gene added by data analyst'
+candidates_original$origin = 'original gene'
+candidates_extra$origin = 'extra gene'
 
 candidates = rbind(candidates_original,candidates_extra,candidate_genes_automated_list[[1]],candidate_genes_automated_list[[2]],candidate_genes_automated_list[[3]]) %>%
   distinct(geneID,ensembl, proband, .keep_all = TRUE)
