@@ -538,8 +538,8 @@ server = function(input, output, session) {
   output$Version = renderDT({
     datatable(
       data.frame(Parameter=names(unlist(report_version)),Value=unlist(report_version)),
-      rownames = FALSE,options = list(dom = 'p'),columnDefs = list(list(className = 'dt-left', targets = '_all')))
-    
+      rownames = FALSE,options = list(pageLength = 50, searching = F, lengthChange = F))
+
   })
 
   ### Candidate genes table
