@@ -14,7 +14,7 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
   #get the candidate genes
   if(grepl('gwFRASER',gwfile)) {
     gw_top = gw %>%
-      filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ", hgncSymbol), !is.na(hgncSymbol)) %>%
+      filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ|^HBM", hgncSymbol), !is.na(hgncSymbol)) %>%
       group_by(sampleID) %>%
       filter(padjust < 0.0001) %>%
       slice_min(padjust, n = 5) %>%
@@ -22,7 +22,7 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
       distinct(hgncSymbol, sampleID)
   
       gw_top$hgncSymbol = sapply(strsplit(gw_top$hgncSymbol,';'),'[[',1)
-      origin = 'gw FRASER gene'
+      origin = 'gw FRASER candidate gene'
   }
   
   #get the candidate genes
@@ -36,7 +36,7 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
       distinct(geneID, sampleID)
     
     gw_top$geneID = sapply(strsplit(gw_top$geneID,';'),'[[',1)
-    origin = 'gw OUTRIDER gene'
+    origin = 'gw OUTRIDER candidate gene'
   }
   
   #get the candidate genes
@@ -51,7 +51,7 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
       distinct(geneID, sampleID)
     
     gw_top$geneID = sapply(strsplit(gw_top$geneID,';'),'[[',1)
-    origin = 'gw ASE gene'
+    origin = 'gw ASE candidate gene'
   }
   
   #format them to the candidate format.

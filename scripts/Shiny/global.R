@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 # 1. Load or Install packages
 # -----------------------------------------------------------------------------
-source('data/scripts/rnaseq_helper_functions.R')
+source(file.path(params$scriptsdir, 'rnaseq_helper_functions.R'))
 
 load_install_library(c('remotes','BiocManager','GenomeInfoDb','DT', 'plotly', 'tidyr', 'shiny', 'shinyjs', 'jsonlite', 'igvShiny', 'shinymanager',
              'GenomicAlignments', 'dplyr', 'ggtranscript', 'patchwork', 'Hmisc',
@@ -15,11 +15,6 @@ load_install_library(c('remotes','BiocManager','GenomeInfoDb','DT', 'plotly', 't
 # -----------------------------------------------------------------------------
 # 2. Parameters and theme
 # -----------------------------------------------------------------------------
-data_dir = if (exists("use_data_minimal") && use_data_minimal) "data_minimal" else "data"
-params = list(
-  datadir = file.path(getwd(), data_dir)
-)
-
 theme = bs_theme(
   version = 5,
   bootswatch = "cosmo",
@@ -87,4 +82,3 @@ gwFRASER = read.csv(file.path(params$datadir, 'gwFRASER.csv'), row.names = 1)
 report_version = read_json(file.path(params$datadir, '/VERSION.json'))
 report_version$data = params$zipfile
 
-logger::log_info("Global resources loaded")

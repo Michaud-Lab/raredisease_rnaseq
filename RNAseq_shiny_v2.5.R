@@ -5,23 +5,24 @@ use_data_minimal = "--data_minimal" %in% args
 use_password     = "--use_password"  %in% args
 
 # Resolve directories:
-data_dir = if (exists("use_data_minimal") && use_data_minimal) "data_minimal" else "data"
-scripts_dir = if (dir.exists(file.path(data_dir,"scripts"))) {
-  file.path(data_dir,"scripts")} else {
+params = list()
+params$datadir = if (exists("use_data_minimal") && use_data_minimal) "data_minimal" else "data"
+params$scriptsdir = if (dir.exists(file.path(params$datadir ,"scripts"))) {
+  file.path(params$datadir ,"scripts")} else {
   "scripts"
-}
+  }
 
 # source
-source(file.path(scripts_dir, "Shiny/global.R"))
-source(file.path(scripts_dir, "Shiny/rnaseq_shinyhelper_functions.R"))
-source(file.path(scripts_dir, "Shiny/reactive_module.R"))
+source(file.path(params$scriptsdir, "Shiny/global.R"))
+source(file.path(params$scriptsdir, "Shiny/rnaseq_shinyhelper_functions.R"))
+source(file.path(params$scriptsdir, "Shiny/reactive_module.R"))
 
 
 #####
 ##### Credentials (SQLite database — run scripts/Shiny/create_credentials_db.R once to create it)
 #####
 if (use_password) {
-  credentials_db = file.path(data_dir, "credentials.sqlite")
+  credentials_db = file.path(params$datadir, "credentials.sqlite")
   if (!file.exists(credentials_db))
     stop("Credentials database not found. Run: Rscript scripts/Shiny/create_credentials_db.R")
 }
@@ -496,7 +497,7 @@ server = function(input, output, session) {
     log_info(paste0('Selecting ~~~ ',selected_patient,' ~~~ ',selected_geneID,' ~~~ ',rd$i()))
     url = paste0("https://www.proteinatlas.org/", selected_ensembl)
     HTML(
-      paste0("<span><b>Notes: </b>",paste(selected_origin,', ',selected_clinical$Notes),
+      paste0("<span><b>Notes: </b>",selected_origin,', ',selected_clinical$Notes,
              "<br><br><b>Gene description for ",selected_geneID,": </b> <a href='", url, "' target='_self'>",selected_ensembl,"</a>",
              "<br><br><b>Mutations: </b>",selected_clinical$Mutation,
              "<br><br><b>Candidate Gene hypothesis: </b>",selected_clinical$Hypothèse,
@@ -537,7 +538,8 @@ server = function(input, output, session) {
   output$Version = renderDT({
     datatable(
       data.frame(Parameter=names(unlist(report_version)),Value=unlist(report_version)),
-      rownames = FALSE,options = list(dom = 'p'))
+      rownames = FALSE,options = list(dom = 'p'),columnDefs = list(list(className = 'dt-left', targets = '_all')))
+    
   })
 
   ### Candidate genes table

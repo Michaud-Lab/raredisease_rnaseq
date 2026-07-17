@@ -3,7 +3,7 @@
 #   fc_genes_raw_ALL - data.frame: raw gene counts with columns geneID, ensemblID, then one column per sample
 #   hb_genes         - character vector: gene names to include (default: HBA1, HBA2, HBB, HBG1, HBG2)
 plot_hb_fraction = function(fc_genes_raw_ALL,
-                            hb_genes = c('HBA1', 'HBA2', 'HBB', 'HBG1', 'HBG2','HBD')) {
+                            hb_genes = c('HBA1', 'HBA2', 'HBB', 'HBG1', 'HBG2','HBD','HBM','HBZ','HBE','HBQ')) {
   non_sample_cols = c('geneID', 'ensemblID', 'Length')
   sample_cols = !colnames(fc_genes_raw_ALL) %in% non_sample_cols
   hb = fc_genes_raw_ALL[fc_genes_raw_ALL$geneID %in% hb_genes, ]
