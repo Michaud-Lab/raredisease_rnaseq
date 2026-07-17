@@ -1,7 +1,6 @@
 # =============================================================================
 # Generate automatically new candidate genes based on FRASER, OUTRIDER, ASE.
 # =============================================================================
-
 candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASER.csv')){
   #Generate the gene annotation  
   gene_annotations = gene_annotation(full =T)
@@ -105,7 +104,6 @@ load_install_library = function(packages,silent = T) {
 # =============================================================================
 # rnaseq_helper_functions.R - Helper functions for featureCounts processing
 # =============================================================================
-
 # gene_annotation: fetch exon-level gene models from Ensembl via biomaRt
 # Returns a list: [[1]] GRanges of exons, [[2]] GRanges of gene bodies
 gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcriptID),

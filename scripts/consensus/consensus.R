@@ -19,16 +19,6 @@ params$ref_annot = args[4]
 # 2. candidate genes to run
 # -----------------------------------------------------------------------------
 candidates = read.csv(file.path(params$workdir, 'data/input/candidate_genes_ALL.csv'))
-#candidates_extra = read.table(file.path(params$workdir, 'data/input/candidate_genes_extra.csv'),comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
-#candidates_extra = candidates_extra[, colnames(candidates)]
-
-#if(file.exists(file.path(params$workdir, 'data/input/candidate_genes_automated.csv'))) {
-#  candidate_genes_automated = read.csv(file.path(params$workdir, 'data/input/candidate_genes_automated.csv'));candidate_genes_automated[is.na(candidate_genes_automated)] = ''
-#} else {candidate_genes_automated = NULL}
-
-#candidates = rbind(candidates,candidates_extra,candidate_genes_automated) %>%
-#  distinct(geneID,ensembl, proband, .keep_all = TRUE)
-
 
 # -----------------------------------------------------------------------------
 # 3. consensus_pipeline function
@@ -52,10 +42,8 @@ consensus_pipeline = function(candidates = candidates, i = 1){
   params$region = paste0('chr',chr,":",candidates$start[i],"-",candidates$stop[i])
   params$fasta_out = paste0(params$consensus,'gene',params$geneID,'_',candidates$proband[i],".fasta")
   
-  # -----------------------------------------------------------------------------
-  # 2. Build consensus sequence
-  # -----------------------------------------------------------------------------
-  if (params$geneID != "") {
+  # Build consensus sequence
+  if (params$geneID != "" & (length(params$transcript) > 0)) {
     command = paste('./consensus.sh', params$geneID, params$transcript, params$ref_file,
                     params$ref_annot, params$out_dir, params$bam_file, params$consensus, params$region)
     
@@ -158,12 +146,13 @@ consensus_pipeline = function(candidates = candidates, i = 1){
       print(paste0('Sample ~~~ ', i, ' already exists ~~~ Time is: ', Sys.time()))
     }
   } else {
-    print(paste0('Sample ~~~ ', i, ' did not contain a candidate gene ~~~ Time is: ', Sys.time()))
+    print(paste0('Sample ~~~ ', i, ' did not contain a candidate (coding) gene ~~~ Time is: ', Sys.time()))
   }
 }
 
-
-###run the consensus_pipeline()
+# -----------------------------------------------------------------------------
+# 3. Run the consensus_pipeline()
+# -----------------------------------------------------------------------------
 for(i in 1 : nrow(candidates)){consensus_pipeline(candidates,i=i)}
 
 

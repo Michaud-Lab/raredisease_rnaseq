@@ -1,10 +1,6 @@
 # =============================================================================
 # fraser.R - Per-candidate-gene splicing analysis with FRASER
 # =============================================================================
-
-
-
-
 # -----------------------------------------------------------------------------
 # 1. Arguments and parameters
 # -----------------------------------------------------------------------------
@@ -25,15 +21,6 @@ options(scipen = 999)
 # 2. candidate genes to run
 # -----------------------------------------------------------------------------
 candidates = read.csv(file.path(params$workdir, 'data/input/candidate_genes_ALL.csv'))
-#candidates_extra = read.table(file.path(params$workdir, 'data/input/candidate_genes_extra.csv'),comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
-#candidates_extra = candidates_extra[, colnames(candidates)]
-
-#if(file.exists(file.path(params$workdir, 'data/input/candidate_genes_automated.csv'))) {
-#  candidate_genes_automated = read.csv(file.path(params$workdir, 'data/input/candidate_genes_automated.csv'));candidate_genes_automated[is.na(candidate_genes_automated)] = ''
-#} else {candidate_genes_automated = NULL}
-
-#candidates = rbind(candidates,candidates_extra,candidate_genes_automated) %>%
-#  distinct(geneID,ensembl, proband, .keep_all = TRUE)
 
 # -----------------------------------------------------------------------------
 # 3. fraser_pipeline function
@@ -174,6 +161,8 @@ fraser_pipeline = function(candidates = candidates, i = 1){
   }
 }
 
-###run the fraser_pipeline()
+# -----------------------------------------------------------------------------
+# 4. Run the fraser_pipeline() function
+#
 print(paste0('RUNNING fraser_pipeline() ~~~ ', nrow(candidates), ', samples. ~~~ Time is: ', Sys.time()))
 for(i in 1 : nrow(candidates)){fraser_pipeline(candidates,i=i)}
