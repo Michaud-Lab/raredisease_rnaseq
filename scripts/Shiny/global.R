@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 source(file.path(params$scriptsdir, 'rnaseq_helper_functions.R'))
 
-load_install_library(c('remotes','BiocManager','GenomeInfoDb','DT', 'plotly', 'tidyr', 'shiny', 'shinyjs', 'jsonlite', 'igvShiny', 'shinymanager',
+load_install_library(c('remotes','BiocManager','GenomeInfoDb','DT', 'reactable', 'plotly', 'tidyr', 'shiny', 'shinyjs', 'jsonlite', 'igvShiny', 'shinymanager',
              'GenomicAlignments', 'dplyr', 'ggtranscript', 'patchwork', 'Hmisc',
              'bslib', 'RColorBrewer', 'ggrepel', 'R.utils', 'logger', 'rtracklayer'))
 
@@ -63,7 +63,7 @@ transcripts_named_filtered = read.csv(file.path(params$datadir, 'transcripts_nam
 transcripts_named_filtered_ggplot = read.csv(file.path(params$datadir, 'transcripts_named_filtered_ggplot.tsv'), sep = '\t', check.names = FALSE)
 
 fc_exons_tpm_ggplot = read.csv(file.path(params$datadir, 'fc_exons_tpm_ggplot.tsv'), sep = '\t', check.names = FALSE)
-candidates = read.csv(file.path(params$datadir, 'input/candidate_genes_ALL.csv'))
+candidates = read.csv(file.path(params$datadir, 'input/candidate_genes_ALL.csv'), check.names = FALSE)
 #candidates_extra = read.table(file.path(params$datadir, 'input/candidate_genes_extra.csv'),comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
 #candidates_extra = candidates_extra[, colnames(candidates)]
 #candidates = candidates[!grepl('bc',candidates$proband),]

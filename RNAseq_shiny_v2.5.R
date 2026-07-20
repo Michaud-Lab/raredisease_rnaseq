@@ -46,22 +46,13 @@ app_ui = page_fluid(
     ###  Selection & Info
     tabPanel('Proband Selection',
              card(
-               layout_columns(
-                 col_widths = c(7,5),
-                 div(
-                   selectInput(
-                     inputId = "proband",
-                     label = h4("Select a proband:"),
-                     choices = sort(unique(candidates$proband)),
-                     selected = 'HSJ_001_03_PAX'),
-                   reactive_data_UI("reactive_data"),
-                   div(imageOutput("mainimage"), class = "text-center")
-                 ),
-                 div(
-                   h4("Search genes/probands:"),
-                   DTOutput("candidates_table")
-                 )
-               )
+               selectInput(
+                 inputId = "proband",
+                 label = h4("Select a proband:"),
+                 choices = sort(unique(candidates$proband)),
+                 selected = 'HSJ_001_03_PAX'),
+               reactive_data_UI("reactive_data"),
+               div(imageOutput("mainimage"), class = "text-center")
              ),
              card(
                card_header(strong("Information")),
@@ -69,6 +60,15 @@ app_ui = page_fluid(
              card(
                card_header(strong("Software Version")),
                DTOutput("Version")
+             )
+    ),
+
+    ### Summary
+    tabPanel('Summary',
+             card(
+               card_header(strong("Search genes/probands")),
+               reactableOutput("candidates_table"),
+               height = "1200px"
              )
     ),
 
@@ -490,7 +490,7 @@ server = function(input, output, session) {
     selected_ensembl = candidates$ensembl[rd$i()]
     selected_geneID = candidates$geneID[rd$i()]
     selected_patient = candidates$proband[rd$i()]
-    selected_origin = candidates$origin[rd$i()]
+    selected_origin = candidates$Criteria[rd$i()]
     selected_clinical = clinical[clinical$`Patient ID` == selected_patient,]
     selected_bam = paste0(params$datadir,'/bams_subset/gene',selected_geneID,'_chr',candidates$chromosome[rd$i()],'_',candidates$start[rd$i()]-5000,'_',candidates$stop[rd$i()]+5000,'/',selected_patient,"_sorted_chrN.bam")
     if(selected_geneID == "") selected_bam = ''
@@ -543,16 +543,52 @@ server = function(input, output, session) {
   })
 
   ### Candidate genes table
-  output$candidates_table = renderDT({
-    tbl = candidates %>%
+  output$candidates_table = renderReactable({
+    detail_cols = c('geneID', 'Criteria', 'Hypothèse', 'Mutation')
+
+    full = candidates %>%
+      select(proband, geneID, Criteria, Age = `Âge (années)`, Sexe, Hypothèse, `HPO terms`, Mutation) %>%
+      arrange(proband, geneID) %>%
+      mutate(across(c(Age, Sexe, Hypothèse, `HPO terms`, Mutation), ~ ifelse(is.na(.x), '', .x)))
+
+    first_non_na = function(x) {
+      valid = x[!is.na(x) & x != '']
+      if (length(valid) == 0) '' else valid[1]
+    }
+
+    summary_tbl = full %>%
       group_by(proband) %>%
-      summarise(geneID = paste(geneID, collapse = ', '), .groups = 'drop') %>%
+      summarise(
+        Genes = n(),
+        Age = first_non_na(Age),
+        Sexe = first_non_na(Sexe),
+        `HPO terms` = first_non_na(`HPO terms`),
+        .groups = 'drop'
+      ) %>%
       arrange(proband)
-    datatable(
-      tbl,
-      rownames = FALSE,
-      options = list(pageLength = 6,
-                     columnDefs = list(list(className = 'dt-left', targets = '_all'))))
+
+    reactable(
+      summary_tbl,
+      columns = list(
+        proband = colDef(name = 'Proband',width = 150),
+        Genes   = colDef(name = 'Genes', align = 'left', width = 100),
+        Age     = colDef(name = 'Age', align = 'left', width = 100),
+        Sexe    = colDef(name = 'Sexe', align = 'left', width = 100),
+        `HPO terms` = colDef(name = 'HPO terms', align = 'left')
+      ),
+      details = function(index) {
+        proband_genes = full[full$proband == summary_tbl$proband[index], detail_cols]
+        htmltools::div(
+          style = "padding: 8px 12px 8px 40px",
+          reactable(proband_genes, outlined = TRUE, fullWidth = TRUE, rowStyle = list(background = "#fcc95b"))
+        )
+      },
+      searchable = TRUE,
+      striped = TRUE,
+      highlight = TRUE,
+      bordered = TRUE,
+      defaultPageSize = 100
+    )
   })
 
   # Search gene expression — populate choices server-side to avoid sending 20k options to browser

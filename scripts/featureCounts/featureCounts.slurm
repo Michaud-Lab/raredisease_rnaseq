@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --time=02:00:00
-#SBATCH --mem=32G
+#SBATCH --mem=64G
 #SBATCH --account=def-rallard
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=16

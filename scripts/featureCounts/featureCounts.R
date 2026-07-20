@@ -31,7 +31,6 @@ ensembl_geneid = read.table(params$ens_gene,header = TRUE)
 candidates_original = read.csv(params$candidate_genes)
 candidates_extra = read.table(params$candidate_genes_extra,comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
 candidates_extra = candidates_extra[, colnames(candidates_original)]
-candidates_extra$origin = 'extra gene added by data analyst'
 
 candidate_genes_automated_list = list(NULL,NULL,NULL)
 gwfiles = c(paste0(params$datadir,c('/gwFRASER.csv','/gw_genes_OUTRIDER.tsv','/gwASE.tsv')))
@@ -41,14 +40,13 @@ for(i in 1:3)
   if(file.exists(gwfiles[i])){candidate_genes_automated_list[[i]] = candidate_genes_automated(gwfile = gwfiles[i])}
   }
 
-candidates_original$origin = 'original candidate gene'
-candidates_extra$origin = 'extra candidate gene'
+candidates_original$Criteria = 'Extra candidate added'
+candidates_extra$Criteria = 'Extra candidate added'
+
 
 candidates = rbind(candidates_original,candidates_extra,candidate_genes_automated_list[[1]],candidate_genes_automated_list[[2]],candidate_genes_automated_list[[3]]) %>%
+  arrange(order(Criteria)) %>% 
   distinct(geneID,ensembl, proband, .keep_all = TRUE)
-
-write.csv(candidates,file.path(params$datadir, 'input/candidate_genes_ALL.csv'),quote = T, row.names = F)
-
 
 # Clinical data
 clinical = readxl::read_xlsx(params$masterlog, sheet = 'Suivi - RNAseq', skip = 1)
@@ -60,6 +58,13 @@ clinical$age[clinical$`Âge (années)` == '0 (3 mois)'] = 0.25
 clinical$age[clinical$`Âge (années)` == '0 (9 mois)'] = 0.75
 clinical$PatientID = gsub('_PAX', '', clinical$`Patient ID`)
 clinical$Notes[is.na(clinical$Notes)] = ''
+clinical$geneID = clinical$Gène; clinical$geneID[grepl('analyse agno|N/A|Sans hypo',clinical$geneID) |is.na(clinical$geneID)] = ''
+
+candidates <- merge(candidates, clinical, by.x = c("proband", "geneID"), by.y = c("Patient ID", "geneID"),all.x = TRUE)
+candidates$Criteria[!is.na(candidates$Hypothèse)] = 'Original hypothesis'
+
+write.csv(candidates,file.path(params$datadir, 'input/candidate_genes_ALL.csv'),quote = T, row.names = F)
+
 
 
 # -----------------------------------------------------------------------------
