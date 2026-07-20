@@ -47,7 +47,7 @@ candidates_extra$origin = 'extra candidate gene'
 candidates = rbind(candidates_original,candidates_extra,candidate_genes_automated_list[[1]],candidate_genes_automated_list[[2]],candidate_genes_automated_list[[3]]) %>%
   distinct(geneID,ensembl, proband, .keep_all = TRUE)
 
-write.csv(candidates,file.path(params$datadir, 'input/candidate_genes_ALL.csv'),quote = F, row.names = F)
+write.csv(candidates,file.path(params$datadir, 'input/candidate_genes_ALL.csv'),quote = T, row.names = F)
 
 
 # Clinical data
