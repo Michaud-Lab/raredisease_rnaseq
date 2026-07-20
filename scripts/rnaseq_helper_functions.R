@@ -20,8 +20,8 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
       distinct(hgncSymbol, sampleID,.keep_all = T)
   
       gw_top$hgncSymbol = sapply(strsplit(gw_top$hgncSymbol,';'),'[[',1)
-      gw_top$origin = paste('gw FRASER pvalue = ',gw_top$padjust,', log2 ΔPSI = ',gw_top$deltaPsi,sep = ', ')
-      gw_top = gw_top[,c('hgncSymbol','sampleID','origin')]
+      gw_top$Criteria = paste('gw FRASER pvalue = ',gw_top$padjust,', log2 ΔPSI = ',gw_top$deltaPsi,sep = ', ')
+      gw_top = gw_top[,c('hgncSymbol','sampleID','Criteria')]
   }
   
   #get the candidate genes
@@ -34,8 +34,8 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
       distinct(geneID, sampleID,.keep_all = T)
     
     gw_top$geneID = sapply(strsplit(gw_top$geneID,';'),'[[',1)
-    gw_top$origin = paste('gw OUTRIDER, pvalue = ',signif(gw_top$pValue,2),', log2 FC = ',signif(gw_top$l2fc,2),sep = ', ')
-    gw_top = gw_top[,c('geneID','sampleID','origin')]
+    gw_top$Criteria = paste('gw OUTRIDER, pvalue = ',signif(gw_top$pValue,2),', log2 FC = ',signif(gw_top$l2fc,2),sep = ', ')
+    gw_top = gw_top[,c('geneID','sampleID','Criteria')]
   }
   
   #get the candidate genes
@@ -48,8 +48,8 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
       distinct(geneID, sampleID,.keep_all = T)
     
     gw_top$geneID = sapply(strsplit(gw_top$geneID,';'),'[[',1)
-    gw_top$origin = paste('gw ASE (at least 2 markers), pvalue = ',signif(gw_top$pvalue,2),', Read Depth = ',gw_top$RNA_DP,sep = ', ')
-    gw_top = gw_top[,c('geneID','sampleID','origin')]
+    gw_top$Criteria = paste('gw ASE (at least 2 markers), pvalue = ',signif(gw_top$pvalue,2),', Read Depth = ',gw_top$RNA_DP,sep = ', ')
+    gw_top = gw_top[,c('geneID','sampleID','Criteria')]
   }
   
   #format them to the candidate format.
