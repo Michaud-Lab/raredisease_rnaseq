@@ -544,10 +544,10 @@ server = function(input, output, session) {
 
   ### Candidate genes table
   output$candidates_table = renderReactable({
-    detail_cols = c('geneID', 'Chr', 'position', 'Criteria', 'Hypothèse', 'Mutation')
+    detail_cols = c('geneID', 'Chr', 'position', 'Criteria', 'Hypothèse', 'Mutation','FRASER','OUTRIDER','ASE')
 
     full = candidates %>%
-      select(proband, geneID, Criteria, Age = `Âge (années)`, Sexe, Hypothèse, `HPO terms`, Mutation,Chr = chromosome, start, stop) %>%
+      select(proband, geneID, Criteria, Age = `Âge (années)`, Sexe, Hypothèse, `HPO terms`, Mutation,Chr = chromosome, start, stop,FRASER,OUTRIDER,ASE) %>%
       arrange(proband, geneID) %>%
       mutate(across(c(Age, Sexe, Hypothèse, `HPO terms`, Mutation), ~ ifelse(is.na(.x), '', .x))) %>%
       mutate(position = paste0(round((start + stop) / 2000000,2),' Mb'))
@@ -585,9 +585,12 @@ server = function(input, output, session) {
                     columns = list(
                       Chr = colDef(width = 100),
                       position   = colDef(width = 100),
-		      geneID     = colDef(width = 100),
+		                  geneID     = colDef(width = 100),
                       Criteria   = colDef(width = 200),
- 		      Mutation   = colDef(width = 200)
+ 		                  Mutation   = colDef(width = 200),
+		                  FRASER = colDef(width = 200),
+		                  OUTRIDER = colDef(width = 200),
+		                  ASE = colDef(width = 200)
                     ))
         )
       },

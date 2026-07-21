@@ -39,10 +39,11 @@ for(i in 1:3)
 candidates_original$Criteria = 'Extra candidate added'
 candidates_extra$Criteria = 'Extra candidate added'
 
-
 candidates = rbind(candidates_original,candidates_extra,candidate_genes_automated_list[[1]],candidate_genes_automated_list[[2]],candidate_genes_automated_list[[3]]) %>%
   arrange(order(Criteria)) %>% 
   distinct(geneID,ensembl, proband, .keep_all = TRUE)
+
+candidates = candidate_genes_gw_annotations(candidates, gwfiles = gwfiles)
 
 # Clinical data
 clinical = readxl::read_xlsx(params$masterlog, sheet = 'Suivi - RNAseq', skip = 1)

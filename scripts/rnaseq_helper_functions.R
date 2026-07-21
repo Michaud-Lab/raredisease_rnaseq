@@ -1,4 +1,67 @@
 # =============================================================================
+# Pull statistics for all the candidate genes we have identified from: FRASER, OUTRIDER, ASE.
+# =============================================================================
+candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles) {
+  
+  candidates$FRASER = ''
+  candidates$OUTRIDER = ''
+  candidates$ASE = ''
+  
+ 
+  for(g in 1:3)
+  {
+    if(grepl('gwFRASER',gwfiles[g])) {sep = ','} else {sep = '\t'}
+    gw = read.csv(gwfiles[g], row.names = 1,sep = sep)
+    
+    #FRASER
+    if(grepl('gwFRASER',gwfiles[g])) {
+      gw = gw[!is.na(gw$hgncSymbol),]
+    
+      for(i in 1:nrow(candidates))
+        {
+          temp = 0
+          temp = gw[gw$sampleID == candidates$proband[i] & gw$hgncSymbol == candidates$geneID[i],]
+          
+          if(nrow(temp)>0) stats = paste0('gw FRASER padjust = ',min(temp$padjust),', ΔPSI = ',temp$deltaPsi[temp$padjust == min(temp$padjust)])
+          if(nrow(temp)>0)  candidates$FRASER[i] = stats[1]
+       }
+    }
+    
+    #OUTRIDER
+    if(grepl('OUTRIDER',gwfiles[g])) {
+      gw = gw[!is.na(gw$geneID),]
+      
+      for(i in 1:nrow(candidates))
+      {
+        temp = 0
+        temp = gw[gw$sampleID == candidates$proband[i] & gw$geneID == candidates$geneID[i],]
+        
+        if(nrow(temp)>0) stats = paste0('gw OUTRIDER padjust = ',min(temp$pValue),', log 2 FC = ',temp$l2fc[temp$pValue == min(temp$pValue)])
+        if(nrow(temp)>0)  candidates$OUTRIDER[i] = stats[1]
+      }
+    }
+    
+    #ASE
+    if(grepl('gwASE',gwfiles[g])) {
+      gw = gw[!is.na(gw$geneID),]
+      
+      for(i in 1:nrow(candidates))
+      {
+        temp = 0
+        temp = gw[gw$sampleID == candidates$proband[i] & gw$geneID == candidates$geneID[i],]
+        
+        if(nrow(temp)>0) stats = paste0('gw ASE (at least 2 markers), pvalue = ',signif(min(temp$pvalue),2),', Read Depth = ',temp$RNA_DP[temp$pvalue == min(temp$pvalue)])
+        if(nrow(temp)>0)  candidates$ASE[i] = stats[1]
+      }
+    }
+    print(paste0('Done ',gwfiles[g],' ~~~ Time is: ',Sys.time()))
+    }
+  return(candidates)
+}
+
+
+
+# =============================================================================
 # Generate automatically new candidate genes based on FRASER, OUTRIDER, ASE.
 # =============================================================================
 candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASER.csv')){
@@ -13,21 +76,21 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
   #get the candidate genes
   if(grepl('gwFRASER',gwfile)) {
     gw_top = gw %>%
-      filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ|^HBM", hgncSymbol), !is.na(hgncSymbol)) %>%
+      filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ|^HBM|^SELPLG", hgncSymbol), !is.na(hgncSymbol)) %>%
       group_by(sampleID) %>%
       filter(padjust < 0.0001) %>%
       slice_min(padjust, n = 5) %>%
       distinct(hgncSymbol, sampleID,.keep_all = T)
   
       gw_top$hgncSymbol = sapply(strsplit(gw_top$hgncSymbol,';'),'[[',1)
-      gw_top$Criteria = paste0('gw FRASER pvalue = ',gw_top$padjust,', log2 ΔPSI = ',gw_top$deltaPsi)
+      gw_top$Criteria = paste0('gw FRASER pvalue = ',gw_top$padjust,', ΔPSI = ',gw_top$deltaPsi)
       gw_top = gw_top[,c('hgncSymbol','sampleID','Criteria')]
   }
   
   #get the candidate genes
   if(grepl('OUTRIDER',gwfile)) {
     gw_top = gw %>%
-      filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ|^HBM", geneID), !is.na(geneID)) %>%
+      filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ|^HBM|^SELPLG", geneID), !is.na(geneID)) %>%
       group_by(sampleID) %>%
       filter(pValue < 0.000001) %>%
       slice_min(pValue, n = 2) %>%
@@ -41,7 +104,7 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
   #get the candidate genes
   if(grepl('gwASE',gwfile)) {
     gw_top = gw %>%
-      filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ|^HBM", geneID), !is.na(geneID)) %>%
+      filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ|^HBM|^SELPLG", geneID), !is.na(geneID)) %>%
       group_by(sampleID,geneID) %>%
       filter(pvalue < 1e-49) %>%
       dplyr::filter(dplyr::n() >= 2) %>%
