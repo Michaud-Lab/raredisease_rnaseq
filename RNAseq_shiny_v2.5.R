@@ -544,12 +544,13 @@ server = function(input, output, session) {
 
   ### Candidate genes table
   output$candidates_table = renderReactable({
-    detail_cols = c('geneID', 'Criteria', 'Hypothèse', 'Mutation')
+    detail_cols = c('geneID', 'Chr', 'position', 'Criteria', 'Hypothèse', 'Mutation')
 
     full = candidates %>%
-      select(proband, geneID, Criteria, Age = `Âge (années)`, Sexe, Hypothèse, `HPO terms`, Mutation) %>%
+      select(proband, geneID, Criteria, Age = `Âge (années)`, Sexe, Hypothèse, `HPO terms`, Mutation,Chr = chromosome, start, stop) %>%
       arrange(proband, geneID) %>%
-      mutate(across(c(Age, Sexe, Hypothèse, `HPO terms`, Mutation), ~ ifelse(is.na(.x), '', .x)))
+      mutate(across(c(Age, Sexe, Hypothèse, `HPO terms`, Mutation), ~ ifelse(is.na(.x), '', .x))) %>%
+      mutate(position = paste0(round((start + stop) / 2000000,2),' Mb'))
 
     first_non_na = function(x) {
       valid = x[!is.na(x) & x != '']
@@ -580,7 +581,14 @@ server = function(input, output, session) {
         proband_genes = full[full$proband == summary_tbl$proband[index], detail_cols]
         htmltools::div(
           style = "padding: 8px 12px 8px 40px",
-          reactable(proband_genes, outlined = TRUE, fullWidth = TRUE, rowStyle = list(background = "#fcc95b"))
+          reactable(proband_genes, outlined = TRUE, fullWidth = TRUE, rowStyle = list(background = "#fcc95b"),
+                    columns = list(
+                      Chr = colDef(width = 100),
+                      position   = colDef(width = 100),
+		      geneID     = colDef(width = 100),
+                      Criteria   = colDef(width = 200),
+ 		      Mutation   = colDef(width = 200)
+                    ))
         )
       },
       searchable = TRUE,
