@@ -5,16 +5,14 @@ genome_in=$2
 genome_out=$3
 bamdir=$4
 workdir=$5
-MANE=$6 
-candidate_genes=$7
-candidate_genes_LR="${12}"
-ens_gene=$8
-masterlog=$9
-fc_exons="${10}"
-fc_genes="${11}"
-candidate_genes_extra="${13}"
+MANE=$6
+ens_gene=$7
+masterlog=$8
+fc_exons=$9
+fc_genes="${10}"
 
-mkdir -p $workdir/featureCounts  
+mkdir -p $workdir/featureCounts
+
 
 #Prepare genome per exon if it does not exist.
 if [ ! -f "$genome_out" ]; then
@@ -76,8 +74,8 @@ fi
 #paste $workdir/featureCounts/feature_counts_perexon_pertranscript_SR.txt  <(cut -f7-  $workdir/featureCounts/feature_counts_perexon_pertranscript_LR.txt) >$workdir/featureCounts/feature_counts_perexon_pertranscript.txt
 
 #Rscript for data clean-up
-Rscript featureCounts.R $workdir $candidate_genes $ens_gene $masterlog $fc_exons $fc_genes $candidate_genes_LR $candidate_genes_extra
+Rscript featureCounts.R $workdir $ens_gene $masterlog $fc_exons $fc_genes
 
-#echo $workdir $candidate_genes $ens_gene $masterlog $fc_exons $fc_genes $candidate_genes_LR $candidate_genes_extra
+#echo $workdir $ens_gene $masterlog $fc_exons $fc_genes
 echo 'Done featureCounts.R Rscript'
 

@@ -7,16 +7,12 @@
 args = commandArgs(trailingOnly = TRUE)
 
 params = list(workdir = args[1])
-params$candidate_genes = args[2]
 params$FCdir = file.path(args[1],'featureCounts/')
 params$datadir = file.path(args[1],'data/')
-params$ens_gene = args[3]
-params$masterlog = args[4]
-params$fc_exons = args[5]
-params$fc_genes = args[6]
-params$candidate_genes_LR = args[7]
-params$candidate_genes_extra = args[8]
- 
+params$ens_gene = args[2]
+params$masterlog = args[3]
+params$fc_exons = args[4]
+params$fc_genes = args[5]
 # -----------------------------------------------------------------------------
 # 2. Load reference data
 # -----------------------------------------------------------------------------
@@ -28,8 +24,8 @@ load_install_library(c('readxl', 'tidyr', 'dplyr'))
 ensembl_geneid = read.table(params$ens_gene,header = TRUE)
 
 # candidate genes
-candidates_original = read.csv(params$candidate_genes)
-candidates_extra = read.table(params$candidate_genes_extra,comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
+candidates_original = read.csv(file.path(params$datadir,'input/candidate_genes.csv'))
+candidates_extra = read.table(file.path(params$datadir,'input/candidate_genes_extra.csv'),comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
 candidates_extra = candidates_extra[, colnames(candidates_original)]
 
 candidate_genes_automated_list = list(NULL,NULL,NULL)
@@ -126,7 +122,7 @@ colnames(fc_exons_raw_ALL) = gsub('_PAX','',colnames(fc_exons_raw_ALL))
 colnames(fc_exons_tpm) = gsub('_PAX','',colnames(fc_exons_tpm))
 
 # ggplot data formatting
-fc_exons_tpm_ggplot = merge(fc_exons_tpm,candidates[,c(1,3)],sort = FALSE)
+fc_exons_tpm_ggplot = merge(fc_exons_tpm,candidates[,c('geneID','proband')],sort = FALSE)
 fc_exons_tpm_ggplot$proband = gsub('_PAX','',fc_exons_tpm_ggplot$proband)
 fc_exons_tpm_ggplot = fc_exons_tpm_ggplot %>% pivot_longer(cols = c(6:(ncol(fc_exons_tpm_ggplot)-1)), names_to = 'PatientID',values_to = 'expression')
 fc_exons_tpm_ggplot = merge(fc_exons_tpm_ggplot,clinical[,colnames(clinical) %in% c('PatientID','Sexe','type','age')])
