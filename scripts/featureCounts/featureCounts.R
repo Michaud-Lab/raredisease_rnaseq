@@ -30,6 +30,7 @@ candidates_extra = candidates_extra[, colnames(candidates_original)]
 
 candidate_genes_automated_list = list(NULL,NULL,NULL)
 gwfiles = c(paste0(params$datadir,c('/gwFRASER.csv','/gw_genes_OUTRIDER.tsv','/gwASE.tsv')))
+candidatefiles = c(paste0(params$datadir,c('/gwFRASER.csv','/candidates_OUTRIDER.tsv','/gwASE.tsv')))
 
 #generate the candidates
 for(i in 1:3)
@@ -45,7 +46,7 @@ candidates = rbind(candidates_original,candidates_extra,candidate_genes_automate
   distinct(geneID,ensembl, proband, .keep_all = TRUE)
 
 #further annotate the candidates
-candidates = candidate_genes_gw_annotations(candidates, gwfiles = gwfiles)
+candidates = candidate_genes_gw_annotations(candidates, gwfiles = gwfiles, candidatefiles = candidatefiles)
 
 # Clinical data
 clinical = readxl::read_xlsx(params$masterlog, sheet = 'Suivi - RNAseq', skip = 1)

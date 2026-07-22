@@ -1,7 +1,7 @@
 # =============================================================================
 # Pull statistics for all the candidate genes we have identified from: FRASER, OUTRIDER, ASE.
 # =============================================================================
-candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles) {
+candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidatefiles = candidatefiles) {
   
   candidates$FRASER = ''
   candidates$OUTRIDER = ''
@@ -28,7 +28,7 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles) {
     #OUTRIDER
     if(g==2){
       gw = gw[!is.na(gw$geneID),]
-      OUT = read.table('data/candidates_OUTRIDER.tsv')
+      if(file.exists(candidatefiles[g])) {OUT = read.table(candidatefiles[g])} else {OUT = data.frame(sampleID = 0, geneID=0)}
       for(i in 1:nrow(candidates))
       {
         gw_temp = OUT_temp = 0

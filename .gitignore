@@ -6,6 +6,7 @@ scripts/**/.*
 
 #data directories
 /results*/
+/rnasplice_results/
 /consensus/
 /data_20*
 deprecated/

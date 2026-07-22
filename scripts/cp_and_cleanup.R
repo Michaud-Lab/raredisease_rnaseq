@@ -75,15 +75,8 @@ system(paste0('cp -r ', params$workdir, '/OUTRIDER/*OUTRIDER.tsv ', params$datad
 # -----------------------------------------------------------------------------
 # 7. Copy per-candidate BAM subsets, depth files, and FRASER results
 # -----------------------------------------------------------------------------
-candidates = read.csv(file.path(params$datadir, 'input/candidate_genes.csv'))
-candidates_LR = read.csv(file.path(params$datadir, 'input/candidate_genes_LR.csv'))
-candidates_LR = candidates_LR[, c(2, 3, 10, 4, 5, 6, 7, 8, 9)]
-colnames(candidates_LR) = colnames(candidates)
-candidates = rbind(candidates, candidates_LR)
+candidates = read.csv(file.path(params$datadir, 'input/candidate_genes_ALL.csv'))
 configs = read_json(file.path(params$datadir, 'input/configs.json'))
-candidates_extra = read.table(configs$general$candidate_genes_extra,comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
-candidates_extra = candidates_extra[, colnames(candidates)]
-candidates = rbind(candidates, candidates_extra)
 
 for (i in 1:nrow(candidates)) {
   gene_dir = paste0('bams_subset/gene', candidates$geneID[i],
@@ -141,7 +134,7 @@ transcripts_named_filtered = transcripts_named[transcripts_named$geneID %in% can
 transcripts_named_filtered = transcripts_named_filtered[,
   colnames(transcripts_named_filtered) %in% c('geneID', 'isoform/transcript', proband_ids)
 ]
-transcripts_named_filtered = merge(transcripts_named_filtered, candidates[, c(1, 3)], sort = FALSE)
+transcripts_named_filtered = merge(transcripts_named_filtered, candidates[, c('geneID','proband')], sort = FALSE)
 colnames(transcripts_named_filtered) = gsub('_PAX', '', colnames(transcripts_named_filtered))
 transcripts_named_filtered$proband = gsub('_PAX', '', transcripts_named_filtered$proband)
 
