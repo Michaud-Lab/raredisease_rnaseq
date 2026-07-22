@@ -37,8 +37,8 @@ for(i in 1:3)
   if(file.exists(gwfiles[i])){candidate_genes_automated_list[[i]] = candidate_genes_automated(gwfile = gwfiles[i])}
   }
 
-candidates_original$Criteria = 'Extra candidate added'
-candidates_extra$Criteria = 'Extra candidate added'
+candidates_original$Criteria = 'Extra candidate added manually'
+candidates_extra$Criteria = 'Extra candidate added manually'
 
 candidates = rbind(candidates_original,candidates_extra,candidate_genes_automated_list[[1]],candidate_genes_automated_list[[2]],candidate_genes_automated_list[[3]]) %>%
   arrange(order(Criteria)) %>% 
@@ -60,11 +60,9 @@ clinical$Notes[is.na(clinical$Notes)] = ''
 clinical$geneID = clinical$Gène; clinical$geneID[grepl('analyse agno|N/A|Sans hypo',clinical$geneID) |is.na(clinical$geneID)] = ''
 
 candidates <- merge(candidates, clinical, by.x = c("proband", "geneID"), by.y = c("Patient ID", "geneID"),all.x = TRUE)
-candidates$Criteria[!is.na(candidates$Hypothèse)] = 'Original hypothesis'
+candidates$Criteria[!is.na(candidates$Hypothèse)] = 'Targeted analysis'
 
 write.csv(candidates,file.path(params$datadir, 'input/candidate_genes_ALL.csv'),quote = T, row.names = F)
-
-
 
 # -----------------------------------------------------------------------------
 # 3. Load featureCounts output
