@@ -31,6 +31,7 @@ candidates_extra = candidates_extra[, colnames(candidates_original)]
 candidate_genes_automated_list = list(NULL,NULL,NULL)
 gwfiles = c(paste0(params$datadir,c('/gwFRASER.csv','/gw_genes_OUTRIDER.tsv','/gwASE.tsv')))
 
+#generate the candidates
 for(i in 1:3)
 {
   if(file.exists(gwfiles[i])){candidate_genes_automated_list[[i]] = candidate_genes_automated(gwfile = gwfiles[i])}
@@ -43,6 +44,7 @@ candidates = rbind(candidates_original,candidates_extra,candidate_genes_automate
   arrange(order(Criteria)) %>% 
   distinct(geneID,ensembl, proband, .keep_all = TRUE)
 
+#further annotate the candidates
 candidates = candidate_genes_gw_annotations(candidates, gwfiles = gwfiles)
 
 # Clinical data

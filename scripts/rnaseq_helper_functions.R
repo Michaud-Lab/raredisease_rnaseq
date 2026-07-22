@@ -10,25 +10,23 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles) {
  
   for(g in 1:3)
   {
-    if(grepl('gwFRASER',gwfiles[g])) {sep = ','} else {sep = '\t'}
-    gw = read.csv(gwfiles[g], row.names = 1,sep = sep)
-    
+    gw = read.csv(gwfiles[g], row.names = 1,sep = ifelse(g ==1 , ',','\t'))
     #FRASER
-    if(grepl('gwFRASER',gwfiles[g])) {
+    if(g==1){
       gw = gw[!is.na(gw$hgncSymbol),]
     
-      for(i in 1:nrow(candidates))
-        {
-          temp = 0
-          temp = gw[gw$sampleID == candidates$proband[i] & gw$hgncSymbol == candidates$geneID[i],]
+        for(i in 1:nrow(candidates))
+          {
+            temp = 0
+            temp = gw[gw$sampleID == candidates$proband[i] & gw$hgncSymbol == candidates$geneID[i],]
           
-          if(nrow(temp)>0) stats = paste0('gw FRASER padjust = ',min(temp$padjust),', ΔPSI = ',temp$deltaPsi[temp$padjust == min(temp$padjust)])
-          if(nrow(temp)>0)  candidates$FRASER[i] = stats[1]
-       }
+            if(nrow(temp)>0) stats = paste0('padj = ',signif(min(temp$padjust),2),', ΔPSI = ',temp$deltaPsi[temp$padjust == min(temp$padjust)])
+            if(nrow(temp)>0)  candidates$FRASER[i] = stats[1]
+        }
     }
     
     #OUTRIDER
-    if(grepl('OUTRIDER',gwfiles[g])) {
+    if(g==2){
       gw = gw[!is.na(gw$geneID),]
       
       for(i in 1:nrow(candidates))
@@ -36,13 +34,13 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles) {
         temp = 0
         temp = gw[gw$sampleID == candidates$proband[i] & gw$geneID == candidates$geneID[i],]
         
-        if(nrow(temp)>0) stats = paste0('gw OUTRIDER padjust = ',min(temp$pValue),', log 2 FC = ',temp$l2fc[temp$pValue == min(temp$pValue)])
+        if(nrow(temp)>0) stats = paste0('padj = ',signif(min(temp$pValue),2),', log 2 FC = ',temp$l2fc[temp$pValue == min(temp$pValue)])
         if(nrow(temp)>0)  candidates$OUTRIDER[i] = stats[1]
       }
     }
     
     #ASE
-    if(grepl('gwASE',gwfiles[g])) {
+    if(g==3){
       gw = gw[!is.na(gw$geneID),]
       
       for(i in 1:nrow(candidates))
@@ -50,10 +48,11 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles) {
         temp = 0
         temp = gw[gw$sampleID == candidates$proband[i] & gw$geneID == candidates$geneID[i],]
         
-        if(nrow(temp)>0) stats = paste0('gw ASE (at least 2 markers), pvalue = ',signif(min(temp$pvalue),2),', Read Depth = ',temp$RNA_DP[temp$pvalue == min(temp$pvalue)])
+        if(nrow(temp)>0) stats = paste0('pval = ',signif(min(temp$pvalue),2),', Read Depth = [',temp$RNA_DP[temp$pvalue == min(temp$pvalue)],']')
         if(nrow(temp)>0)  candidates$ASE[i] = stats[1]
       }
     }
+    
     print(paste0('Done ',gwfiles[g],' ~~~ Time is: ',Sys.time()))
     }
   return(candidates)
