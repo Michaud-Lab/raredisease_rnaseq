@@ -28,14 +28,18 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles) {
     #OUTRIDER
     if(g==2){
       gw = gw[!is.na(gw$geneID),]
-      
+      OUT = read.table('data/candidates_OUTRIDER.tsv')
       for(i in 1:nrow(candidates))
       {
-        temp = 0
-        temp = gw[gw$sampleID == candidates$proband[i] & gw$geneID == candidates$geneID[i],]
+        gw_temp = OUT_temp = 0
+        gw_temp = gw[gw$sampleID == candidates$proband[i] & gw$geneID == candidates$geneID[i],]
+        OUT_temp = OUT[OUT$sampleID == candidates$proband[i] & OUT$geneID == candidates$geneID[i],]
         
-        if(nrow(temp)>0) stats = paste0('padj = ',signif(min(temp$pValue),2),', log 2 FC = ',temp$l2fc[temp$pValue == min(temp$pValue)])
-        if(nrow(temp)>0)  candidates$OUTRIDER[i] = stats[1]
+        if(nrow(gw_temp)>0) {temp = gw_temp} else{temp = OUT_temp}
+        
+        if(nrow(temp)>0) {
+          stats = paste0('padj = ',signif(min(temp$pValue),2),', log 2 FC = ',temp$l2fc[temp$pValue == min(temp$pValue)]);
+          candidates$OUTRIDER[i] = stats[1]} 
       }
     }
     
@@ -82,7 +86,7 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
       distinct(hgncSymbol, sampleID,.keep_all = T)
   
       gw_top$hgncSymbol = sapply(strsplit(gw_top$hgncSymbol,';'),'[[',1)
-      gw_top$Criteria = paste0('gw FRASER pvalue = ',gw_top$padjust,', ΔPSI = ',gw_top$deltaPsi)
+      gw_top$Criteria = 'Automated analysis (gw FRASER)'
       gw_top = gw_top[,c('hgncSymbol','sampleID','Criteria')]
   }
   
@@ -96,7 +100,7 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
       distinct(geneID, sampleID,.keep_all = T)
     
     gw_top$geneID = sapply(strsplit(gw_top$geneID,';'),'[[',1)
-    gw_top$Criteria = paste0('gw OUTRIDER, pvalue = ',signif(gw_top$pValue,2),', log2 FC = ',signif(gw_top$l2fc,2))
+    gw_top$Criteria = 'Automated analysis (gw OUTRIDER)'
     gw_top = gw_top[,c('geneID','sampleID','Criteria')]
   }
   
@@ -110,7 +114,7 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
       distinct(geneID, sampleID,.keep_all = T)
     
     gw_top$geneID = sapply(strsplit(gw_top$geneID,';'),'[[',1)
-    gw_top$Criteria = paste0('gw ASE (at least 2 markers), pvalue = ',signif(gw_top$pvalue,2),', Read Depth = ',gw_top$RNA_DP)
+    gw_top$Criteria = 'Automated analysis (gw ASE, at least 2 signif. markers)'
     gw_top = gw_top[,c('geneID','sampleID','Criteria')]
   }
   
