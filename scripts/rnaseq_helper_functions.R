@@ -1,13 +1,47 @@
 # =============================================================================
 # Pull statistics for all the candidate genes we have identified from: FRASER, OUTRIDER, ASE.
 # =============================================================================
-candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidatefiles = candidatefiles) {
+candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidatefiles = candidatefiles,datadir = getwd(),hpo_all='genes_to_phenotype.txt') {
   
+  #
   candidates$FRASER = ''
   candidates$OUTRIDER = ''
   candidates$ASE = ''
+  candidates$HPOmatches = ''
   
- 
+  #hpo terms
+  hpo_all = file.path("../../tmp",hpo_all)
+  if(!file.exists(hpo_all)) {
+    dir.create("../../tmp",showWarnings = FALSE)
+    download.file(url='https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/genes_to_phenotype.txt',dest=hpo_all)
+  } else {print(paste0('file ', hpo_all,' exists'))}
+  if(!exists('hpo')) hpo = read.delim(hpo_all)
+  hpo = hpo %>% distinct(gene_symbol,hpo_id,.keep_all = T)
+  
+  for(i in 1:nrow(candidates))
+    {
+    #clinical HPO terms for proband
+    hpo_proband = candidates$`HPO terms`[candidates$proband == candidates$proband[i]]
+    hpo_proband = hpo_proband[!is.na(hpo_proband)][1]
+    hpo_temp = strsplit(hpo_proband,split = '||',fixed = TRUE)[[1]]
+    hpo_temp = unlist(strsplit(hpo_temp,split = ': '))
+    hpo_temp = hpo_temp[grepl('HP:',hpo_temp)]
+    hpo_temp = gsub(' ','',hpo_temp)
+  
+    #HPO terms for candidate gene
+    hpo_gene = hpo[hpo$gene_symbol == candidates$geneID[i],]
+  
+    #clinical HPO proband terms vs gene HPO terms.
+    hpo_match = hpo_gene[hpo_gene$hpo_id %in% hpo_temp,] 
+    hpo_match = paste0(paste(hpo_match[[3]],hpo_match[[4]],sep = ': '),collapse = ' || ')
+
+    #match
+    candidates$HPOmatches[i] = hpo_match
+  }
+    
+    
+    
+    
   for(g in 1:3)
   {
     gw = read.csv(gwfiles[g], row.names = 1,sep = ifelse(g ==1 , ',','\t'))
@@ -20,7 +54,7 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
             gw = resdt = data.frame(sampleID = 0, hgncSymbol=0)
             gw_temp = gw[gw$sampleID == candidates$proband[i] & gw$hgncSymbol == candidates$geneID[i],]
           
-            resdt_file = paste0('data/bams_subset/gene',
+            resdt_file = paste0(datadir,'/bams_subset/gene',
                                 candidates$geneID[i],
                                 '_chr',
                                 candidates$chromosome[i],

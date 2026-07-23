@@ -544,7 +544,7 @@ server = function(input, output, session) {
 
   ### Candidate genes table
   output$candidates_table = renderReactable({
-    detail_cols = c('geneID', 'Chr', 'position', 'Criteria', 'Hypothèse', 'Mutation','FRASER','OUTRIDER','ASE')
+    detail_cols = c('geneID', 'Chr', 'position', 'Criteria', 'Hypothèse','HPOmatches','Mutation','FRASER','OUTRIDER','ASE')
 
     full = candidates %>%
       select(proband, geneID, Criteria, Age = `Âge (années)`, Sexe, Hypothèse, `HPO terms`, Mutation,Chr = chromosome, start, stop,FRASER,OUTRIDER,ASE) %>%
@@ -586,11 +586,12 @@ server = function(input, output, session) {
                       Chr = colDef(width = 100),
                       position   = colDef(width = 100),
 		                  geneID     = colDef(width = 100),
-                      Criteria   = colDef(width = 200),
- 		                  Mutation   = colDef(width = 200),
-		                  FRASER = colDef(width = 200),
-		                  OUTRIDER = colDef(width = 200),
-		                  ASE = colDef(width = 200)
+                      Criteria   = colDef(width = 150),
+ 		                  Mutation   = colDef(width = 150), 
+		                  HPOmatches = colDef(width = 200),
+		                  FRASER = colDef(width = 150),
+		                  OUTRIDER = colDef(width = 150),
+		                  ASE = colDef(width = 100)
                     ))
         )
       },
