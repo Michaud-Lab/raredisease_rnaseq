@@ -10,9 +10,8 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
   candidates$HPOmatches = ''
   
   #hpo terms
-  hpo_all = file.path("../../tmp",hpo_all)
   if(!file.exists(hpo_all)) {
-    dir.create("../../tmp",showWarnings = FALSE)
+    dir.create(dirname(hpo_all),showWarnings = FALSE)
     download.file(url='https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/genes_to_phenotype.txt',dest=hpo_all)
   } else {print(paste0('file ', hpo_all,' exists'))}
   if(!exists('hpo')) hpo = read.delim(hpo_all)

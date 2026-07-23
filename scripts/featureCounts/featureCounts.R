@@ -46,7 +46,7 @@ candidates = rbind(candidates_original,candidates_extra,candidate_genes_automate
   distinct(geneID,ensembl, proband, .keep_all = TRUE)
 
 #further annotate the candidates
-candidates = candidate_genes_gw_annotations(candidates, gwfiles = gwfiles, candidatefiles = candidatefiles, datadir = params$datadir)
+candidates = candidate_genes_gw_annotations(candidates, gwfiles = gwfiles, candidatefiles = candidatefiles, datadir = params$datadir,hpo_all = file.path(params$workdir,'tmp/genes_to_phenotype.txt'))
 
 # Clinical data
 clinical = readxl::read_xlsx(params$masterlog, sheet = 'Suivi - RNAseq', skip = 1)
