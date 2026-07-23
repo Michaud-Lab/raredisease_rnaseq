@@ -40,7 +40,7 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
     
     
     
-    
+  #annotate 
   for(g in 1:3)
   {
     gw = read.csv(gwfiles[g], row.names = 1,sep = ifelse(g ==1 , ',','\t'))
@@ -116,9 +116,9 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
 # =============================================================================
 # Generate automatically new candidate genes based on FRASER, OUTRIDER, ASE.
 # =============================================================================
-candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASER.csv')){
+candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASER.csv'),tmpdir = tmpdir){
   #Generate the gene annotation  
-  gene_annotations = gene_annotation(full =T)
+  gene_annotations = gene_annotation(full = T,tmpdir = tmpdir)
   
   #Load files
   if(grepl('gwFRASER',gwfile)) {sep = ','} else {sep = '\t'}
@@ -220,16 +220,21 @@ load_install_library = function(packages,silent = T) {
 # gene_annotation: fetch exon-level gene models from Ensembl via biomaRt
 # Returns a list: [[1]] GRanges of exons, [[2]] GRanges of gene bodies
 gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcriptID),
-                           candidates = candidates, full = F){
+                           candidates = candidates, full = F,tmpdir = 'tmp'){
 
   load_install_library(c('biomaRt', 'ggbio', 'GenomicAlignments'))
 
-  # Connect to Ensembl and select the human dataset for hg38 (GRCh38)
-  ensembl = biomaRt::useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", mirror = 'useast')
+    if(file.exists(!file.path(tmpdir,'ensembl_genes.csv'))){
+    # Connect to Ensembl and select the human dataset for hg38 (GRCh38)
+    ensembl = biomaRt::useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", mirror = 'useast')
 
-  # Get gene annotations
-  genes = biomaRt::getBM(attributes = c("chromosome_name", "start_position", "end_position",
+    # Get gene annotations
+    genes = biomaRt::getBM(attributes = c("chromosome_name", "start_position", "end_position",
                                 "strand", "ensembl_gene_id", "hgnc_symbol", "gene_biotype"),mart = ensembl)
+    
+    #save it
+    write.table(genes,file.path(tmpdir,'ensembl_genes.csv'),sep = '\t')} else {genes = read.table(file.path(tmpdir,'ensembl_genes.csv'))}
+
 
   # Subset to standard chromosomes (exclude scaffolds and patches)
   genes = genes[genes$chromosome_name %in% c(1:22,'X','Y','MT'),]
@@ -244,6 +249,8 @@ gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcript
 
   # Preview result
   if(full == F) {
+    ensembl = biomaRt::useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", mirror = 'useast')
+    
     wh = gr[gr$symbol %in% candidates$geneID[candidates$geneID !=""]]
     wh = wh[wh@seqnames %in% paste0('chr',candidates$chromosome),]
   

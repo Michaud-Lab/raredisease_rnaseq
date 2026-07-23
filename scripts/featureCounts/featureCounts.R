@@ -35,7 +35,7 @@ candidatefiles = c(paste0(params$datadir,c('/gwFRASER.csv','/candidates_OUTRIDER
 #generate the candidates
 for(i in 1:3)
 {
-  if(file.exists(gwfiles[i])){candidate_genes_automated_list[[i]] = candidate_genes_automated(gwfile = gwfiles[i])}
+  if(file.exists(gwfiles[i])){candidate_genes_automated_list[[i]] = candidate_genes_automated(gwfile = gwfiles[i],tmpdir = file.path(params$workdir,'tmp'))}
   }
 
 candidates_original$Criteria = 'Extra candidate added manually'
