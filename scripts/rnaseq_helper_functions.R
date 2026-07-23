@@ -17,7 +17,7 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
     
         for(i in 1:nrow(candidates))
           {
-            gw_temp = resdt = temp = 0
+            gw = resdt = data.frame(sampleID = 0, hgncSymbol=0)
             gw_temp = gw[gw$sampleID == candidates$proband[i] & gw$hgncSymbol == candidates$geneID[i],]
           
             resdt_file = paste0('data/bams_subset/gene',
@@ -48,7 +48,7 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
       if(file.exists(candidatefiles[g])) {OUT = read.table(candidatefiles[g])} else {OUT = data.frame(sampleID = 0, geneID=0)}
       for(i in 1:nrow(candidates))
       {
-        gw_temp = OUT_temp = 0
+        gw_temp = OUT_temp = data.frame(sampleID = 0, geneID=0)
         gw_temp = gw[gw$sampleID == candidates$proband[i] & gw$geneID == candidates$geneID[i],]
         OUT_temp = OUT[OUT$sampleID == candidates$proband[i] & OUT$geneID == candidates$geneID[i],]
         
