@@ -45,9 +45,6 @@ candidates = rbind(candidates_original,candidates_extra,candidate_genes_automate
   arrange(order(Criteria)) %>% 
   distinct(geneID,ensembl, proband, .keep_all = TRUE)
 
-#further annotate the candidates
-candidates = candidate_genes_gw_annotations(candidates, gwfiles = gwfiles, candidatefiles = candidatefiles, datadir = params$datadir,hpo_all = file.path(params$workdir,'tmp/genes_to_phenotype.txt'))
-
 # Clinical data
 clinical = readxl::read_xlsx(params$masterlog, sheet = 'Suivi - RNAseq', skip = 1)
 clinical$type = "Parent"
@@ -62,6 +59,10 @@ clinical$geneID = clinical$Gène; clinical$geneID[grepl('analyse agno|N/A|Sans h
 
 candidates <- merge(candidates, clinical, by.x = c("proband", "geneID"), by.y = c("Patient ID", "geneID"),all.x = TRUE)
 candidates$Criteria[!is.na(candidates$Hypothèse)] = 'Targeted analysis'
+
+
+#further annotate the candidates
+candidates = candidate_genes_gw_annotations(candidates, gwfiles = gwfiles, candidatefiles = candidatefiles, datadir = params$datadir,hpo_all = file.path(params$workdir,'tmp/genes_to_phenotype.txt'))
 
 write.csv(candidates,file.path(params$datadir, 'input/candidate_genes_ALL.csv'),quote = T, row.names = F)
 
@@ -167,7 +168,7 @@ fc_genes_raw = fc_genes_raw[fc_genes_raw$geneID %in% candidates$geneID, ]
 # -----------------------------------------------------------------------------
 # 6. Gene model annotation and save outputs
 # -----------------------------------------------------------------------------
-gene_annotations = gene_annotation(unique_transcript_id = unique(fc_exons_raw$transcriptID),candidates = candidates)
+gene_annotations = gene_annotation(unique_transcript_id = unique(fc_exons_raw$transcriptID),candidates = candidates,tmpdir = file.path(params$workdir,'tmp'))
 save(gene_annotations, file= file.path(params$FCdir,"gene_annotations.rda"))
 
 write.table(fc_genes_raw,file.path(params$FCdir,'fc_genes_raw.tsv'),sep = '\t',quote = FALSE)

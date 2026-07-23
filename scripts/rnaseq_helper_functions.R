@@ -15,8 +15,9 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
     download.file(url='https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/genes_to_phenotype.txt',dest=hpo_all)
   } else {print(paste0('file ', hpo_all,' exists'))}
   if(!exists('hpo')) hpo = read.delim(hpo_all)
-  hpo = hpo %>% distinct(gene_symbol,hpo_id,.keep_all = T)
-  
+  hpo = hpo |> distinct(gene_symbol,hpo_id,.keep_all = T)
+
+  #annotate hpo terms
   for(i in 1:nrow(candidates))
     {
     #clinical HPO terms for proband
@@ -37,8 +38,7 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
     #match
     candidates$HPOmatches[i] = hpo_match
   }
-    
-    
+   
     
   #annotate 
   for(g in 1:3)
@@ -65,8 +65,8 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
                                 '_',
                                 candidates$proband[i],
                                 '_res_dt_candidate_gene.csv')
-            
-            if(file.exists(resdt_file)) {resdt = read.csv(resdt_file)}
+           
+            if(file.exists(resdt_file) && R.utils::countLines(resdt_file)>1) {resdt = read.csv(resdt_file)}
             
             if(nrow(resdt)>0) {temp = resdt} else {temp = gw_temp}
             
@@ -224,7 +224,7 @@ gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcript
 
   load_install_library(c('biomaRt', 'ggbio', 'GenomicAlignments'))
 
-    if(file.exists(!file.path(tmpdir,'ensembl_genes.csv'))){
+    if(!file.exists(file.path(tmpdir,'ensembl_genes.csv'))){
     # Connect to Ensembl and select the human dataset for hg38 (GRCh38)
     ensembl = biomaRt::useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", mirror = 'useast')
 
