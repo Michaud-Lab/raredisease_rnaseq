@@ -17,11 +17,28 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
     
         for(i in 1:nrow(candidates))
           {
-            temp = 0
-            temp = gw[gw$sampleID == candidates$proband[i] & gw$hgncSymbol == candidates$geneID[i],]
+            gw_temp = resdt = temp = 0
+            gw_temp = gw[gw$sampleID == candidates$proband[i] & gw$hgncSymbol == candidates$geneID[i],]
           
+            resdt_file = paste0('data/bams_subset/gene',
+                                candidates$geneID[i],
+                                '_chr',
+                                candidates$chromosome[i],
+                                '_',candidates$start[i]-5000,
+                                '_',
+                                candidates$stop[i]+5000,
+                                '/gene_',
+                                candidates$geneID[i],
+                                '_',
+                                candidates$proband[i],
+                                '_res_dt_candidate_gene.csv')
+            
+            if(file.exists(resdt_file)) {resdt = read.csv(resdt_file)}
+            
+            if(nrow(resdt)>0) {temp = resdt} else {temp = gw_temp}
+            
             if(nrow(temp)>0) stats = paste0('padj = ',signif(min(temp$padjust),2),', ΔPSI = ',temp$deltaPsi[temp$padjust == min(temp$padjust)])
-            if(nrow(temp)>0)  candidates$FRASER[i] = stats[1]
+            if(nrow(temp)>0) candidates$FRASER[i] = stats[1]
         }
     }
     
@@ -56,9 +73,8 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
         if(nrow(temp)>0)  candidates$ASE[i] = stats[1]
       }
     }
-    
-    print(paste0('Done ',gwfiles[g],' ~~~ Time is: ',Sys.time()))
     }
+  print(paste0('Done annotation of candidate genes ~~~ Time is: ',Sys.time()))
   return(candidates)
 }
 
