@@ -54,7 +54,7 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
     
         for(i in 1:nrow(candidates))
           {
-            gw_temp = resdt = data.frame(sampleID = 0, hgncSymbol=0)
+            resdt = data.frame(sampleID = numeric(0), hgncSymbol = numeric(0))
             gw_temp = gw[gw$sampleID == candidates$proband[i] & gw$hgncSymbol == candidates$geneID[i],]
           
             resdt_file = paste0(datadir,'/bams_subset/gene',
@@ -82,14 +82,13 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
     #OUTRIDER
     if(g==2){
       gw = gw[!is.na(gw$geneID),]
-      if(file.exists(candidatefiles[g])) {OUT = read.table(candidatefiles[g])} else {OUT = data.frame(sampleID = 0, geneID=0)}
+      if(file.exists(candidatefiles[g])) {OUTr = read.table(candidatefiles[g])} else {OUTr = data.frame(sampleID = 0, geneID=0)}
       for(i in 1:nrow(candidates))
       {
-        gw_temp = OUT_temp = data.frame(sampleID = 0, geneID=0)
         gw_temp = gw[gw$sampleID == candidates$proband[i] & gw$geneID == candidates$geneID[i],]
-        OUT_temp = OUT[OUT$sampleID == candidates$proband[i] & OUT$geneID == candidates$geneID[i],]
+        OUTr_temp = OUTr[OUTr$sampleID == candidates$proband[i] & OUTr$geneID == candidates$geneID[i],]
         
-        if(nrow(gw_temp)>0) {temp = gw_temp} else{temp = OUT_temp}
+        if(nrow(gw_temp)>0) {temp = gw_temp} else{temp = OUTr_temp}
         
         if(nrow(temp)>0) {
           stats = paste0('padj = ',signif(min(temp$pValue),2),', log 2 FC = ',temp$l2fc[temp$pValue == min(temp$pValue)]);
