@@ -54,7 +54,7 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
     
         for(i in 1:nrow(candidates))
           {
-            gw = resdt = data.frame(sampleID = 0, hgncSymbol=0)
+            gw_temp = resdt = data.frame(sampleID = 0, hgncSymbol=0)
             gw_temp = gw[gw$sampleID == candidates$proband[i] & gw$hgncSymbol == candidates$geneID[i],]
           
             resdt_file = paste0(datadir,'/bams_subset/gene',
@@ -121,17 +121,15 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
 # Arguments:
 #   gwfile - character: path to one genome-wide results file (gwFRASER.csv, OUTRIDER, or gwASE); which analysis it is gets inferred from the filename
 #   tmpdir - character: directory used to cache/build the gene annotation object
-candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASER.csv'),tmpdir = tmpdir){
+candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASER.tsv'),tmpdir = tmpdir){
   #Generate the gene annotation  
   gene_annotations = gene_annotation(full = T,tmpdir = tmpdir)
   
   #Load files
-  if(grepl('gwFRASER',gwfile)) {sep = ','} else {sep = '\t'}
-  
-  gw = read.csv(gwfile, row.names = 1,sep = sep)
+  gw = read.table(gwfile, row.names = 1, check.names = FALSE)
 
   #get the candidate genes
-  if(grepl('gwFRASER',gwfile)) {
+  if(grepl('FRASER',gwfile)) {
     gw_top = gw %>%
       filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ|^HBM|^SELPLG", hgncSymbol), !is.na(hgncSymbol)) %>%
       group_by(sampleID) %>%
@@ -191,7 +189,7 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
   }
   candidates_automated = candidates_automated[!is.na(candidates_automated$chromosome),]
   candidates_automated = candidates_automated[candidates_automated$start != 1,]
-  print(paste0('Done candidates_automated, found ', nrow(candidates_automated), ' new candidates'))
+  print(paste0('Done candidates_automated with ',gwfile,', found ', nrow(candidates_automated), ' new candidates'))
   return(candidates_automated)
 }
 

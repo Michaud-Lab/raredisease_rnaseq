@@ -43,7 +43,7 @@ for (c in 1:length(chrs)) {
 }
 
 colnames(gwFRASER)[c(1, 20)] = c('chr', 'pos')
-write.csv(gwFRASER, file.path(params$datadir, 'gwFRASER.csv'))
+write.table(gwFRASER, file.path(params$datadir, 'gwFRASER.tsv'),sep = '\t')
 
 # -----------------------------------------------------------------------------
 # 4. Copy scripts and project metadata
