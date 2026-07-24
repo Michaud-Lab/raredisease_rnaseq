@@ -156,9 +156,15 @@ plot_expression_family = function(data_family, data_patient) {
 }
 
 
-###
-### plotting coverage
-###
+# genemodel_plot: builds the gene-model, splicing significance, and coverage plot stack for a candidate gene.
+# Arguments:
+#   candidate                  - data.frame row: the candidate gene/proband row (geneID, ensembl, start, stop, position, mutation, proband)
+#   res_dt_candidate_gene_file - character: path to the FRASER per-candidate-gene results CSV
+#   depth_file                 - character: path to the per-base coverage depth file
+#   bam_file                   - character: path to the proband's BAM file (kept for interface consistency)
+#   colmean_genes_counts_file  - character: path to the column-mean gene counts file (used to normalise coverage)
+#   xlims                      - numeric vector length 2: zoom window in Kb (default: c(10, 100))
+#   gene_annotations           - list: gene annotation object; [[1]] exons GRanges, [[2]] gene GRanges ("wh")
 genemodel_plot = function(candidate = candidates,
                              res_dt_candidate_gene_file = "resdet",
                              depth_file = "depth",
@@ -212,7 +218,7 @@ wh = wh[wh$gene_id == candidate$ensembl,]
       ylab(candidate$geneID) +
       xlab(paste0('Chromosome ',merged_exons_df[1,1],' (Kb)')) +
       annotate('text', x = xintercept,y = 0.6, label = ifelse(mutation == '','',paste0(mutation,' (Position: ',mut_pos,')')), col = 'darkblue', vjust = 0, hjust = 0.8, size = 5) +
-      xlim(xlims) +
+      coord_cartesian(xlim = xlims) +
       ggtitle('Gene Model') +
       theme(legend.position = 'none',plot.title = element_text(size = 24),axis.title = element_text(size = 18),axis.text = element_text(size = 14))
 
@@ -231,7 +237,7 @@ wh = wh[wh$gene_id == candidate$ensembl,]
     signif = ggplot(res_dt_candidate_gene,aes(x = mean, y = minuslogpval,color = minuslogpval)) +
       geom_point() +
       geom_vline(xintercept = xintercept,col = 'darkblue',linewidth = 0.5,linetype = "dashed",alpha = ifelse(mutation=='',0,1)) +
-      xlim(xlims) +
+      coord_cartesian(xlim = xlims) +
       ylab(bquote(-log[10]~(italic(p-value)))) +
       xlab(paste0('Chromosome ',merged_exons_df[1,1],' (Kb)')) +
       scale_color_continuous(palette = c('black','red')) +
@@ -246,8 +252,7 @@ wh = wh[wh$gene_id == candidate$ensembl,]
         signif = ggplot(res_dt_candidate_gene_subset,aes(x = start, xend = end, yend = minuslogpval, y = minuslogpval, color = minuslogpval)) +
           geom_segment(linewidth = 1) +
           geom_vline(xintercept = xintercept,col = 'darkblue',linewidth = 0.5,linetype = "dashed",alpha = ifelse(mutation=='',0,1)) +
-          xlim(xlims) +
-          ylim(c(0,max(res_dt_candidate_gene$minuslogpval))) +
+          coord_cartesian(xlim = xlims, ylim = c(0,max(res_dt_candidate_gene$minuslogpval))) +
           ylab(bquote(-log[10]~(italic(p-value))))+
           scale_color_continuous(palette = c('black','red'),limits = c(0,max(res_dt_candidate_gene$minuslogpval))) +
           xlab(paste0('Chromosome ',merged_exons_df[1,1],' (Kb)')) +
@@ -283,7 +288,7 @@ wh = wh[wh$gene_id == candidate$ensembl,]
       stat_summary(geom="ribbon", fun.data=median_hilow,fun.args = list(conf.int=.5),fill=alpha('darkorange1', alpha =0.7),col= alpha('darkorange1', alpha =0.7)) +
       geom_line(data = depth_pivoted[depth_pivoted$PatientID == candidate$proband,],aes(x = POS, y = Coverage),col = 'black') +
       geom_vline(xintercept = xintercept,col = 'darkblue',linewidth = 0.5,linetype = "dashed",alpha = ifelse(mutation=='',0,1)) +
-      xlim(xlims) +
+      coord_cartesian(xlim = xlims) +
       ylab('Normalised coverage') +
       xlab(paste0('Chromosome ',merged_exons_df[1,1], ' (Kb)')) +
       ggtitle('Coverage (proband in black, 25-75th reference percentiles in orange)') +
@@ -300,10 +305,13 @@ wh = wh[wh$gene_id == candidate$ensembl,]
 }
 
 
-
-###
-### this is to generate a table of the top p-values of the splicing test.
-###
+# gwFRASER_table: table of the top significant splicing events (FRASER) for one sample.
+# Arguments:
+#   res_dt   - data.frame: genome-wide FRASER results across all samples
+#   sample   - character: sampleID to filter to
+#   pcutoff  - numeric: p-value cutoff (kept for interface consistency; filtering below is hardcoded to 0.05)
+#   pvalue   - character: name of the p-value column to sort/filter on (default: 'padjust')
+#   geneID   - character: name of the gene ID column (default: 'hgncSymbol')
 gwFRASER_table = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',pcutoff=0.05,pvalue='padjust', geneID = 'hgncSymbol'){
 
   # factorize
@@ -324,9 +332,16 @@ gwFRASER_table = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',pcutoff=0.05
 }
 
 
-###
-### this is to do a manhattan plot of the p-values of the splicing test.
-###
+# manhattan_plot: genome-wide Manhattan plot of -log10(p-value) for one sample, with top genes labelled.
+# Arguments:
+#   res_dt   - data.frame: genome-wide results across all samples (must contain chr, pos, sampleID, and the pvalue/geneID columns)
+#   sample   - character: sampleID to plot
+#   top      - numeric: number of top genes to label (default: 25)
+#   pcutoff  - numeric: p-value cutoff used to select labelled/highlighted genes (default: 0.05)
+#   pvalue   - character: name of the p-value column (default: 'padjust')
+#   geneID   - character: name of the gene ID column (default: 'hgncSymbol')
+#   shape    - logical: if TRUE, point shape encodes over/under-expression direction via l2fc (default: FALSE)
+#   end      - character: name of the column giving each event's genomic end position, used for chromosome sizes (default: 'end')
 manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcutoff=0.05, pvalue='padjust', geneID = 'hgncSymbol',shape = FALSE, end = 'end'){
 
   if (is.null(res_dt) || nrow(res_dt) == 0 || !sample %in% res_dt$sampleID) {
@@ -372,7 +387,6 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
   colors = c(brewer.pal(8,'Set2'),brewer.pal(9,'Set1'),brewer.pal(9,'Set3'))
   colors = c(colors[c(1,9,2,11,3,10,4,12,5,6,13,7,15,8,16:18,20:26)],'black')
 
-
   # keep only the top (but remove duplicated splicing events)
   gw_top = results_subset_forggplot[order(results_subset_forggplot[[pvalue]]),]
   gw_top = gw_top[gw_top[[pvalue]]<pcutoff,]
@@ -417,9 +431,79 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
 }
 
 
-###
-### Generate a gene prioritisation data.frame based on gene lists (HPO, outrider, fraser)
-###
+# candidates_summary_reactable: builds the Summary-tab reactable, one row per proband, expandable to that proband's candidate genes.
+# Arguments:
+#   candidates - data.frame: candidate_genes_ALL.csv contents (one row per proband-gene pair, with clinical/annotation columns)
+candidates_summary_reactable = function(candidates) {
+  detail_cols = c('geneID', 'Chr', 'position', 'Criteria', 'Hypothèse','HPO proband-gene matches','Mutation','FRASER','OUTRIDER','ASE')
+
+  full = candidates %>%
+    select(proband, geneID, Criteria, Age = `Âge (années)`, Sexe, Hypothèse, `HPO terms`, Mutation,`HPO proband-gene matches`,Chr = chromosome, start, stop,FRASER,OUTRIDER,ASE) %>%
+    arrange(proband, geneID) %>%
+    mutate(across(c(Age, Sexe, Hypothèse, `HPO terms`, Mutation), ~ ifelse(is.na(.x), '', .x))) %>%
+    mutate(position = paste0(round((start + stop) / 2000000,2),' Mb'))
+
+  first_non_na = function(x) {
+    valid = x[!is.na(x) & x != '']
+    if (length(valid) == 0) '' else valid[1]
+  }
+
+  summary_tbl = full %>%
+    group_by(proband) %>%
+    summarise(
+      Genes = n(),
+      Age = first_non_na(Age),
+      Sexe = first_non_na(Sexe),
+      `HPO terms` = first_non_na(`HPO terms`),
+      .groups = 'drop'
+    ) %>%
+    arrange(proband)
+
+  reactable(
+    summary_tbl,
+    columns = list(
+      proband = colDef(name = 'Proband',width = 150),
+      Genes   = colDef(name = 'Genes', align = 'left', width = 100),
+      Age     = colDef(name = 'Age', align = 'left', width = 100),
+      Sexe    = colDef(name = 'Sexe', align = 'left', width = 100),
+      `HPO terms` = colDef(name = 'HPO terms', align = 'left')
+    ),
+    details = function(index) {
+      proband_genes = full[full$proband == summary_tbl$proband[index], detail_cols]
+      htmltools::div(
+        style = "padding: 8px 12px 8px 40px",
+        reactable(proband_genes, outlined = TRUE, fullWidth = TRUE, rowStyle = list(background = "#fcc95b"),
+                  columns = list(
+                    Chr = colDef(width = 50),
+                    position   = colDef(width = 100),
+                    geneID     = colDef(width = 100),
+                    Criteria   = colDef(width = 150),
+                    Mutation   = colDef(width = 150),
+                    `HPO proband-gene matches` = colDef(width = 200),
+                    FRASER = colDef(width = 150),
+                    OUTRIDER = colDef(width = 150),
+                    ASE = colDef(width = 150)
+                  ))
+      )
+    },
+    searchable = TRUE,
+    striped = TRUE,
+    highlight = TRUE,
+    bordered = TRUE,
+    defaultPageSize = 100
+  )
+}
+
+
+# gene_prioritization: ranks candidate genes for a sample by combining HPO term matches with OUTRIDER/FRASER outlier evidence.
+# Arguments:
+#   sample       - character: sampleID (PatientID) to prioritise genes for
+#   top          - numeric: number of top-ranked genes to return (default: 100)
+#   hpo_sample   - data.frame: clinical table containing 'Patient ID' and 'HPO terms' columns (default: clinical)
+#   hpo_all      - character: path/filename of the HPO gene-to-phenotype annotation file, downloaded if missing (default: 'genes_to_phenotype.txt')
+#   fraser       - data.frame: genome-wide FRASER results (splicing outliers)
+#   outrider     - data.frame: genome-wide OUTRIDER results (expression outliers)
+#   geneprior_rm - character: column name; rows with NA in this column are removed before ranking (default: 'gene score')
 gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clinical,hpo_all='genes_to_phenotype.txt',fraser="",outrider="",geneprior_rm = "gene score"){
 
   # hpo

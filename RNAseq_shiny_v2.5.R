@@ -42,6 +42,7 @@ app_ui = page_fluid(
   ),
 
   tabsetPanel(
+    id = "main_tabs",
 
     ###  Selection & Info
     tabPanel('Proband Selection',
@@ -250,6 +251,11 @@ server = function(input, output, session) {
 
   if (use_password)
     auth = secure_server(check_credentials = check_credentials(credentials_db))
+
+  ### Log every tab switch
+  observeEvent(input$main_tabs, {
+    logger::log_info(paste0(input$main_tabs, ' tab selected'))
+  })
 
   #####
   ##### reactive data (module)
@@ -544,63 +550,7 @@ server = function(input, output, session) {
 
   ### Candidate genes table
   output$candidates_table = renderReactable({
-    detail_cols = c('geneID', 'Chr', 'position', 'Criteria', 'Hypothèse','HPOmatches','Mutation','FRASER','OUTRIDER','ASE')
-
-    full = candidates %>%
-      select(proband, geneID, Criteria, Age = `Âge (années)`, Sexe, Hypothèse, `HPO terms`, Mutation,Chr = chromosome, start, stop,FRASER,OUTRIDER,ASE) %>%
-      arrange(proband, geneID) %>%
-      mutate(across(c(Age, Sexe, Hypothèse, `HPO terms`, Mutation), ~ ifelse(is.na(.x), '', .x))) %>%
-      mutate(position = paste0(round((start + stop) / 2000000,2),' Mb'))
-
-    first_non_na = function(x) {
-      valid = x[!is.na(x) & x != '']
-      if (length(valid) == 0) '' else valid[1]
-    }
-
-    summary_tbl = full %>%
-      group_by(proband) %>%
-      summarise(
-        Genes = n(),
-        Age = first_non_na(Age),
-        Sexe = first_non_na(Sexe),
-        `HPO terms` = first_non_na(`HPO terms`),
-        .groups = 'drop'
-      ) %>%
-      arrange(proband)
-
-    reactable(
-      summary_tbl,
-      columns = list(
-        proband = colDef(name = 'Proband',width = 150),
-        Genes   = colDef(name = 'Genes', align = 'left', width = 100),
-        Age     = colDef(name = 'Age', align = 'left', width = 100),
-        Sexe    = colDef(name = 'Sexe', align = 'left', width = 100),
-        `HPO terms` = colDef(name = 'HPO terms', align = 'left')
-      ),
-      details = function(index) {
-        proband_genes = full[full$proband == summary_tbl$proband[index], detail_cols]
-        htmltools::div(
-          style = "padding: 8px 12px 8px 40px",
-          reactable(proband_genes, outlined = TRUE, fullWidth = TRUE, rowStyle = list(background = "#fcc95b"),
-                    columns = list(
-                      Chr = colDef(width = 100),
-                      position   = colDef(width = 100),
-		                  geneID     = colDef(width = 100),
-                      Criteria   = colDef(width = 150),
- 		                  Mutation   = colDef(width = 150), 
-		                  HPOmatches = colDef(width = 200),
-		                  FRASER = colDef(width = 150),
-		                  OUTRIDER = colDef(width = 150),
-		                  ASE = colDef(width = 100)
-                    ))
-        )
-      },
-      searchable = TRUE,
-      striped = TRUE,
-      highlight = TRUE,
-      bordered = TRUE,
-      defaultPageSize = 100
-    )
+    candidates_summary_reactable(candidates)
   })
 
   # Search gene expression — populate choices server-side to avoid sending 20k options to browser

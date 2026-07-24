@@ -1,13 +1,17 @@
-# =============================================================================
-# Pull statistics for all the candidate genes we have identified from: FRASER, OUTRIDER, ASE.
-# =============================================================================
+# candidate_genes_gw_annotations: annotates each candidate gene/proband row with FRASER, OUTRIDER, ASE stats and HPO term matches.
+# Arguments:
+#   candidates     - data.frame: candidate_genes_ALL.csv contents (one row per proband-gene pair); must include proband, geneID, chromosome, start, stop, `HPO terms`
+#   gwfiles        - character vector length 3: paths to genome-wide FRASER, OUTRIDER, and ASE results files, in that order
+#   candidatefiles - character vector: paths to per-candidate OUTRIDER (and other) results files
+#   datadir        - character: base directory containing the bams_subset/ folder with per-candidate-gene result files (default: getwd())
+#   hpo_all        - character: path/filename of the HPO gene-to-phenotype annotation file, downloaded if missing (default: 'genes_to_phenotype.txt')
 candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidatefiles = candidatefiles,datadir = getwd(),hpo_all='genes_to_phenotype.txt') {
   
   #
   candidates$FRASER = ''
   candidates$OUTRIDER = ''
   candidates$ASE = ''
-  candidates$HPOmatches = ''
+  candidates$`HPO proband-gene matches` = ''
   
   #hpo terms
   if(!file.exists(hpo_all)) {
@@ -36,7 +40,7 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
     hpo_match = paste0(paste(hpo_match[[3]],hpo_match[[4]],sep = ': '),collapse = ' || ')
 
     #match
-    candidates$HPOmatches[i] = hpo_match
+    candidates$`HPO proband-gene matches`[i] = hpo_match
   }
    
     
@@ -113,9 +117,10 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
 
 
 
-# =============================================================================
-# Generate automatically new candidate genes based on FRASER, OUTRIDER, ASE.
-# =============================================================================
+# candidate_genes_automated: automatically proposes new candidate genes from genome-wide FRASER, OUTRIDER, or ASE outlier results.
+# Arguments:
+#   gwfile - character: path to one genome-wide results file (gwFRASER.csv, OUTRIDER, or gwASE); which analysis it is gets inferred from the filename
+#   tmpdir - character: directory used to cache/build the gene annotation object
 candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASER.csv'),tmpdir = tmpdir){
   #Generate the gene annotation  
   gene_annotations = gene_annotation(full = T,tmpdir = tmpdir)
@@ -190,10 +195,10 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
   return(candidates_automated)
 }
 
-# =============================================================================
-# Load or Install packages 
-# =============================================================================
-
+# load_install_library: loads each package, installing it first (from CRAN, Bioconductor, or GitHub) if not already installed.
+# Arguments:
+#   packages - character vector: package names to load
+#   silent   - logical: suppress library-load messages/warnings (default: TRUE)
 load_install_library = function(packages,silent = T) {
   for (p in 1:length(packages)) {
     if (packages[p] %in% installed.packages()) {
@@ -217,8 +222,13 @@ load_install_library = function(packages,silent = T) {
 # =============================================================================
 # rnaseq_helper_functions.R - Helper functions for featureCounts processing
 # =============================================================================
-# gene_annotation: fetch exon-level gene models from Ensembl via biomaRt
-# Returns a list: [[1]] GRanges of exons, [[2]] GRanges of gene bodies
+# gene_annotation: fetches exon-level (and gene-body) annotations from Ensembl via biomaRt.
+# Arguments:
+#   unique_transcript_id - character vector: MANE-selected transcript IDs to keep when full = FALSE (default: unique(fc_exons_raw$transcriptID))
+#   candidates           - data.frame: candidate genes/probands, used to restrict which genes/chromosomes are queried when full = FALSE (default: candidates)
+#   full                 - logical: if TRUE, only fetch gene-level GRanges for all genes and skip the per-exon query; if FALSE, also fetch exon-level detail for candidate genes (default: FALSE)
+#   tmpdir               - character: directory used to cache the Ensembl gene annotation table (default: 'tmp')
+# Returns: list; [[1]] GRanges of exons (NULL when full = TRUE), [[2]] GRanges of gene bodies
 gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcriptID),
                            candidates = candidates, full = F,tmpdir = 'tmp'){
 
