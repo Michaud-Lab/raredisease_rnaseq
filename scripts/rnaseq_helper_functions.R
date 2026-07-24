@@ -243,7 +243,10 @@ gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcript
                                 "strand", "ensembl_gene_id", "hgnc_symbol", "gene_biotype"),mart = ensembl)
     
     #save it
-    write.table(genes,file.path(tmpdir,'ensembl_genes.csv'),sep = '\t')} else {genes = read.table(file.path(tmpdir,'ensembl_genes.csv'))}
+    write.table(genes,file.path(tmpdir,'ensembl_genes.csv'),sep = '\t')} else {
+      print(paste0('ensembl gene annotation file already exists. I will use that copy (ensembl_genes.csv) instead of downloading it again'));
+      genes = read.table(file.path(tmpdir,'ensembl_genes.csv'))
+      }
 
 
   # Subset to standard chromosomes (exclude scaffolds and patches)
