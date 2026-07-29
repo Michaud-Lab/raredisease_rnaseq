@@ -504,7 +504,7 @@ candidates_summary_reactable = function(candidates) {
 #   fraser       - data.frame: genome-wide FRASER results (splicing outliers)
 #   outrider     - data.frame: genome-wide OUTRIDER results (expression outliers)
 #   geneprior_rm - character: column name; rows with NA in this column are removed before ranking (default: 'gene score')
-gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clinical,hpo_all='genes_to_phenotype.txt',fraser="",outrider="",geneprior_rm = "gene score"){
+gene_prioritization = function(sample = 'HSJ_001_03_PAX',pcutoff=0.5,hpo_sample=clinical,hpo_all='genes_to_phenotype.txt',fraser="",outrider="",geneprior_rm = "gene score"){
 
   # hpo
   hpo_all = file.path("tmp",hpo_all)
@@ -516,6 +516,7 @@ gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clin
 
   # unique hpo terms
   hpo_un = hpo[!duplicated(hpo$hpo_name),]
+  #hpo_un = hpo %>% distinct(hpo_id,gene_symbol, .keep_all = TRUE)
   hpo_un$hpo_name_shortened = substring(hpo_un$hpo_name,1,29)
   hpo_un$hpo_name_shortened[nchar(hpo_un$hpo_name_shortened)!=nchar(hpo_un$hpo_name)] = paste0(hpo_un$hpo_name_shortened[nchar(hpo_un$hpo_name_shortened)!=nchar(hpo_un$hpo_name)],'.')
 
@@ -529,7 +530,8 @@ gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clin
    hpo_genes = as.list(temp)
    hpo_terms = hpo_un[hpo_un$hpo_id %in% temp,]
    names(hpo_genes) = paste0(hpo_terms$hpo_id," ",hpo_terms$hpo_name_shortened)
-   for(h in 1:length(hpo_genes)){hpo_genes[[h]] = unique(hpo$gene_symbol[hpo$hpo_id == hpo_terms[h,3]])}} else {hpo_genes = list(hp_1=c('none','0'));temp = c('','')}
+   for(h in 1:length(hpo_genes)){hpo_genes[[h]] = unique(hpo$gene_symbol[hpo$hpo_id == hpo_terms[h,3]])}} else {return(data.frame(empty = as.character()))}
+   hpo_genes = hpo_genes[!is.na(names(hpo_genes))]
 
   # add outrider
   if(!is.null(dim(outrider))) {
@@ -565,7 +567,27 @@ gene_prioritization = function(sample = 'HSJ_001_03_PAX',top=100,hpo_sample=clin
   table = table[!is.na(table[,3]) | !is.na(table[,4]) | !is.na(table[,5]) | !is.na(table[,6]) | !is.na(table[,7]),]
   table = table[order(table$`gene score`,decreasing = TRUE),]
   table = table[!is.na(table[,colnames(table) == geneprior_rm]),]
-
+  table$pvalue = 1
+  table = head(table,50)
+  
+  #calculate a pvalue for each (top10) gene:
+  for(g in 1:nrow(table)){
+    total_nb_of_genes = length(unique(hpo$gene_symbol))
+    nb_genes = sapply(hpo_genes,length)
+    nb_genes = nb_genes[order(names(nb_genes))]
+    
+    nb_hpo = table[g,colnames(table) %in% names(nb_genes)]
+    if(length(nb_hpo)==1) names(nb_hpo) = names(nb_genes) # this is a FCIWFWFWFing hack which is super ugly.
+    nb_hpo = nb_hpo[order(names(nb_hpo))]
+    
+    nb_genes_hpo = ifelse(nb_hpo == 1,nb_genes,5000-nb_genes)
+    table$pvalue[g] = signif(prod(nb_genes_hpo) / total_nb_of_genes **length(nb_genes_hpo) * (sum(nb_genes_hpo)),2)
+  }
+  
+  table = table[order(table$pvalue),]
+  table = cbind(table[,1:2],table[,ncol(table)],table[,3:(ncol(table)-1)])
+  colnames(table)[3] = 'gene score adj. pvalue'
+  
   # return top hits
-  return(head(table,top))
+  return(table[table[,3] < pcutoff,])
 }

@@ -166,7 +166,7 @@ reactive_data_server = function(id, proband, pvalue, geneprior_rm) {
     gene_prioritization_data = reactive({
       gene_prioritization(
         sample      = candidates$proband[i()],
-        top         = 100,
+        pcutoff         = 0.1,
         hpo_sample  = clinical,
         hpo_all     = 'genes_to_phenotype.txt',
         fraser      = gwFRASER,

@@ -18,8 +18,8 @@ params$ref_annot = args[4]
 # -----------------------------------------------------------------------------
 # 2. candidate genes to run
 # -----------------------------------------------------------------------------
-candidates = read.csv(file.path(params$workdir, 'data/input/candidate_genes_ALL.csv'))
-
+candidates = read.csv(file.path(params$workdir, 'data/input/candidate_genes_ALL.csv'), check.names = FALSE)
+candidates$position[is.na(candidates$position)] = ""
 # -----------------------------------------------------------------------------
 # 3. consensus_pipeline function
 # -----------------------------------------------------------------------------
@@ -140,13 +140,13 @@ consensus_pipeline = function(candidates = candidates, i = 1){
       write.fasta(sequences = my_sequences, names = names(my_sequences),
                   nbchar = 100, file.out = params$fasta_out, open = "w")
       
-      print(paste0('Done sample ', i, ' ~~~  ', params$geneID, ' ~~~ Time is: ', Sys.time()))
+      print(paste0('Done sample ', i,', gene: ', candidates$geneID[i],' ~~~  ', params$geneID, ' ~~~ Time is: ', Sys.time()))
       
     } else {
-      print(paste0('Sample ~~~ ', i, ' already exists ~~~ Time is: ', Sys.time()))
+      print(paste0('Sample ~~~ ',i,', gene: ', candidates$geneID[i],' already exists ~~~ Time is: ', Sys.time()))
     }
   } else {
-    print(paste0('Sample ~~~ ', i, ' did not contain a candidate (coding) gene ~~~ Time is: ', Sys.time()))
+    print(paste0('Sample ~~~ ', i,' did not contain a candidate (coding) gene ~~~ Time is: ', Sys.time()))
   }
 }
 

@@ -17,12 +17,12 @@ read workdir gtf < <(
   jq -r '.general | [.workdir, .gtf] | @tsv' ../../data/input/configs.json
 )
 
-read fc_exons genome < <(
-  jq -r '.consensus | [.fc_exons, .genome] | @tsv' ../../data/input/configs.json
+read fc_exons_tpm genome < <(
+  jq -r '.consensus | [.fc_exons_tpm, .genome] | @tsv' ../../data/input/configs.json
 )
 
 
-Rscript consensus.R $workdir $fc_exons $genome $gtf
+Rscript consensus.R $workdir $fc_exons_tpm $genome $gtf
 
 echo 'Done Rscript consensus.R' $workdir $fc_exons $genome $gtf
 

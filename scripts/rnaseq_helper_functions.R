@@ -120,7 +120,7 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
 # Arguments:
 #   gwfile - character: path to one genome-wide results file (gwFRASER.csv, OUTRIDER, or gwASE); which analysis it is gets inferred from the filename
 #   tmpdir - character: directory used to cache/build the gene annotation object
-candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASER.tsv'),tmpdir = tmpdir){
+candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASER.tsv'),tmpdir = tmpdir,candidates=''){
   #Generate the gene annotation  
   gene_annotations = gene_annotation(full = T,tmpdir = tmpdir)
   
@@ -169,6 +169,35 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
     gw_top = gw_top[,c('geneID','sampleID','Criteria')]
   }
   
+  
+  ###LET US ADD MORE CANDIDATES BASED ON HPO TERMS
+  if(grepl('genes_to_phenotype.txt',gwfile)) {
+    probands_unique = unique(candidates$proband)
+    gw_top = data.frame(geneID = character(), sampleID = integer(), Criteria = numeric())
+  
+    gwFRASER = read.table("data/gwFRASER.tsv", row.names = 1, check.names = FALSE)
+    gwOUTRIDER = read.table("data/gw_genes_OUTRIDER.tsv", row.names = 1, check.names = FALSE)
+    clinical = read.table(file.path(tmpdir, '../data/clinical.tsv'), check.names = FALSE)
+    
+    for(c in 1:length(probands_unique)){
+      temp = gene_prioritization(
+        sample      = probands_unique[c],
+        pcutoff     = 0.01,
+        hpo_sample  = clinical,
+        hpo_all     = gwfile,
+        fraser      = gwFRASER,
+        outrider    = gwOUTRIDER,
+        geneprior_rm = "gene score")
+    
+      if(nrow(temp)>0) {
+        temp = head(temp,2)
+        temp$sampleID = probands_unique[c]
+        temp$Criteria = paste0('Automated analysis (over-repres. of HPO), pval = ',temp$`gene score adj. pvalue`)
+        gw_top = rbind(gw_top,temp[,c('geneID','sampleID','Criteria')])
+      }
+    }
+  }
+    
   #format them to the candidate format.
   candidates_automated = data.frame(matrix(ncol = 10, nrow = 0))
   colnames(candidates_automated) = c('geneID','ensembl','proband','chromosome','start','stop','proband2','mutation','position','Criteria')

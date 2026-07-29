@@ -18,6 +18,7 @@ params$fc_genes = args[5]
 # -----------------------------------------------------------------------------
 # Libraries
 source(file.path(params$workdir,'scripts/rnaseq_helper_functions.R'))
+source(file.path(params$workdir,'scripts/Shiny/rnaseq_shinyhelper_functions.R'))
 load_install_library(c('readxl', 'tidyr', 'dplyr'))
 
 # Ensembl - GeneID correspondence file
@@ -28,20 +29,21 @@ candidates_original = read.csv(file.path(params$datadir,'input/candidate_genes.c
 candidates_extra = read.table(file.path(params$datadir,'input/candidate_genes_extra.csv'),comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
 candidates_extra = candidates_extra[, colnames(candidates_original)]
 
-candidate_genes_automated_list = list(NULL,NULL,NULL)
+candidate_genes_automated_list = list(NULL,NULL,NULL,NULL)
 gwfiles = c(paste0(params$datadir,c('/gwFRASER.tsv','/gw_genes_OUTRIDER.tsv','/gwASE.tsv')))
+gwfiles[4] = 'genes_to_phenotype.txt'
 candidatefiles = c(paste0(params$datadir,c('/gwFRASER.tsv','/candidates_OUTRIDER.tsv','/gwASE.tsv')))
 
 #generate the candidates
-for(i in 1:3)
+for(i in 1:4)
 {
-  if(file.exists(gwfiles[i])){candidate_genes_automated_list[[i]] = candidate_genes_automated(gwfile = gwfiles[i],tmpdir = file.path(params$workdir,'tmp'))}
+  if(file.exists(gwfiles[i])){candidate_genes_automated_list[[i]] = candidate_genes_automated(gwfile = gwfiles[i],tmpdir = file.path(params$workdir,'tmp'),candidates=candidates_original)}
   }
 
 candidates_original$Criteria = 'Extra candidate added manually'
 candidates_extra$Criteria = 'Extra candidate added manually'
 
-candidates = rbind(candidates_original,candidates_extra,candidate_genes_automated_list[[1]],candidate_genes_automated_list[[2]],candidate_genes_automated_list[[3]]) %>%
+candidates = rbind(candidates_original,candidates_extra,candidate_genes_automated_list[[1]],candidate_genes_automated_list[[2]],candidate_genes_automated_list[[3]],candidate_genes_automated_list[[4]]) %>%
   arrange(order(Criteria)) %>% 
   distinct(geneID,ensembl, proband, .keep_all = TRUE)
 
