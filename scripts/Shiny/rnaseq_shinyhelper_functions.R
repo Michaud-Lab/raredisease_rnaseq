@@ -509,9 +509,10 @@ gene_prioritization = function(sample = 'HSJ_001_03_PAX',pcutoff=0.5,hpo_sample=
   # hpo
   hpo_all = file.path("tmp",hpo_all)
   if(!file.exists(hpo_all)) {
+        print(paste0('file ', hpo_all,' downloaded'))
         dir.create("tmp",showWarnings = FALSE)
         download.file(url='https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/genes_to_phenotype.txt',dest=hpo_all)
-        } else {print(paste0('file ', hpo_all,' exists'))}
+        }
   if(!exists('hpo')) hpo = read.delim(hpo_all)
 
   # unique hpo terms
@@ -577,7 +578,7 @@ gene_prioritization = function(sample = 'HSJ_001_03_PAX',pcutoff=0.5,hpo_sample=
     nb_genes = nb_genes[order(names(nb_genes))]
     
     nb_hpo = table[g,colnames(table) %in% names(nb_genes)]
-    if(length(nb_hpo)==1) names(nb_hpo) = names(nb_genes) # this is a FCIWFWFWFing hack which is super ugly.
+    if(length(nb_hpo)==1) names(nb_hpo) = names(nb_genes) # this is an edge case, with a single HPO term...
     nb_hpo = nb_hpo[order(names(nb_hpo))]
     
     nb_genes_hpo = ifelse(nb_hpo == 1,nb_genes,5000-nb_genes)

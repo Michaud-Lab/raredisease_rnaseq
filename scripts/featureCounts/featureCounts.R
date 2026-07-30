@@ -30,8 +30,7 @@ candidates_extra = read.table(file.path(params$datadir,'input/candidate_genes_ex
 candidates_extra = candidates_extra[, colnames(candidates_original)]
 
 candidate_genes_automated_list = list(NULL,NULL,NULL,NULL)
-gwfiles = c(paste0(params$datadir,c('/gwFRASER.tsv','/gw_genes_OUTRIDER.tsv','/gwASE.tsv')))
-gwfiles[4] = 'genes_to_phenotype.txt'
+gwfiles = c(paste0(params$datadir,c('/gwFRASER.tsv','/gw_genes_OUTRIDER.tsv','/gwASE.tsv','/clinical.tsv')))
 candidatefiles = c(paste0(params$datadir,c('/gwFRASER.tsv','/candidates_OUTRIDER.tsv','/gwASE.tsv')))
 
 #generate the candidates

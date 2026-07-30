@@ -171,20 +171,20 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
   
   
   ###LET US ADD MORE CANDIDATES BASED ON HPO TERMS
-  if(grepl('genes_to_phenotype.txt',gwfile)) {
+  if(grepl('clinical.tsv',gwfile)) {
     probands_unique = unique(candidates$proband)
     gw_top = data.frame(geneID = character(), sampleID = integer(), Criteria = numeric())
   
     gwFRASER = read.table("data/gwFRASER.tsv", row.names = 1, check.names = FALSE)
     gwOUTRIDER = read.table("data/gw_genes_OUTRIDER.tsv", row.names = 1, check.names = FALSE)
-    clinical = read.table(file.path(tmpdir, '../data/clinical.tsv'), check.names = FALSE)
+    clinical = gw # this is the clinical data for the hpo terms
     
     for(c in 1:length(probands_unique)){
       temp = gene_prioritization(
         sample      = probands_unique[c],
         pcutoff     = 0.01,
         hpo_sample  = clinical,
-        hpo_all     = gwfile,
+        hpo_all     = 'genes_to_phenotype.txt',
         fraser      = gwFRASER,
         outrider    = gwOUTRIDER,
         geneprior_rm = "gene score")
@@ -213,7 +213,7 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
       candidates_automated$start[i] = temp@ranges@start
       candidates_automated$stop[i] = temp@ranges@start + temp@ranges@width
       candidates_automated$ensembl[i] = temp$gene_id
-      candidates_automated$chromosome[i] = as.numeric(gsub('chr','',temp@seqnames@values))}
+      candidates_automated$chromosome[i] = gsub('chr','',temp@seqnames@values)}
   }
   candidates_automated = candidates_automated[!is.na(candidates_automated$chromosome),]
   candidates_automated = candidates_automated[candidates_automated$start != 1,]
