@@ -1,12 +1,12 @@
 ############################
 # STEP 0: DEFINE INPUTS
 ############################
-REF="/home/renaut/scratch/reference/Homo_sapiens_autosomesXYMT/Homo_sapiens.GRCh38.dna.autosomesXYMT.fa"
-GTF="/home/renaut/scratch/reference/Homo_sapiens/Homo_sapiens.GRCh38.114.gtf"
-BAM_DIR="/project/def-rallard/COMMUN/raredisease_rnaseq/results_nextflow_rnasplice_09_05_2026/star_salmon/"
-VCF_DIR="/project/def-rallard/COMMUN/raredisease_rnaseq/ASE/vcf/"
-ASE_DIR="/project/def-rallard/COMMUN/raredisease_rnaseq/ASE/"
-INPUT_DIR="/project/def-rallard/COMMUN/raredisease_rnaseq/data/input/"
+REF=$1
+GTF=$2
+BAM_DIR=$3
+VCF_DIR=${4}ASE/vcf/
+ASE_DIR=${4}/ASE/
+INPUT_DIR=${4}/data/input/
 export REF ASE_DIR BAM_DIR VCF_DIR INPUT_DIR
 
 mkdir -p $ASE_DIR/ase
@@ -24,16 +24,16 @@ echo "DONE ~~~ STEP0 ~~~ define inputs ~~~ $(date)"
 ############################
 # STEP 1: prepare vcfs
 ############################
-for vcf_file in ${VCF_DIR}/*slivar.vcf.gz
-  do
-    bcftools view -m2 -M2 -v snps --force-samples -e 'GT="mis"' -S <(cut -f2 ${INPUT_DIR}vcf_bam_families.txt) -Oz ${vcf_file} | \
-    bcftools annotate --rename-chrs ${INPUT_DIR}chr_map.txt -Oz | \
-    bcftools norm -d all -O b -o ${vcf_file}.temp
-    bcftools index ${vcf_file}.temp
-  done
+#for vcf_file in ${VCF_DIR}/*slivar.vcf.gz
+#  do
+#    bcftools view -m2 -M2 -v snps --force-samples -e 'GT="mis"' -S <(cut -f2 ${INPUT_DIR}vcf_bam_families.txt) -Oz ${vcf_file} | \
+#    bcftools annotate --rename-chrs ${INPUT_DIR}chr_map.txt -Oz | \
+#    bcftools norm -d all -O b -o ${vcf_file}.temp
+#    bcftools index ${vcf_file}.temp
+#  done
 
 #merge and index all vcf's  (all VCFs calls merged here, irrespective if it is present in the RNAseq .bam data, because this is filtered further.
-bcftools merge ${VCF_DIR}/*temp -Oz -o ${VCF_DIR}/biallelic_sites.vcf.gz
+#bcftools merge ${VCF_DIR}/*temp -Oz -o ${VCF_DIR}/biallelic_sites.vcf.gz
 gatk IndexFeatureFile -I ${VCF_DIR}/biallelic_sites.vcf.gz --verbosity ERROR
 
 echo "DONE ~~~ STEP1 ~~~ bcftools prep ~~~ $(date)"

@@ -9,6 +9,7 @@ scripts/**/.*
 /rnasplice_results/
 /consensus/
 /data_20*
+/picard*
 deprecated/
 /featureCounts/
 /FRASER/
