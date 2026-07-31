@@ -24,7 +24,7 @@ read fc_exons_tpm genome < <(
 
 Rscript consensus.R $workdir $fc_exons_tpm $genome $gtf
 
-echo 'Done Rscript consensus.R' $workdir $fc_exons $genome $gtf
+echo 'Done Rscript consensus.R' $workdir $fc_exons_tpm $genome $gtf
 
 
 

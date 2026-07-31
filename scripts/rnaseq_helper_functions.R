@@ -175,8 +175,8 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
     probands_unique = unique(candidates$proband)
     gw_top = data.frame(geneID = character(), sampleID = integer(), Criteria = numeric())
   
-    gwFRASER = read.table("data/gwFRASER.tsv", row.names = 1, check.names = FALSE)
-    gwOUTRIDER = read.table("data/gw_genes_OUTRIDER.tsv", row.names = 1, check.names = FALSE)
+    gwFRASER = read.table(file.path(tmpdir,"../data/gwFRASER.tsv"), row.names = 1, check.names = FALSE)
+    gwOUTRIDER = read.table(file.path(tmpdir,"../data/gw_genes_OUTRIDER.tsv"), row.names = 1, check.names = FALSE)
     clinical = gw # this is the clinical data for the hpo terms
     
     for(c in 1:length(probands_unique)){
@@ -184,7 +184,7 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
         sample      = probands_unique[c],
         pcutoff     = 0.01,
         hpo_sample  = clinical,
-        hpo_all     = 'genes_to_phenotype.txt',
+        hpo_all     = file.path(tmpdir,'genes_to_phenotype.txt'),
         fraser      = gwFRASER,
         outrider    = gwOUTRIDER,
         geneprior_rm = "gene score")

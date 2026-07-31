@@ -507,7 +507,7 @@ candidates_summary_reactable = function(candidates) {
 gene_prioritization = function(sample = 'HSJ_001_03_PAX',pcutoff=0.5,hpo_sample=clinical,hpo_all='genes_to_phenotype.txt',fraser="",outrider="",geneprior_rm = "gene score"){
 
   # hpo
-  hpo_all = file.path("tmp",hpo_all)
+  #hpo_all = file.path("tmp",hpo_all)
   if(!file.exists(hpo_all)) {
         print(paste0('file ', hpo_all,' downloaded'))
         dir.create("tmp",showWarnings = FALSE)

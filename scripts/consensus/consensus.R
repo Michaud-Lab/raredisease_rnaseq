@@ -43,7 +43,7 @@ consensus_pipeline = function(candidates = candidates, i = 1){
   params$fasta_out = paste0(params$consensus,'gene',params$geneID,'_',candidates$proband[i],".fasta")
   
   # Build consensus sequence
-  if (params$geneID != "" & (length(params$transcript) > 0)) {
+  if (params$geneID != "" & (length(params$transcript) > 0) & (chr != 'MT')) {
     command = paste('./consensus.sh', params$geneID, params$transcript, params$ref_file,
                     params$ref_annot, params$out_dir, params$bam_file, params$consensus, params$region)
     
@@ -57,6 +57,10 @@ consensus_pipeline = function(candidates = candidates, i = 1){
       
       # format the outputs of the bash script
       variant_annotated = read.table(params$gene_variants_annotated,header = TRUE,comment.char ='',check.names=FALSE,na.strings = "",sep = '\t')
+      if(nrow(variant_annotated)==0) return(
+        print(paste0('Sample ~~~ ', i,', gene: ',params$geneID,' did not contain a variant, expression is likely zero ~~~ Time is: ', Sys.time()))
+        )
+      
       colnames(variant_annotated) = c('chr','position','depth','reference','alternate','transcript','exon','gene')
       variant_annotated$alternate[variant_annotated$alternate =='.'] = variant_annotated$reference[variant_annotated$alternate =='.']
       variant_annotated$transcript = gsub(';','',variant_annotated$transcript)
