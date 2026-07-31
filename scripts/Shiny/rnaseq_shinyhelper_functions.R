@@ -231,9 +231,10 @@ wh = wh[wh$gene_id == candidate$ensembl,]
 
     # min pvalue and max deltaPSI in region of interest.
     temp = res_dt_candidate_gene[res_dt_candidate_gene$mean >= xlims[1] & res_dt_candidate_gene$mean <= xlims[2], ]
-    pval = signif(min(temp$pValue),2)
-    deltaPSI = temp$deltaPsi[abs(temp$deltaPsi) == max(abs(temp$deltaPsi))]
-
+    pval = min(temp$pValue)
+    deltaPSI = temp$deltaPsi[temp$pValue == pval]
+    pval = signif(pval,2)
+    
     signif = ggplot(res_dt_candidate_gene,aes(x = mean, y = minuslogpval,color = minuslogpval)) +
       geom_point() +
       geom_vline(xintercept = xintercept,col = 'darkblue',linewidth = 0.5,linetype = "dashed",alpha = ifelse(mutation=='',0,1)) +
