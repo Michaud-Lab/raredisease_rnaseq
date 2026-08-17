@@ -399,6 +399,11 @@ server = function(input, output, session) {
     )
   })
 
+  ### Reset the reference coverage interval slider whenever a new gene is loaded
+  observeEvent(rd$i(), {
+    updateSliderInput(session, "sliderConfInt", value = 0.5)
+  })
+
   ### Coverage ggplots
   output$Figure_genemodel = renderPlot({
     req(candidates$geneID[rd$i()]!="")
