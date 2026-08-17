@@ -124,6 +124,15 @@ app_ui = page_fluid(
              card(
                card_header(strong('Gene model and splicing significance values from FRASER')),
                uiOutput("genemodel_slider"),
+               sliderInput(
+                 inputId = "sliderConfInt",
+                 label = "Reference coverage interval width (e.g. 0.5 = 25th-75th percentile)",
+                 min = 0.5,
+                 max = 0.99,
+                 value = 0.5,
+                 step = 0.01,
+                 width = '100%'
+               ),
                plotOutput("Figure_genemodel", width = '1500px', height = "800px")
              ),
              card(
@@ -402,7 +411,8 @@ server = function(input, output, session) {
         bam_file = paste0(gene_dir,candidates$proband[rd$i()],"_sorted_chrN.bam"),
         colmean_genes_counts_file = paste0(params$datadir,'/colmean_genes_counts.tsv'),
         gene_annotations=gene_annotations,
-        xlims = input$sliderxlims)}
+        xlims = input$sliderxlims,
+        conf.int = input$sliderConfInt)}
 
     genemodel
   })

@@ -165,13 +165,16 @@ plot_expression_family = function(data_family, data_patient) {
 #   colmean_genes_counts_file  - character: path to the column-mean gene counts file (used to normalise coverage)
 #   xlims                      - numeric vector length 2: zoom window in Kb (default: c(10, 100))
 #   gene_annotations           - list: gene annotation object; [[1]] exons GRanges, [[2]] gene GRanges ("wh")
+#   conf.int                   - numeric in (0,1): width of the reference coverage interval passed to
+#                                 median_hilow() in the coverage ribbon (default: 0.5, i.e. 25th-75th percentiles)
 genemodel_plot = function(candidate = candidates,
                              res_dt_candidate_gene_file = "resdet",
                              depth_file = "depth",
                              bam_file = "bam",
                              colmean_genes_counts_file = 'colmean_genes_counts.tsv',
                              xlims = c(10,100),
-                             gene_annotations='gene_annotations') {
+                             gene_annotations='gene_annotations',
+                             conf.int = 0.5) {
 
 if(candidate$geneID != "" & file.exists(res_dt_candidate_gene_file)){
 
@@ -286,13 +289,13 @@ wh = wh[wh$gene_id == candidate$ensembl,]
     # plot
     plotCov_v2 =
       ggplot(depth_pivoted[depth_pivoted$PatientID != candidate$proband,],aes(x = POS, y = Coverage)) +
-      stat_summary(geom="ribbon", fun.data=median_hilow,fun.args = list(conf.int=.5),fill=alpha('darkorange1', alpha =0.7),col= alpha('darkorange1', alpha =0.7)) +
+      stat_summary(geom="ribbon", fun.data=median_hilow,fun.args = list(conf.int=conf.int),fill=alpha('darkorange1', alpha =0.7),col= alpha('darkorange1', alpha =0.7)) +
       geom_line(data = depth_pivoted[depth_pivoted$PatientID == candidate$proband,],aes(x = POS, y = Coverage),col = 'black') +
       geom_vline(xintercept = xintercept,col = 'darkblue',linewidth = 0.5,linetype = "dashed",alpha = ifelse(mutation=='',0,1)) +
       coord_cartesian(xlim = xlims) +
       ylab('Normalised coverage') +
       xlab(paste0('Chromosome ',merged_exons_df[1,1], ' (Kb)')) +
-      ggtitle('Coverage (proband in black, 25-75th reference percentiles in orange)') +
+      ggtitle(paste0('Coverage (proband in black, ',100*(1-conf.int)/2,'-',100*(1-(1-conf.int)/2),'th reference percentiles in orange)')) +
       theme(plot.title = element_text(size = 24),axis.title = element_text(size = 18),axis.text = element_text(size = 14))} else {
         plotCov_v2 = ggplot() + geom_blank()
       }
