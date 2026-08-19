@@ -61,10 +61,6 @@ clinical$geneID = clinical$Gène; clinical$geneID[grepl('analyse agno|N/A|Sans h
 candidates <- merge(candidates, clinical, by.x = c("proband", "geneID"), by.y = c("Patient ID", "geneID"),all.x = TRUE)
 candidates$Criteria[!is.na(candidates$Hypothèse)] = 'Targeted analysis'
 
-
-#further annotate the candidates
-candidates = candidate_genes_gw_annotations(candidates, gwfiles = gwfiles, candidatefiles = candidatefiles, datadir = file.path(params$workdir,'FRASER'),hpo_all = file.path(params$workdir,'tmp/genes_to_phenotype.txt'))
-
 write.csv(candidates,file.path(params$datadir, 'input/candidate_genes_ALL.csv'),quote = T, row.names = F)
 
 # -----------------------------------------------------------------------------
@@ -90,7 +86,7 @@ fc_exons$transcriptID = sapply(strsplit(fc_exons$Geneid,'_'),'[',2)
 fc_exons$exonID = sapply(strsplit(fc_exons$Geneid,'_'),'[',3)
 
 # sum it up per gene in order to find the transcript with the greatest number of reads aligned.
-transcripts_summed = fc_exons %>% group_by(ensemblID,transcriptID) %>% summarise(across(c(7:(ncol(fc_exons)-4)), sum))
+transcripts_summed = fc_exons %>% group_by(ensemblID,transcriptID) %>% summarise(across(c(7:(ncol(fc_exons)-4)), sum), .groups = 'drop')
 
 # keep the MANE instead of the longest gene.
 MANE = read.table(paste0(params$FCdir,"/MANE.tsv"))
