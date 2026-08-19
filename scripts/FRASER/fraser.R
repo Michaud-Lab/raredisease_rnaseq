@@ -103,7 +103,7 @@ fraser_pipeline = function(candidates = candidates, i = 1){
 
       if (is.null(fds)) {
         print(paste0('Skipping sample ~~~ ', i, ' ~~~ Time is: ', Sys.time()))
-        stop()
+        return(invisible(NULL))
      }
 
       res = results(fds, all = TRUE, padjCutoff = NA, deltaPsiCutoff = NA)
