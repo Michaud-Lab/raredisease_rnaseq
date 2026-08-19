@@ -517,9 +517,11 @@ server = function(input, output, session) {
     if(selected_geneID == "") selected_bam = ''
     log_info(paste0('Selecting ~~~ ',selected_patient,' ~~~ ',selected_geneID,' ~~~ ',rd$i()))
     url = paste0("https://www.proteinatlas.org/", selected_ensembl)
+    omim_url = paste0("https://www.omim.org/search/?search=", selected_geneID, "&type=entry")
     HTML(
       paste0("<span><b>Notes: </b>",selected_origin,', ',selected_clinical$Notes,
              "<br><br><b>Gene description for ",selected_geneID,": </b> <a href='", url, "' target='_self'>",selected_ensembl,"</a>",
+             "<br><br><b>OMIM entry for ",selected_geneID,": </b> <a href='", omim_url, "' target='_blank'>",selected_geneID,"</a>",
              "<br><br><b>Mutations: </b>",selected_clinical$Mutation,
              "<br><br><b>Candidate Gene hypothesis: </b>",selected_clinical$Hypothèse,
              "<br><br><b>HPO terms: </b>",selected_clinical$`HPO terms`,
