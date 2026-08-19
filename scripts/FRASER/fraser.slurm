@@ -4,7 +4,7 @@
 #SBATCH --mem=64G
 #SBATCH --account=def-rallard
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=4
 
 
 module load samtools

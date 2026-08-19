@@ -1,7 +1,5 @@
 # =============================================================================
 # fraser_gw.R - Genome-wide splicing analysis with FRASER (per chromosome)
-# =============================================================================
-
 source("../rnaseq_helper_functions.R")
 
 # -----------------------------------------------------------------------------
@@ -30,10 +28,10 @@ if (is.na(list.files(params$bams_subset)[1])) {
 # -----------------------------------------------------------------------------
 # 3. Run FRASER (skip if results already exist)
 # -----------------------------------------------------------------------------
-if (file.exists(paste0(params$bams_subset, 'res_dt.csv')) == TRUE) {
+if (file.exists(file.path(params$bams_subset, 'res_dt.csv')) == TRUE) {
   print(paste0('Already done chr ', params$chromosome, ': Sys.time is: ', Sys.time()))
 } else {
-  load_install_library('FRASER')
+  load_install_library(c('FRASER','data.table'))
 
   register(MulticoreParam(params$ncores, params$ncores * 2, progressbar = TRUE))
 
@@ -54,11 +52,14 @@ if (file.exists(paste0(params$bams_subset, 'res_dt.csv')) == TRUE) {
   )
   settings = FraserDataSet(colData = sampleTable[probands, ], workingDir = params$bams_subset)
 
-  fds = countRNAData(settings, recount = FALSE, keepNonStandardChromosomes = FALSE,
-                      minExpressionInOneSample = 50, filter = TRUE)
-  fds = calculatePSIValues(fds)
+  fds = suppressMessages(suppressWarnings(
+                                         countRNAData(settings, recount = FALSE, keepNonStandardChromosomes = FALSE,
+                                                      minExpressionInOneSample = 50, filter = TRUE)
+                         ))
+  
+  fds = calculatePSIValues(fds,BPPARAM = SerialParam(progressbar = FALSE))
   fds = annotateRanges(fds, GRCh = 38)
-  fds = FRASER(fds, q = c(jaccard = 2))
+  fds = FRASER(fds, q = c(jaccard = 2),BPPARAM = SerialParam(progressbar = FALSE))
 
   # Filter to significant results and save
   res = results(fds, all = TRUE, padjCutoff = NA, deltaPsiCutoff = NA)

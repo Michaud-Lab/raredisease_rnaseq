@@ -50,11 +50,12 @@ fraser_pipeline = function(candidates = candidates, i = 1){
    res_dt_outfile = paste0(out_dir, "/gene_", geneID, "_", proband, "_res_dt_candidate_gene.csv")
 
     #if statement to run only if file does not exist or is empty
-    if (!file.exists(res_dt_outfile) | (file.exists(res_dt_outfile) && length(readLines(res_dt_outfile)) == 0)) {
+    if (!file.exists(res_dt_outfile) | (file.exists(res_dt_outfile) && length(readLines(res_dt_outfile)) < 1)) {
      # Create an empty placeholder in case the analysis fails, to avoid re-running
-     system(paste0('touch ', res_dt_outfile))
-
-      # Subset BAM to gene region
+     #system(paste0('touch ', res_dt_outfile))
+     system(paste0("echo 'FRASER not run' >",res_dt_outfile))
+     
+     # Subset BAM to gene region
      system(command)
 
      load_install_library(c('patchwork', 'FRASER', 'tidyr', 'GenomeInfoDb'))
@@ -95,7 +96,8 @@ fraser_pipeline = function(candidates = candidates, i = 1){
                      ' ~~~ ','likely because there were no splice junctions ~~~ ', conditionMessage(e)))
         
         # Write an empty CSV (header only) so this sample is not re-run
-        write.csv(data.frame(), res_dt_outfile)
+        system(paste0("echo 'FRASER failed ~ no splice junctions' >",res_dt_outfile))
+      #  write.csv('FRASER failed ~ no splice junctions',res_dt_outfile,row.names = F)
        NULL
      })
 

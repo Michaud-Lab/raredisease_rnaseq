@@ -18,7 +18,7 @@ params$fc_perexon = args[3]
 params$cpu = as.numeric(args[4])
 
 dir.create(params$OUTRIDER)
-register(MulticoreParam(params$cpu, params$cpu * 2, progressbar = TRUE))
+register(MulticoreParam(params$cpu, params$cpu * 2, progressbar = FALSE))
 
 # -----------------------------------------------------------------------------
 # 2. Load candidate genes and gene annotation map

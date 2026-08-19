@@ -12,6 +12,12 @@ else
     fraction=""
 fi
 
+if [ $chromosome = "21" ]; then
+    fraction=" -s 0.05 "
+else
+    fraction=""
+fi
+
 
 #subset all the big .bam file to keep only the region of interest.
 for bam_in in $rnasplice_bamdir/*sorted.bam

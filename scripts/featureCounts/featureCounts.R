@@ -63,7 +63,7 @@ candidates$Criteria[!is.na(candidates$Hypothèse)] = 'Targeted analysis'
 
 
 #further annotate the candidates
-candidates = candidate_genes_gw_annotations(candidates, gwfiles = gwfiles, candidatefiles = candidatefiles, datadir = params$datadir,hpo_all = file.path(params$workdir,'tmp/genes_to_phenotype.txt'))
+candidates = candidate_genes_gw_annotations(candidates, gwfiles = gwfiles, candidatefiles = candidatefiles, datadir = file.path(params$workdir,'FRASER'),hpo_all = file.path(params$workdir,'tmp/genes_to_phenotype.txt'))
 
 write.csv(candidates,file.path(params$datadir, 'input/candidate_genes_ALL.csv'),quote = T, row.names = F)
 

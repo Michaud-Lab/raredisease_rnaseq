@@ -8,10 +8,10 @@
 candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidatefiles = candidatefiles,datadir = getwd(),hpo_all='genes_to_phenotype.txt') {
   
   #
-  candidates$FRASER = ''
-  candidates$OUTRIDER = ''
-  candidates$ASE = ''
-  candidates$`HPO proband-gene matches` = ''
+  candidates$FRASER = 'not found'
+  candidates$OUTRIDER = 'not found'
+  candidates$ASE = 'not found'
+  candidates$`HPO proband-gene matches` = 'none'
   
   #hpo terms
   if(!file.exists(hpo_all)) {
@@ -40,7 +40,7 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
     hpo_match = paste0(paste(hpo_match[[3]],hpo_match[[4]],sep = ': '),collapse = ' || ')
 
     #match
-    candidates$`HPO proband-gene matches`[i] = hpo_match
+    if(nchar(hpo_match)>0) candidates$`HPO proband-gene matches`[i] = hpo_match
   }
    
     
@@ -54,6 +54,7 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
     
         for(i in 1:nrow(candidates))
           {
+print(paste0(i,'~~~',candidates$geneID[i]))
             resdt = data.frame(sampleID = numeric(0), hgncSymbol = numeric(0))
             gw_temp = gw[gw$sampleID == candidates$proband[i] & gw$hgncSymbol == candidates$geneID[i],]
           
@@ -69,13 +70,16 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
                                 '_',
                                 candidates$proband[i],
                                 '_res_dt_candidate_gene.csv')
-           
-            if(file.exists(resdt_file) && R.utils::countLines(resdt_file)>1) {resdt = read.csv(resdt_file)}
-            
+print(resdt_file)           
+print('AAA')
+            if(file.exists(resdt_file) && R.utils::countLines(resdt_file)>0) {resdt = read.csv(resdt_file)}
+print('BBBB')            
             if(nrow(resdt)>0) {temp = resdt} else {temp = gw_temp}
             
-            if(nrow(temp)>0) stats = paste0('padj = ',signif(min(temp$padjust),2),', ΔPSI = ',temp$deltaPsi[temp$padjust == min(temp$padjust)])
-            if(nrow(temp)>0) candidates$FRASER[i] = stats[1]
+            if(nrow(temp)>0) {stats = paste0('padj = ',signif(min(temp$padjust),2),', ΔPSI = ',temp$deltaPsi[temp$padjust == min(temp$padjust)]);
+			      candidates$FRASER[i] = stats[1]}
+
+            if(nrow(temp)==0) candidates$FRASER[i] = names(resdt)
         }
     }
     
