@@ -45,17 +45,6 @@ reactive_data_server = function(id, proband, pvalue, geneprior_rm) {
 
       reactive_i = gsub('_PAX', '', proband())
 
-      # Isoform (transcript-level) expression
-      column = which(colnames(transcripts_named_filtered) == reactive_i)
-      column_not = which(colnames(transcripts_named_filtered) != reactive_i)
-      column_not = column_not[-c(1, 2, length(column_not))]
-      transcripts_reactive = transcripts_named_filtered[
-        transcripts_named_filtered$proband == reactive_i,
-        c(1, 2, column, column_not)
-      ]
-      transcripts_reactive = transcripts_reactive[
-        order(transcripts_reactive[, 3], decreasing = TRUE), ]
-
       # Exon raw counts
       column = which(colnames(fc_exons_raw) == reactive_i)
       column_not = which(colnames(fc_exons_raw) != reactive_i)
@@ -145,7 +134,6 @@ reactive_data_server = function(id, proband, pvalue, geneprior_rm) {
       fc_exons_ggplot_reactive_adults$exonID = fc_exons_ggplot_reactive_adults$exonID + 0.1
 
       list(
-        transcripts_reactive                = transcripts_reactive,
         table_OUTRIDER                      = table_OUTRIDER,
         table_OUTRIDER_candidate            = table_OUTRIDER_candidate,
         fc_exons_ggplot_reactive_child      = fc_exons_ggplot_reactive_child,

@@ -78,7 +78,7 @@ app_ui = page_fluid(
              card(
                card_header(strong("Reference transcript based on Matched Annotation from NCBI and EMBL-EBI (MANE)")),
                selectInput("table_choice", "Choose an expression metric: ",
-                           choices = c("Normalised expression", "Raw counts","Isoform-specific expression"),
+                           choices = c("Normalised expression", "Raw counts"),
                            selected = "Normalised expression"),
                DTOutput("exonTPM")
              )
@@ -307,22 +307,9 @@ server = function(input, output, session) {
         rd$reactive_inputs()$fc_exons_raw_reactive,
         rownames = FALSE,
         options = list(pageLength = 100,lengthChange = FALSE,info = FALSE))
-    } else if (input$table_choice == "Isoform-specific expression") {
-      datatable(
-        rd$reactive_inputs()$transcripts_reactive,
-        rownames = FALSE,
-        options = list(pageLength = 100,lengthChange = FALSE,info = FALSE))
     }
   })
 
-  ### Data table
-  output$Table = renderDT({
-    datatable(
-      rd$reactive_inputs()$transcripts_reactive,
-      rownames = FALSE,
-      options = list(pageLength = 50)
-    )
-  })
   ### Plotly expression
   output$Expression = renderPlotly({
     plot_expression_cohort(

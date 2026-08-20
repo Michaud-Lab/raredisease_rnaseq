@@ -6,7 +6,7 @@
 # 1. Load or Install packages
 # -----------------------------------------------------------------------------
 source(file.path(params$scriptsdir, 'rnaseq_helper_functions.R'))
-
+logger::log_info("Loading libraries")
 load_install_library(c('remotes','BiocManager','GenomeInfoDb','DT', 'reactable', 'plotly', 'tidyr', 'shiny', 'shinyjs', 'jsonlite', 'igvShiny', 'shinymanager',
              'GenomicAlignments', 'dplyr', 'ggtranscript', 'patchwork', 'Hmisc',
              'bslib', 'RColorBrewer', 'ggrepel', 'R.utils', 'logger', 'rtracklayer'))
@@ -58,9 +58,6 @@ significant_perexons_OUTRIDER$chr = factor(significant_perexons_OUTRIDER$chr, le
 
 candidates_OUTRIDER = read.table(file.path(params$datadir, 'candidates_OUTRIDER.tsv'), check.names = FALSE)
 candidates_perexons_OUTRIDER = read.table(file.path(params$datadir, 'candidates_perexons_OUTRIDER.tsv'), check.names = FALSE)
-
-transcripts_named_filtered = read.table(file.path(params$datadir, 'transcripts_named_filtered.tsv'), check.names = FALSE)
-transcripts_named_filtered_ggplot = read.table(file.path(params$datadir, 'transcripts_named_filtered_ggplot.tsv'), check.names = FALSE)
 
 fc_exons_tpm_ggplot = read.table(file.path(params$datadir, 'fc_exons_tpm_ggplot.tsv'), check.names = FALSE)
 candidates = read.csv(file.path(params$datadir, 'input/candidate_genes_ALL.csv'), check.names = FALSE)
