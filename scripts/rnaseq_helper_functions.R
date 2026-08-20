@@ -54,7 +54,6 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
     
         for(i in 1:nrow(candidates))
           {
-print(paste0(i,'~~~',candidates$geneID[i]))
             resdt = data.frame(sampleID = numeric(0), hgncSymbol = numeric(0))
             gw_temp = gw[gw$sampleID == candidates$proband[i] & gw$hgncSymbol == candidates$geneID[i],]
           
@@ -70,10 +69,9 @@ print(paste0(i,'~~~',candidates$geneID[i]))
                                 '_',
                                 candidates$proband[i],
                                 '_res_dt_candidate_gene.csv')
-print(resdt_file)           
-print('AAA')
+
             if(file.exists(resdt_file) && R.utils::countLines(resdt_file)>0) {resdt = read.csv(resdt_file)}
-print('BBBB')            
+          
             if(nrow(resdt)>0) {temp = resdt} else {temp = gw_temp}
             
             if(nrow(temp)>0) {stats = paste0('padj = ',signif(min(temp$padjust),2),', ΔPSI = ',temp$deltaPsi[temp$padjust == min(temp$padjust)]);

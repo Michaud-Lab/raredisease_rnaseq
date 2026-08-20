@@ -4,6 +4,25 @@ All notable changes to this project are documented here.
 
 ---
 
+## 2026-08-20 — fraser-annotation-fixes-and-omim-links
+
+**Fixed**
+- `scripts/FRASER/fraser.R`: `fraser_pipeline()` called a bare `stop()` when FRASER failed for a candidate (e.g. no splice junctions found, surfaced as a BiocParallel remote-error/`.stop_quietly()` message). Since the function runs from a plain `for` loop with no surrounding `tryCatch`, this aborted the entire script instead of skipping just that candidate — replaced with `return(invisible(NULL))` so subsequent candidates in `candidate_genes_ALL.csv` still get processed.
+- `scripts/featureCounts/featureCounts.R`: added `.groups = 'drop'` to the `summarise()` call that sums exon counts per transcript, silencing dplyr's "has grouped output by..." message.
+- `scripts/cp_and_cleanup.R`: `read.csv()` for `candidate_genes_ALL.csv` was missing `check.names = FALSE`, so the `HPO terms` column (containing a space) was renamed to `HPO.terms` on read, making `candidates$`HPO terms`` return `NULL` and crashing `candidate_genes_gw_annotations()` with `strsplit(NULL, ...)`. Added `check.names = FALSE` to match every other reader of this file.
+
+**Changed**
+- `scripts/featureCounts/featureCounts.R`, `scripts/cp_and_cleanup.R`: moved the `candidate_genes_gw_annotations()` call (FRASER/OUTRIDER/ASE/HPO annotation of `candidate_genes_ALL.csv`) from `featureCounts.R` to `cp_and_cleanup.R`. featureCounts runs before FRASER/OUTRIDER/ASE in the pipeline, so calling it there either errored (genome-wide result files don't exist yet) or silently annotated against stale results left over from a previous run. It now runs in `cp_and_cleanup.R`, after every upstream step has copied its genome-wide/per-candidate outputs into `data/`, so the annotation always reflects the current run.
+- `RNAseq_shiny_v2.5.R`, `scripts/Shiny/global.R`, `scripts/Shiny/reactive_module.R`, `scripts/cp_and_cleanup.R`: removed the "Isoform-specific expression" table option from the Expression tab, along with its supporting `transcripts_named_filtered` / `transcripts_named_filtered_ggplot` data (table construction in `cp_and_cleanup.R`, loading in `global.R`, and the per-proband reactive computation in `reactive_module.R`).
+- `scripts/rnaseq_helper_functions.R`: removed leftover debug `print()` statements from `candidate_genes_gw_annotations()`'s per-candidate FRASER loop.
+- `scripts/cp_and_cleanup.R`: `params$workdir` now resolves relative to the script's working directory instead of a hard-coded absolute path; library loading now goes through `load_install_library()` instead of individual `library()` calls.
+
+**Added**
+- `RNAseq_shiny_v2.5.R`: OMIM gene-entry link added to the "Information" card in the Proband Selection tab.
+- `scripts/Shiny/rnaseq_shinyhelper_functions.R`: OMIM gene-entry link added to each gene row in the Summary tab's expandable per-proband candidate gene table.
+
+---
+
 ## 2026-07-15 — refactor-fraser-consensus
 
 **Changed**

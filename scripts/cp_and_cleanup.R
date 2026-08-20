@@ -2,23 +2,15 @@
 # cp_and_cleanup.R - Consolidate all pipeline outputs into the data/ directory
 #                    and package for transfer
 # =============================================================================
-
-# Libraries
-library(readxl)
-library(tidyr)
-library(data.table)
-library(dplyr)
-library(zip)
-library(jsonlite)
+source("rnaseq_helper_functions.R")
+load_install_library(c('readxl','tidyr','data.table','dplyr','zip','jsonlite'))
 
 # -----------------------------------------------------------------------------
 # 1. Parameters
 # -----------------------------------------------------------------------------
-params = list(workdir = "/project/def-rallard/COMMUN/raredisease_rnaseq/")
-params$datadir = file.path(params$workdir, '/data/')
-params$resultdir = file.path(params$workdir, '/rnasplice_results')
-
-source(file.path(params$workdir, 'scripts/rnaseq_helper_functions.R'))
+params = list(workdir = file.path(getwd(),',,'))
+params$datadir = file.path(params$workdir, 'data/')
+params$resultdir = file.path(params$workdir, 'rnasplice_results')
 
 dir.create(params$datadir, showWarnings = FALSE)
 dir.create(paste0(params$datadir, 'bams_subset'), showWarnings = FALSE)
@@ -78,7 +70,7 @@ system(paste0('cp -r ', params$workdir, '/OUTRIDER/*OUTRIDER.tsv ', params$datad
 # 7. Annotate candidates with FRASER/OUTRIDER/ASE/HPO results, then copy
 #    per-candidate BAM subsets, depth files, and FRASER results
 # -----------------------------------------------------------------------------
-candidates = read.csv(file.path(params$datadir, 'input/candidate_genes_ALL.csv'))
+candidates = read.csv(file.path(params$datadir, 'input/candidate_genes_ALL.csv'), check.names = FALSE)
 configs = read_json(file.path(params$datadir, 'input/configs.json'))
 
 gwfiles = paste0(params$datadir, c('/gwFRASER.tsv', '/gw_genes_OUTRIDER.tsv', '/gwASE.tsv', '/clinical.tsv'))
@@ -122,47 +114,6 @@ for(i in 1:length(html_files)){
   lines = lines[-problematic_line]
   writeLines(lines, file.path(params$datadir, paste0('multiqc_report_', i, '.html')))
 }
-
-# -----------------------------------------------------------------------------
-# 9. Build transcript expression tables
-# -----------------------------------------------------------------------------
-ensembl_geneid = read.table(file.path(params$datadir, '/input/ensembl_geneid.tsv'), header = TRUE)
-clinical = read.table(file.path(params$datadir, 'clinical.tsv'), check.names = FALSE)
-
-transcripts = read.csv(
-  file.path(params$resultdir, '/results_09_05_2026//star_salmon/tximport/salmon.merged.transcript_tpm.tsv'),
-  sep = '\t', check.names = FALSE
-)
-transcripts[, -c(1:2)] = round(transcripts[, -c(1:2)], 2)
-transcripts_named = merge(transcripts, ensembl_geneid)
-transcripts_named = data.frame(
-  transcripts_named[, c(ncol(transcripts_named), 2)],
-  transcripts_named[, -c(1, 2, ncol(transcripts_named))],
-  check.names = FALSE
-)
-colnames(transcripts_named)[1:2] = c('geneID', 'isoform/transcript')
-
-proband_ids = clinical$`Patient ID`[clinical$type == 'Proband']
-transcripts_named_filtered = transcripts_named[transcripts_named$geneID %in% candidates$geneID, ]
-transcripts_named_filtered = transcripts_named_filtered[,
-  colnames(transcripts_named_filtered) %in% c('geneID', 'isoform/transcript', proband_ids)
-]
-transcripts_named_filtered = merge(transcripts_named_filtered, candidates[, c('geneID','proband')], sort = FALSE)
-colnames(transcripts_named_filtered) = gsub('_PAX', '', colnames(transcripts_named_filtered))
-transcripts_named_filtered$proband = gsub('_PAX', '', transcripts_named_filtered$proband)
-
-transcripts_named_filtered_ggplot = transcripts_named_filtered %>%
-  pivot_longer(cols = c(3:(ncol(transcripts_named_filtered) - 1)), names_to = 'PatientID', values_to = 'expression')
-transcripts_named_filtered_ggplot = merge(
-  transcripts_named_filtered_ggplot,
-  clinical[, colnames(clinical) %in% c('PatientID', 'Sexe', 'type', 'age')]
-)
-
-write.table(transcripts_named_filtered,
-            file.path(params$datadir, 'transcripts_named_filtered.tsv'), sep = '\t', quote = FALSE)
-write.table(transcripts_named_filtered_ggplot,
-            file.path(params$datadir, 'transcripts_named_filtered_ggplot.tsv'), sep = '\t', quote = FALSE)
-write.table(clinical, file.path(params$datadir, 'clinical.tsv'), sep = '\t', quote = TRUE)
 
 # -----------------------------------------------------------------------------
 # 10. Zip everything for transfer
