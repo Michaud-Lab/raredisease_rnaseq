@@ -94,6 +94,9 @@ scriptsdir="/project/def-rallard/COMMUN/raredisease_rnaseq/scripts"
 Run each step in order. Steps 3–7 submit Slurm jobs and can run in parallel once Steps 1–2 are complete.
 
 **Step 1 — Alignment and QC**. 
+
+Aligns raw paired-end FASTQ reads to GRCh38 using the [nf-core rnasplice](https://nf-co.re/rnasplice) Nextflow pipeline, producing sorted/indexed BAM files and a MultiQC report. This is the only step that touches raw sequencing data — every downstream step reads from its BAM output.
+
 ```bash
 nextflow run rnasplice \
   -params-file data/input/nextflow_params.json \
@@ -105,6 +108,9 @@ nextflow run rnasplice \
 > **Notes:** Run this everytime you have a new batch of samples sequenced. You will have to modify `$datadir/nextflow_params.json` to specify a new `outdir` and `input` to list samples in `nextflow_samples.csv`.
 
 **Step 2 — Update candidate genes from Google Sheets**. 
+
+Downloads the clinical team's shared Google Sheet as `candidate_genes_extra.csv` and pushes it to the compute server, so any candidate gene added since the last run is picked up by the rest of the pipeline.
+
 ```bash
 bash $scriptsdir/update_genes.sh
 ```
@@ -112,36 +118,57 @@ bash $scriptsdir/update_genes.sh
 > **Notes:** Run this if/when you have new genes to add to the report. If you have new genes, you will need to re-run Steps 3–9 to update the report. This will be relatively quick since most analyses are skipped if already present.
 
 **Step 3 — Feature counts**
+
+Runs `subread featureCounts` at the gene and exon level on every BAM, then computes normalized TPM using the MANE-selected transcript for each gene. Also (re)builds the master candidate list, `candidate_genes_ALL.csv`: merges manually-curated candidates, the extra candidates from Step 2, and automatically-discovered candidates (top genome-wide FRASER/OUTRIDER/ASE hits and HPO-driven suggestions from a previous run, if present) with the anonymized clinical metadata (`masterlog`). This file drives every subsequent step and the dashboard.
+
 ```bash
 sbatch $scriptsdir/featureCounts/featureCounts.slurm
 ```
 
 **Step 4 — Aberrant expression (OUTRIDER)**
+
+Runs [OUTRIDER](https://github.com/gagneurlab/OUTRIDER) on the gene- and exon-level count matrices from Step 3 to flag statistically aberrant expression, both genome-wide and specifically for each candidate gene/proband pair. Haemoglobin genes are excluded before fitting, since their extreme expression would otherwise dominate the model.
+
 ```bash
 sbatch $scriptsdir/OUTRIDER/outrider.slurm
 ```
 
 **Step 5 — Aberrant splicing (FRASER)**
+
+For each candidate gene/proband pair, subsets the BAM to a ±5 kb window around the gene and runs [FRASER](https://github.com/gagneurlab/FRASER) to detect aberrant splicing (intron retention, exon skipping) against the reference cohort. Also generates the per-gene sashimi coverage plots shown in the dashboard's Gene model/FRASER tabs. Genes with no splice junctions in a proband are skipped rather than failing the run.
+
 ```bash
 sbatch $scriptsdir/FRASER/fraser.slurm
 ```
 
 **Step 6 — Allele-specific expression**
+
+Runs GATK `ASEReadCounter` on each proband's RNA-seq BAM at heterozygous SNV positions from their WGS genotypes, then tests for allele-specific expression (binomial test) genome-wide, flagging known imprinted and X-linked genes separately.
+
 ```bash
 sbatch $scriptsdir/ASE/ase.slurm
 ```
 
 **Step 7 — Consensus sequences**
+
+Builds a consensus/alternate FASTA sequence for each candidate gene by incorporating the proband's variants into the reference sequence, for side-by-side comparison in the dashboard's "fasta" tab.
+
 ```bash
 sbatch $scriptsdir/consensus/consensus.slurm
 ```
 
 **Step 8 — Consolidate outputs**
+
+Copies every step's outputs (FRASER, OUTRIDER, ASE, consensus, featureCounts tables, sashimi plots, MultiQC report) into a single `data/` directory. This is also when `candidate_genes_ALL.csv` gets its final FRASER/OUTRIDER/ASE/HPO annotation. Finishes by zipping `data/` for transfer.
+
 ```bash
 Rscript $scriptsdir/cp_and_cleanup.R
 ```
 
 **Step 9a — Launch the Shiny dashboard** *(requires R ≥ 4.5, run in RStudio or locally)*
+
+Launches the interactive dashboard (`RNAseq_shiny_v2.5.R`) for browsing per-proband candidate genes: expression, splicing, ASE results, gene prioritization, and IGV alignments — reading everything from the `data/` directory produced by Step 8.
+
 ```bash
 Rscript RNAseq_shiny_v2.5.R
 ```
