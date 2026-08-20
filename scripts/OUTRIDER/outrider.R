@@ -18,7 +18,7 @@ params$fc_perexon = args[3]
 params$cpu = as.numeric(args[4])
 params$force_outrider = ifelse(is.na(args[5]), FALSE, as.logical(args[5]))
 params$table_genes_file = file.path(params$OUTRIDER, 'table_genes.rds')
-table_exons_file = file.path(params$OUTRIDER, 'table_exons.rds')
+params$table_exons_file = file.path(params$OUTRIDER, 'table_exons.rds')
 
 dir.create(params$OUTRIDER)
 register(MulticoreParam(params$cpu, params$cpu * 2, progressbar = FALSE))
@@ -118,7 +118,7 @@ print(paste0('Done OUTRIDER per gene --- Time is: ', Sys.time()))
 # 4. OUTRIDER per exon (expensive — cached to table_exons_file; only recomputed
 #    when that cache is absent AND force_outrider is explicitly requested)
 # -----------------------------------------------------------------------------
-if (!file.exists(table_exons_file) && params$force_outrider) {
+if (!file.exists(params$table_exons_file) && params$force_outrider) {
   fc_exons_raw_ALL = read.table(params$fc_perexon, sep = '\t', check.names = FALSE)
   fc_exons_raw_ALL = fc_exons_raw_ALL[, grepl('^bc', colnames(fc_exons_raw_ALL)) == FALSE]
 
@@ -151,13 +151,13 @@ if (!file.exists(table_exons_file) && params$force_outrider) {
   table_exons$ensemblID_sampleID = paste0(table_exons$ensemblID, '_', table_exons$sampleID)
   table_exons$pValue = signif(table_exons$pValue, 4)
 
-  saveRDS(table_exons, table_exons_file)
+  saveRDS(table_exons, params$table_exons_file)
 } else {
-  if (!file.exists(table_exons_file)) {
-    stop(paste0(table_exons_file, ' does not exist yet — rerun with force_outrider = TRUE to compute it.'))
+  if (!file.exists(params$table_exons_file)) {
+    stop(paste0(params$table_exons_file, ' does not exist yet — rerun with force_outrider = TRUE to compute it.'))
   }
-  table_exons = readRDS(table_exons_file)
-  print(paste0('Loaded cached table_exons from ', table_exons_file))
+  table_exons = readRDS(params$table_exons_file)
+  print(paste0('Loaded cached table_exons from ', params$table_exons_file))
 }
 
 # Candidate exons
