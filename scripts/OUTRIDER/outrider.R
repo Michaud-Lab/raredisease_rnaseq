@@ -83,13 +83,13 @@ if (!file.exists(params$table_genes_file) && params$force_outrider) {
   table_genes = as.data.frame(results(ods, padjCutoff = 1))
   table_genes$pValue = signif(table_genes$pValue, 4)
 
-  saveRDS(table_genes, table_genes_file)
+  saveRDS(table_genes, params$table_genes_file)
 } else {
   if (!file.exists(params$table_genes_file)) {
-    stop(paste0(table_genes_file, ' does not exist yet — rerun with force_outrider = TRUE to compute it.'))
+    stop(paste0(params$table_genes_file, ' does not exist yet — rerun with force_outrider = TRUE to compute it.'))
   }
   table_genes = readRDS(params$table_genes_file)
-  print(paste0('Loaded cached table_genes from ', table_genes_file))
+  print(paste0('Loaded cached table_genes from ', params$table_genes_file ))
 }
 
 significant_table = table_genes[table_genes$pValue < 0.05, ]
