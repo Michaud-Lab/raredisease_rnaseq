@@ -480,7 +480,13 @@ candidates_summary_reactable = function(candidates) {
                   columns = list(
                     Chr = colDef(width = 50),
                     position   = colDef(width = 100),
-                    geneID     = colDef(width = 100),
+                    geneID     = colDef(width = 100, cell = function(value) {
+                      if (value == '') return(value)
+                      htmltools::tags$a(
+                        href = paste0("https://www.omim.org/search/?search=", value, "&type=entry"),
+                        target = "_blank", value
+                      )
+                    }),
                     Criteria   = colDef(width = 150),
                     Mutation   = colDef(width = 150),
                     `HPO proband-gene matches` = colDef(width = 200),
