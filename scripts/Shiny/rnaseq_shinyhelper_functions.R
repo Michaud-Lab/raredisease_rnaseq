@@ -435,6 +435,19 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
 }
 
 
+# omim_link_geneID: replaces each value in a data.frame's geneID column with an HTML link to its OMIM search entry.
+# For use with DT::datatable(..., escape = -which(colnames(data) == 'geneID')).
+# Arguments:
+#   data - data.frame containing a geneID column
+omim_link_geneID = function(data) {
+  data$geneID = ifelse(
+    is.na(data$geneID) | data$geneID == '',
+    data$geneID,
+    paste0("<a href='https://www.omim.org/search/?search=", data$geneID, "&type=entry' target='_blank'>", data$geneID, "</a>")
+  )
+  data
+}
+
 # candidates_summary_reactable: builds the Summary-tab reactable, one row per proband, expandable to that proband's candidate genes.
 # Arguments:
 #   candidates - data.frame: candidate_genes_ALL.csv contents (one row per proband-gene pair, with clinical/annotation columns)

@@ -329,36 +329,44 @@ server = function(input, output, session) {
 
   ### OUTRIDER table
   output$table_OUTRIDER = renderDT({
+    data = omim_link_geneID(rd$reactive_inputs()$table_OUTRIDER[rd$reactive_inputs()$table_OUTRIDER$pValue < as.numeric(input$pvalue),])
     datatable(
-      rd$reactive_inputs()$table_OUTRIDER[rd$reactive_inputs()$table_OUTRIDER$pValue < as.numeric(input$pvalue),],
+      data,
       rownames = FALSE,
+      escape = -which(colnames(data) == 'geneID'),
       options = list(pageLength = 100)
     )
   })
 
   ### OUTRIDER candidate gene table
   output$candidates_OUTRIDER = renderDT({
+    data = omim_link_geneID(rd$reactive_inputs()$table_OUTRIDER_candidate)
     datatable(
-      rd$reactive_inputs()$table_OUTRIDER_candidate,
+      data,
       rownames = FALSE,
+      escape = -which(colnames(data) == 'geneID'),
       options = list(dom = 'tir',info = FALSE)
     )
   })
 
   ### OUTRIDER candidate exon table
   output$candidates_OUTRIDER_exons = renderDT({
+    data = omim_link_geneID(rd$reactive_inputs()$table_perexons_OUTRIDER_candidate)
     datatable(
-      rd$reactive_inputs()$table_perexons_OUTRIDER_candidate,
+      data,
       rownames = FALSE,
+      escape = -which(colnames(data) == 'geneID'),
       options = list(pageLength = 50)
     )
   })
 
   ### OUTRIDER significant exon table
   output$significant_OUTRIDER_exons = renderDT({
+    data = omim_link_geneID(rd$reactive_inputs()$table_perexons_OUTRIDER_significant)
     datatable(
-      rd$reactive_inputs()$table_perexons_OUTRIDER_significant,
+      data,
       rownames = FALSE,
+      escape = -which(colnames(data) == 'geneID'),
       options = list(pageLength = 50)
     )
   })
@@ -458,25 +466,31 @@ server = function(input, output, session) {
   ### genome-wide ASE table
   output$gwASE_table = renderDT({
     req(!is.null(gwASE))
+    data = omim_link_geneID(rd$reactive_inputs()$gwASE_table)
     datatable(
-      rd$reactive_inputs()$gwASE_table,
-      rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))
+      data,
+      rownames = FALSE, escape = -which(colnames(data) == 'geneID'),
+      options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))
   })
 
   ### genome-wide ASE Imprinted table
   output$gwImprinted_table = renderDT({
     req(!is.null(gwASE_IMX))
+    data = omim_link_geneID(rd$reactive_inputs()$gwIMX_table[rd$reactive_inputs()$gwIMX_table$Type == 'I',1:12])
     datatable(
-      rd$reactive_inputs()$gwIMX_table[rd$reactive_inputs()$gwIMX_table$Type == 'I',1:12],
-      rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))
+      data,
+      rownames = FALSE, escape = -which(colnames(data) == 'geneID'),
+      options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))
   })
 
   ### genome-wide ASE X table
   output$gwX_table = renderDT({
     req(!is.null(gwASE_IMX))
+    data = omim_link_geneID(rd$reactive_inputs()$gwIMX_table[rd$reactive_inputs()$gwIMX_table$Type == 'X',1:12])
     datatable(
-      rd$reactive_inputs()$gwIMX_table[rd$reactive_inputs()$gwIMX_table$Type == 'X',1:12],
-      rownames = FALSE, options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))
+      data,
+      rownames = FALSE, escape = -which(colnames(data) == 'geneID'),
+      options = list(pageLength = 100,lengthChange = FALSE,info = FALSE,columnDefs = list(list(className = 'dt-left', targets = "_all"))))
   })
 
   ### genome-wide ASE manhattan
