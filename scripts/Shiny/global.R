@@ -29,17 +29,17 @@ load(file = file.path(params$datadir, "gene_annotations.rda"))
 # -----------------------------------------------------------------------------
 logger::log_info("Loading datasets")
 
-fc_exons_raw = read.table(file.path(params$datadir, 'fc_exons_raw.tsv'), check.names = FALSE, header = TRUE)
+fc_exons_raw = read.table(file.path(params$datadir, 'fc_exons_raw.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
 fc_exons_raw[, -c(1:5)] = round(fc_exons_raw[, -c(1:5)])
-fc_exons_tpm = read.table(file.path(params$datadir, 'fc_exons_tpm.tsv'), check.names = FALSE, header = TRUE)
-fc_genes_tpm = read.table(file.path(params$datadir, 'fc_genes_tpm.tsv'), check.names = FALSE, header = TRUE)
-fc_genes_raw_ALL = read.table(file.path(params$datadir, 'fc_genes_raw_ALL.tsv'), check.names = FALSE, header = TRUE)
+fc_exons_tpm = read.table(file.path(params$datadir, 'fc_exons_tpm.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
+fc_genes_tpm = read.table(file.path(params$datadir, 'fc_genes_tpm.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
+fc_genes_raw_ALL = read.table(file.path(params$datadir, 'fc_genes_raw_ALL.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
 
-gwOUTRIDER = read.table(file.path(params$datadir, 'gw_genes_OUTRIDER.tsv'), check.names = FALSE)
+gwOUTRIDER = read.table(file.path(params$datadir, 'gw_genes_OUTRIDER.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
 gwOUTRIDER$chr = factor(gwOUTRIDER$chr, levels = c(1:22, 'X', 'Y', 'MT'))
 
 if (file.exists(file.path(params$datadir, 'gwASE.tsv'))) {
-  gwASE = read.table(file.path(params$datadir, 'gwASE.tsv'), row.names = 1)
+  gwASE = read.table(file.path(params$datadir, 'gwASE.tsv'), row.names = 1, sep = '\t', header = TRUE)
   gwASE$chr = factor(gwASE$chr, levels = c(1:22, 'X', 'Y', 'MT'))
 } else {
   gwASE = NULL
@@ -47,24 +47,24 @@ if (file.exists(file.path(params$datadir, 'gwASE.tsv'))) {
 }
 
 if (file.exists(file.path(params$datadir, 'gwImprinted.tsv'))) {
-  gwASE_IMX = read.table(file.path(params$datadir, 'gwImprinted.tsv'), row.names = 1)
+  gwASE_IMX = read.table(file.path(params$datadir, 'gwImprinted.tsv'), row.names = 1, sep = '\t', header = TRUE)
 } else {
   gwASE_IMX = NULL
   logger::log_warn("gwImprinted.tsv not found — imprinted/X-linked ASE results will not be available.")
 }
 
-significant_perexons_OUTRIDER = read.table(file.path(params$datadir, 'gw_exons_OUTRIDER.tsv'), check.names = FALSE)
+significant_perexons_OUTRIDER = read.table(file.path(params$datadir, 'gw_exons_OUTRIDER.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
 significant_perexons_OUTRIDER$chr = factor(significant_perexons_OUTRIDER$chr, levels = c(1:22, 'X', 'Y', 'MT'))
 
-candidates_OUTRIDER = read.table(file.path(params$datadir, 'candidates_OUTRIDER.tsv'), check.names = FALSE)
-candidates_perexons_OUTRIDER = read.table(file.path(params$datadir, 'candidates_perexons_OUTRIDER.tsv'), check.names = FALSE)
+candidates_OUTRIDER = read.table(file.path(params$datadir, 'candidates_OUTRIDER.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
+candidates_perexons_OUTRIDER = read.table(file.path(params$datadir, 'candidates_perexons_OUTRIDER.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
 
-fc_exons_tpm_ggplot = read.table(file.path(params$datadir, 'fc_exons_tpm_ggplot.tsv'), check.names = FALSE)
+fc_exons_tpm_ggplot = read.table(file.path(params$datadir, 'fc_exons_tpm_ggplot.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
 candidates = read.csv(file.path(params$datadir, 'input/candidate_genes_ALL.csv'), check.names = FALSE)
 
-clinical = read.table(file.path(params$datadir, 'clinical.tsv'), check.names = FALSE)
-html_files = list.files(params$datadir,pattern = 'multiqc_report',full.names = T) 
-gwFRASER = read.table(file.path(params$datadir, 'gwFRASER.tsv'), row.names = 1)
+clinical = read.table(file.path(params$datadir, 'clinical.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
+html_files = list.files(params$datadir,pattern = 'multiqc_report',full.names = T)
+gwFRASER = read.table(file.path(params$datadir, 'gwFRASER.tsv'), row.names = 1, sep = '\t', header = TRUE)
 
 report_version = read_json(file.path(params$datadir, '/VERSION.json'))
 report_version$data = params$zipfile
