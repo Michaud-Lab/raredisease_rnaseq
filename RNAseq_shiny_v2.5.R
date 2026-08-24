@@ -1,10 +1,15 @@
-# Parse command-line arguments
 # Usage: Rscript RNAseq_shiny_v2.5.R
-
 use_data_minimal = FALSE
-use_password     = FALSE
-use_shinyserver  = FALSE
-# Resolve directories:
+if(Sys.info()['nodename'] == 'shiny.sebastien') {
+  use_password     = TRUE;
+  use_server       = TRUE
+} else {
+  use_password     = FALSE
+  use_server       = FALSE
+}
+
+   
+   # Resolve directories:
 params = list()
 params$datadir = if (use_data_minimal) file.path(getwd(),"data_minimal") else file.path(getwd(),"data")
 params$scriptsdir = if (dir.exists(file.path(params$datadir ,"scripts"))) {
@@ -601,7 +606,7 @@ server = function(input, output, session) {
 ###### shiny app
 logger::log_info('Deploying app')
 
-if (use_shinyserver) {
+if (!use_server) {
   app = shinyApp(ui, server, options = list(height = 900));
   runApp(app, launch.browser = TRUE)
 }
