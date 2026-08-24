@@ -1,15 +1,15 @@
 # Parse command-line arguments
-# Usage: Rscript RNAseq_shiny_v2.5.R --data_minimal --use_password
-args = commandArgs(trailingOnly = TRUE)
-use_data_minimal = "--data_minimal" %in% args
-use_password     = "--use_password"  %in% args
+# Usage: Rscript RNAseq_shiny_v2.5.R
+
+use_data_minimal = FALSE
+use_password     = FALSE
 
 # Resolve directories:
 params = list()
-params$datadir = if (exists("use_data_minimal") && use_data_minimal) "data_minimal" else "data"
+params$datadir = if (use_data_minimal) file.path(getwd(),"data_minimal") else file.path(getwd(),"data")
 params$scriptsdir = if (dir.exists(file.path(params$datadir ,"scripts"))) {
   file.path(params$datadir ,"scripts")} else {
-  "scripts"
+  file.path(getwd(),"scripts")
   }
 
 # source
@@ -60,6 +60,7 @@ app_ui = page_fluid(
                htmlOutput("description")),
              card(
                card_header(strong("Software Version")),
+               'Dashboard is further defined here: https://github.com/Michaud-Lab/raredisease_rnaseq',
                DTOutput("Version")
              )
     ),
@@ -517,11 +518,9 @@ server = function(input, output, session) {
     selected_bam = paste0(params$datadir,'/bams_subset/gene',selected_geneID,'_chr',candidates$chromosome[rd$i()],'_',candidates$start[rd$i()]-5000,'_',candidates$stop[rd$i()]+5000,'/',selected_patient,"_sorted_chrN.bam")
     if(selected_geneID == "") selected_bam = ''
     log_info(paste0('Selecting ~~~ ',selected_patient,' ~~~ ',selected_geneID,' ~~~ ',rd$i()))
-    url = paste0("https://www.proteinatlas.org/", selected_ensembl)
     omim_url = paste0("https://www.omim.org/search/?search=", selected_geneID, "&type=entry")
     HTML(
       paste0("<span><b>Notes: </b>",selected_origin,', ',selected_clinical$Notes,
-             "<br><br><b>Gene description for ",selected_geneID,": </b> <a href='", url, "' target='_self'>",selected_ensembl,"</a>",
              "<br><br><b>OMIM entry for ",selected_geneID,": </b> <a href='", omim_url, "' target='_blank'>",selected_geneID,"</a>",
              "<br><br><b>Mutations: </b>",selected_clinical$Mutation,
              "<br><br><b>Candidate Gene hypothesis: </b>",selected_clinical$Hypothèse,

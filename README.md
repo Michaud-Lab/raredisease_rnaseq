@@ -18,7 +18,7 @@ nextflow rnasplice         →  BAM files, QC (MultiQC)
 update_genes.sh            →  Run locally to download candidate_genes_extra.csv and push to serve (Fir)
       │
       ▼
-featureCounts.slurm        →  Per-gene and per-exon raw counts, TPM
+featureCounts.slurm        →  Per-gene and per-exon raw counts, TPM, candidate genes generation.
       │
       ├──▶ outrider.slurm  →  Aberrant gene / exon expression per candidate gene and genome-wide (OUTRIDER)
       │
@@ -36,6 +36,8 @@ featureCounts.slurm        →  Per-gene and per-exon raw counts, TPM
 ```
 
 > **Cohort size:** A minimum of ~10 samples is required for OUTRIDER and FRASER to produce statistically meaningful outlier calls; >30 is recommended.
+
+> **All-in-one:** Steps 3–8 (featureCounts through cp_and_cleanup.R) can also be run as a single Slurm job via `scripts/run_pipeline.slurm`, instead of submitting each step separately.
 
 ---
 
@@ -91,7 +93,7 @@ scriptsdir="/project/def-rallard/COMMUN/raredisease_rnaseq/scripts"
 
 ## Usage
 
-Run each step in order. Steps 3–7 submit Slurm jobs and can run in parallel once Steps 1–2 are complete.
+Run each step in order. Steps 3–7 submit Slurm jobs and can run in parallel once Steps 1–2 are complete. Alternatively, `sbatch scripts/run_pipeline.slurm` runs Steps 3–8 sequentially as a single Slurm job.
 
 **Step 1 — Alignment and QC**. 
 
@@ -119,7 +121,22 @@ bash $scriptsdir/update_genes.sh
 
 **Step 3 — Feature counts**
 
-Runs `subread featureCounts` at the gene and exon level on every BAM, then computes normalized TPM using the MANE-selected transcript for each gene. Also (re)builds the master candidate list, `candidate_genes_ALL.csv`: merges manually-curated candidates, the extra candidates from Step 2, and automatically-discovered candidates (top genome-wide FRASER/OUTRIDER/ASE hits and HPO-driven suggestions from a previous run, if present) with the anonymized clinical metadata (`masterlog`). This file drives every subsequent step and the dashboard.
+`featureCounts.slurm` reads paths out of `configs.json` and calls `featureCounts.sh`, which:
+1. Builds an exon-tagged GTF from `genome_in` (once; skipped if it already exists), and a MANE transcript lookup (`MANE.tsv`) from the MANE reference.
+2. Runs `subread featureCounts` twice on every BAM in `rnasplice_bamdir`: once per-gene against the plain GTF, once per-exon against the exon-tagged GTF — both `-p -B -C` (paired, both ends aligned, no chimeras) with multi-overlaps counted (`-O`; fractional for the per-gene run). Both are cached: skipped if `feature_counts_pergene.txt` already exists in `workdir/featureCounts/`.
+3. Hands off to `featureCounts.R`, which picks the MANE-selected transcript per gene (falling back to the highest-coverage transcript for genes absent from MANE, e.g. lncRNAs), computes normalized TPM at the gene and exon level (excluding haemoglobin genes `HBB`/`HBA1`/`HBA2`/`HBD` from the exon-level TPM), restricts output to candidate genes/probands, and (re)builds the master candidate list `candidate_genes_ALL.csv`.
+
+   `candidate_genes_ALL.csv` is assembled from three sources, deduplicated on (`geneID`, `ensembl`, `proband`), then merged with the anonymized clinical metadata (`masterlog`):
+   - **Manually curated** — every row of `candidate_genes.csv`.
+   - **Extra candidates** — every row of `candidate_genes_extra.csv` (the Google Sheet pulled in Step 2).
+   - **Automated, from the *previous* run's genome-wide results** (`gwFRASER.tsv`, `gw_genes_OUTRIDER.tsv`, `gwASE.tsv` — skipped on a first run, before those files exist), via `candidate_genes_automated()` in [rnaseq_helper_functions.R](scripts/rnaseq_helper_functions.R):
+     - *FRASER:* per sample, splicing outliers with `padjust < 1e-4`, top 5 by p-adjust.
+     - *OUTRIDER:* per sample, expression outliers with `pValue < 1e-6`, top 2 by p-value.
+     - *ASE:* per sample+gene, allele-specific expression with `pvalue < 1e-49` at ≥2 heterozygous markers.
+     - Each of the three excludes haemoglobin/HLA/`SELPLG` genes (`HBA*`, `HBB`, `HLA*`, `HBG`, `HBD`, `HBQ`, `HBE`, `HBZ`, `HBM`, `SELPLG`) and is annotated back to genomic coordinates via `gene_annotation()`; genes that can't be resolved to a locus are dropped.
+     - *HPO-driven* — for each proband, `gene_prioritization()` cross-references their HPO terms (from `masterlog`, against `genes_to_phenotype.txt`) with that same previous run's genome-wide FRASER/OUTRIDER results, keeping hits with adjusted gene-score p-value `< 0.01` (top 2 per proband).
+
+   This file drives every subsequent step and the dashboard, and because the automated/HPO sources read the *prior* run's genome-wide outputs, a gene surfaced this way only appears in the report starting on the run after it was first flagged.
 
 ```bash
 sbatch $scriptsdir/featureCounts/featureCounts.slurm
@@ -173,20 +190,10 @@ Launches the interactive dashboard (`RNAseq_shiny_v2.5.R`) for browsing per-prob
 Rscript RNAseq_shiny_v2.5.R
 ```
 **Step 9b — Launch the Shiny dashboard (synthetic dataset)**
-To launch with the minimal synthetic dataset (`data_minimal/`) for local development and testing without real patient data:
-```bash
-Rscript RNAseq_shiny_v2.5.R --data_minimal
-```
+To launch with the minimal synthetic dataset (`data_minimal/`) for local development and testing without real patient data, modify `use_data_minimal = TRUE`
+
 **Step 9c — Launch the Shiny dashboard with password protection**
-To require a username and password before accessing the dashboard, pass `--use_password`. A credentials database must exist at `data/credentials.sqlite`; create it once by running:
-```bash
-Rscript scripts/Shiny/create_credentials_db.R   # fill in passwords first — do not commit them
-```
-Then launch with:
-```bash
-Rscript RNAseq_shiny_v2.5.R --use_password
-# flags can be combined:
-Rscript RNAseq_shiny_v2.5.R --data_minimal --use_password
+To require a username and password before accessing the dashboard, pass `use_password = TRUE`. A credentials database must exist at `data/credentials.sqlite`; create it once by running.  
 ```
 
 > Long-read FRASER analysis (`lr_quant/lr_quant.slurm`) is available but not part of the standard run.
