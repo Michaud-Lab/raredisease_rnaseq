@@ -1,6 +1,6 @@
 # Usage: Rscript RNAseq_shiny_v2.5.R
 use_data_minimal = FALSE
-if(Sys.info()['nodename'] == 'shiny.sebastien') {
+if(Sys.info()['nodename'] == 'shiny-sebastien') {
   use_password     = TRUE;
   use_server       = TRUE
 } else {
