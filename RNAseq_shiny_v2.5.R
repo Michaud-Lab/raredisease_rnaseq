@@ -3,7 +3,7 @@
 
 use_data_minimal = FALSE
 use_password     = FALSE
-
+use_shinyserver  = FALSE
 # Resolve directories:
 params = list()
 params$datadir = if (use_data_minimal) file.path(getwd(),"data_minimal") else file.path(getwd(),"data")
@@ -13,9 +13,9 @@ params$scriptsdir = if (dir.exists(file.path(params$datadir ,"scripts"))) {
   }
 
 # source
-source(file.path(params$scriptsdir, "Shiny/global.R"))
-source(file.path(params$scriptsdir, "Shiny/rnaseq_shinyhelper_functions.R"))
-source(file.path(params$scriptsdir, "Shiny/reactive_module.R"))
+source(file.path(params$scriptsdir, "Shiny/global.R"),chdir = T)
+source(file.path(params$scriptsdir, "Shiny/rnaseq_shinyhelper_functions.R"),chdir = T)
+source(file.path(params$scriptsdir, "Shiny/reactive_module.R"),chdir = T)
 
 
 #####
@@ -600,6 +600,9 @@ server = function(input, output, session) {
   
 ###### shiny app
 logger::log_info('Deploying app')
-app = shinyApp(ui, server, options = list(height = 900))
-runApp(app, launch.browser = TRUE)
+
+if (use_shinyserver) {
+  app = shinyApp(ui, server, options = list(height = 900));
+  runApp(app, launch.browser = TRUE)
+}
 
