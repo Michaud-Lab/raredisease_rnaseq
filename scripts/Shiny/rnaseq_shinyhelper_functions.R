@@ -457,7 +457,7 @@ candidates_summary_reactable = function(candidates) {
   full = candidates %>%
     select(proband, geneID, Criteria, Age = `Âge (années)`, Sexe, Hypothèse, `HPO terms`, Mutation,`HPO proband-gene matches`,Chr = chromosome, start, stop,FRASER,OUTRIDER,ASE) %>%
     arrange(proband, geneID) %>%
-    mutate(across(c(Age, Sexe, Hypothèse, `HPO terms`, Mutation), ~ ifelse(is.na(.x), '', .x))) %>%
+    mutate(across(c(Age, Sexe, Hypothèse, `HPO terms`, Mutation, Criteria, `HPO proband-gene matches`, FRASER, OUTRIDER, ASE), ~ ifelse(is.na(.x), '', as.character(.x)))) %>%
     mutate(position = paste0(round((start + stop) / 2000000,2),' Mb'))
 
   first_non_na = function(x) {
@@ -465,6 +465,8 @@ candidates_summary_reactable = function(candidates) {
     if (length(valid) == 0) '' else valid[1]
   }
 
+  # Concatenate every candidate gene's detail fields for a proband into one blob so the
+  # search box can match on them, even though they only appear in the expandable 'details' row.
   summary_tbl = full %>%
     group_by(proband) %>%
     summarise(
@@ -472,6 +474,7 @@ candidates_summary_reactable = function(candidates) {
       Age = first_non_na(Age),
       Sexe = first_non_na(Sexe),
       `HPO terms` = first_non_na(`HPO terms`),
+      search_detail = paste(geneID, Criteria, Hypothèse, Mutation, `HPO proband-gene matches`, FRASER, OUTRIDER, ASE, collapse = ' | '),
       .groups = 'drop'
     ) %>%
     arrange(proband)
@@ -483,7 +486,9 @@ candidates_summary_reactable = function(candidates) {
       Genes   = colDef(name = 'Genes', align = 'left', width = 100),
       Age     = colDef(name = 'Age', align = 'left', width = 100),
       Sexe    = colDef(name = 'Sexe', align = 'left', width = 100),
-      `HPO terms` = colDef(name = 'HPO terms', align = 'left')
+      `HPO terms` = colDef(name = 'HPO terms', align = 'left'),
+      # Kept searchable but visually hidden (show = FALSE would drop it from the search index too)
+      search_detail = colDef(name = '', width = 0, style = list(display = 'none'), headerStyle = list(display = 'none'))
     ),
     details = function(index) {
       proband_genes = full[full$proband == summary_tbl$proband[index], detail_cols]
