@@ -264,8 +264,19 @@ ui = if (use_password) secure_app(app_ui) else app_ui
 logger::log_info('Defining back-end server')
 server = function(input, output, session) {
 
-  if (use_password)
+  if (use_password) {
     auth = secure_server(check_credentials = check_credentials(credentials_db))
+
+    ### Log which user logged in (once per session)
+    user_logged = reactiveVal(FALSE)
+    observeEvent(auth$user, {
+      req(auth$user)
+      if (!user_logged()) {
+        logger::log_info(paste0("User '", auth$user, "' logged in"))
+        user_logged(TRUE)
+      }
+    })
+  }
 
   ### Log every tab switch
   observeEvent(input$main_tabs, {
