@@ -186,6 +186,16 @@ colmean_genes_counts = read.table(colmean_genes_counts_file)
 # filter proper Chr and transcript
 gr_exons = gene_annotations[[1]]
 gr_exons = gr_exons[gr_exons$gene_id == candidate$ensembl,]
+
+# no exon annotation for this gene (e.g. a manually-added candidate not yet
+# included in gene_annotations.rda, or a wrong/outdated ensembl id) -- bail
+# out instead of crashing on 1:length(gr_exons@strand) below when it's 0.
+if(length(gr_exons) == 0) {
+  plot(0, main = 'no gene annotation available')
+  print(paste0('No exon annotation found in gene_annotations.rda for ', candidate$geneID, ' (ensembl id: ', candidate$ensembl, '). Regenerate gene_annotations.rda to include this gene.'))
+  return(invisible(NULL))
+}
+
 gr_exons = gr_exons[order(gr_exons$exon_rank),]
 gr_exons$exonsnb = paste0('e',1:length(gr_exons@strand))
 
