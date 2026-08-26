@@ -264,6 +264,9 @@ ui = if (use_password) secure_app(app_ui) else app_ui
 logger::log_info('Defining back-end server')
 server = function(input, output, session) {
 
+  ### Currently logged-in user, used to tag every log_info() call below; "local" when auth is disabled
+  logged_user = reactiveVal(if (use_password) NA_character_ else "local")
+
   if (use_password) {
     auth = secure_server(check_credentials = check_credentials(credentials_db))
 
@@ -272,7 +275,8 @@ server = function(input, output, session) {
     observeEvent(auth$user, {
       req(auth$user)
       if (!user_logged()) {
-        logger::log_info(paste0("User '", auth$user, "' logged in"))
+        logged_user(auth$user)
+        logger::log_info(paste0("[", logged_user(), "] User logged in"))
         user_logged(TRUE)
       }
     })
@@ -280,7 +284,7 @@ server = function(input, output, session) {
 
   ### Log every tab switch
   observeEvent(input$main_tabs, {
-    logger::log_info(paste0(input$main_tabs, ' tab selected'))
+    logger::log_info(paste0("[", logged_user(), "] ", input$main_tabs, ' tab selected'))
   })
 
   #####
@@ -533,7 +537,7 @@ server = function(input, output, session) {
     selected_clinical = clinical[clinical$`Patient ID` == selected_patient,]
     selected_bam = paste0(params$datadir,'/bams_subset/gene',selected_geneID,'_chr',candidates$chromosome[rd$i()],'_',candidates$start[rd$i()]-5000,'_',candidates$stop[rd$i()]+5000,'/',selected_patient,"_sorted_chrN.bam")
     if(selected_geneID == "") selected_bam = ''
-    log_info(paste0('Selecting ~~~ ',selected_patient,' ~~~ ',selected_geneID,' ~~~ ',rd$i()))
+    log_info(paste0("[", logged_user(), "] Selecting ~~~ ",selected_patient,' ~~~ ',selected_geneID,' ~~~ ',rd$i()))
     omim_url = paste0("https://www.omim.org/search/?search=", selected_geneID, "&type=entry")
     HTML(
       paste0("<span><b>Notes: </b>",selected_origin,', ',selected_clinical$Notes,
