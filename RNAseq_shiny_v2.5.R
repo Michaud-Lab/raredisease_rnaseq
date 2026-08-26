@@ -469,9 +469,12 @@ server = function(input, output, session) {
   ### IGV
   observeEvent(input$addBamLocalFileButton, {
     gene_dir = paste0(params$datadir,'/bams_subset/gene',candidates$geneID[rd$i()],'_chr',candidates$chromosome[rd$i()],'_',candidates$start[rd$i()]-5000,'_',candidates$stop[rd$i()]+5000,'/')
-    color=
-      showGenomicRegion(session, id="igvShiny",paste0("chr",candidates$chromosome[rd$i()],":",candidates$start[rd$i()],"-",candidates$stop[rd$i()]))
     bamFile = paste0(gene_dir,candidates$proband[rd$i()],"_sorted_chrN.bam")
+    if (!file.exists(bamFile)) {
+      showNotification(paste0("No BAM file found for ", candidates$proband[rd$i()], " ~ ", candidates$geneID[rd$i()]), type = "warning")
+      return()
+    }
+    showGenomicRegion(session, id="igvShiny",paste0("chr",candidates$chromosome[rd$i()],":",candidates$start[rd$i()],"-",candidates$stop[rd$i()]))
     bamAlign = readGAlignments(bamFile, param = Rsamtools::ScanBamParam(what="seq"))
     loadBamTrackFromLocalData(session, id="igvShiny", trackName=input$proband, data=bamAlign)
     runjs("document.getElementById('addBamLocalFileButton').style.backgroundColor = 'green';")
