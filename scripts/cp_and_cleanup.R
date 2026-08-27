@@ -8,7 +8,7 @@ load_install_library(c('readxl','tidyr','data.table','dplyr','zip','jsonlite'))
 # -----------------------------------------------------------------------------
 # 1. Parameters
 # -----------------------------------------------------------------------------
-params = list(workdir = file.path(getwd(),',,'))
+params = list(workdir = file.path(getwd(),'..'))
 params$datadir = file.path(params$workdir, 'data/')
 params$resultdir = file.path(params$workdir, 'rnasplice_results')
 
