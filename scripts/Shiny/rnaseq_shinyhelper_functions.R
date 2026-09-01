@@ -462,7 +462,10 @@ omim_link_geneID = function(data) {
 # Arguments:
 #   candidates - data.frame: candidate_genes_ALL.csv contents (one row per proband-gene pair, with clinical/annotation columns)
 candidates_summary_reactable = function(candidates) {
-  detail_cols = c('geneID', 'Chr', 'position', 'Criteria', 'Hypothèse','HPO proband-gene matches','Mutation','FRASER','OUTRIDER','ASE')
+  candidates$Mutation[is.na(candidates$Mutation)] = '~'
+  candidates$Hypothèse[is.na(candidates$Hypothèse)] = '~'
+ 
+  detail_cols = c('geneID', 'Chr', 'position', 'Criteria', 'Mutation','Hypothèse','HPO proband-gene matches','FRASER','OUTRIDER','ASE')
 
   full = candidates %>%
     select(proband, geneID, Criteria, Age = `Âge (années)`, Sexe, Hypothèse, `HPO terms`, Mutation,`HPO proband-gene matches`,Chr = chromosome, start, stop,FRASER,OUTRIDER,ASE) %>%
@@ -502,6 +505,9 @@ candidates_summary_reactable = function(candidates) {
     ),
     details = function(index) {
       proband_genes = full[full$proband == summary_tbl$proband[index], detail_cols]
+      highlight_if_present = function(value) {
+        if (grepl('HP:|padj|pval|>',value)) list(background = "#fa4d4d")
+      }
       htmltools::div(
         style = "padding: 8px 12px 8px 40px",
         reactable(proband_genes, outlined = TRUE, fullWidth = TRUE, rowStyle = list(background = "#fcc95b"),
@@ -516,11 +522,11 @@ candidates_summary_reactable = function(candidates) {
                       )
                     }),
                     Criteria   = colDef(width = 150),
-                    Mutation   = colDef(width = 150),
-                    `HPO proband-gene matches` = colDef(width = 200),
-                    FRASER = colDef(width = 150),
-                    OUTRIDER = colDef(width = 150),
-                    ASE = colDef(width = 150)
+                    `HPO proband-gene matches` = colDef(width = 200, style = highlight_if_present),
+                    Mutation   = colDef(width = 150, style = highlight_if_present),
+                    FRASER = colDef(width = 150, style = highlight_if_present),
+                    OUTRIDER = colDef(width = 150, style = highlight_if_present),
+                    ASE = colDef(width = 150, style = highlight_if_present)
                   ))
       )
     },

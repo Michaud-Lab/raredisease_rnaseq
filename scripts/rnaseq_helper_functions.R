@@ -8,10 +8,10 @@
 candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidatefiles = candidatefiles,datadir = getwd(),hpo_all='genes_to_phenotype.txt') {
   
   #
-  candidates$FRASER = 'not found'
-  candidates$OUTRIDER = 'not found'
-  candidates$ASE = 'not found'
-  candidates$`HPO proband-gene matches` = 'none'
+  candidates$FRASER = 'no data'
+  candidates$OUTRIDER = 'no data'
+  candidates$ASE = 'no data'
+  candidates$`HPO proband-gene matches` = 'no match'
   
   #hpo terms
   if(!file.exists(hpo_all)) {
