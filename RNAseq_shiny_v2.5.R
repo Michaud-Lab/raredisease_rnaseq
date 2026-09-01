@@ -93,7 +93,7 @@ app_ui = page_fluid(
     ### Plot of Expression
     tabPanel("Plot",
              card(plotlyOutput("Expression",width = "1500px")),
-             card(plotlyOutput("Expression_perfamily",width = "1500px"))
+             uiOutput("Expression_perfamily_ui")
     ),
 
     ### Data table
@@ -348,6 +348,13 @@ server = function(input, output, session) {
     card(plotlyOutput("Expression_perfamily", width = "1500px"))
   })
 
+  output$Expression_perfamily = renderPlotly({
+    plot_expression_family(
+      data_family  = rd$reactive_inputs()$fc_exons_ggplot_reactive_family,
+      data_patient = rd$reactive_inputs()$fc_exons_ggplot_reactive_patient
+    )
+  })
+
   ### OUTRIDER table
   output$table_OUTRIDER = renderDT({
     data = omim_link_geneID(rd$reactive_inputs()$table_OUTRIDER[rd$reactive_inputs()$table_OUTRIDER$pValue < as.numeric(input$pvalue),])
@@ -425,6 +432,7 @@ server = function(input, output, session) {
     req(candidates$geneID[rd$i()]!="")
     if(is.null(input$sliderxlims)) {genemodel = ggplot() +  theme_void() + geom_text(aes(0,0,label='Plotting in ¨Progress')) + xlab(NULL)} else {
       gene_dir = paste0(params$datadir,'/bams_subset/gene',candidates$geneID[rd$i()],'_chr',candidates$chromosome[rd$i()],'_',candidates$start[rd$i()]-5000,'_',candidates$stop[rd$i()]+5000,'/')
+    
       genemodel = genemodel_plot(
         candidate = candidates[rd$i(),],
         depth_file = paste0(gene_dir,"gene_",candidates$geneID[rd$i()],"_",candidates$proband[rd$i()],"_depth5.csv"),
