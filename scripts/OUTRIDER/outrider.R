@@ -16,9 +16,10 @@ params = list(OUTRIDER = file.path(args[1], "OUTRIDER/"))
 params$fc_pergene = args[2]
 params$fc_perexon = args[3]
 params$cpu = as.numeric(args[4])
-params$force_outrider = ifelse(is.na(args[5]), FALSE, as.logical(args[5]))
+params$force_outrider = ifelse(is.na(args[6]), FALSE, as.logical(args[6]))
 params$table_genes_file = file.path(params$OUTRIDER, 'table_genes.rds')
 params$table_exons_file = file.path(params$OUTRIDER, 'table_exons.rds')
+params$gtf = args[5]
 
 dir.create(params$OUTRIDER)
 register(MulticoreParam(params$cpu, params$cpu * 2, progressbar = FALSE))
@@ -54,9 +55,9 @@ hemo_ensembl = map$ensemblID[map$geneID %in% c('HBB','HBA1','HBA2','HBD')]
 
 # -----------------------------------------------------------------------------
 # 3. OUTRIDER per gene (expensive — cached to table_genes_file; only recomputed
-#    when that cache is absent AND force_outrider is explicitly requested)
+#    when that cache is absent OR force_outrider is explicitly requested)
 # -----------------------------------------------------------------------------
-if (!file.exists(params$table_genes_file) && params$force_outrider) {
+if (!file.exists(params$table_genes_file) | params$force_outrider) {
   genes_counts = read.table(params$fc_pergene, sep = '\t', header = TRUE, comment.char = '#', check.names = FALSE)
   rownames(genes_counts) = genes_counts[, 1]
   genes_counts = genes_counts[, -c(1:6)]
@@ -75,7 +76,7 @@ if (!file.exists(params$table_genes_file) && params$force_outrider) {
   # Remove haemoglobin genes before running OUTRIDER
   genes_counts = genes_counts[!rownames(genes_counts) %in% hemo_ensembl, ]
   ods = OutriderDataSet(countData = genes_counts)
-  ods = filterExpression(ods, TxDb.Hsapiens.UCSC.hg38.knownGene, mapping = map[, 1:2], filterGenes = TRUE, savefpkm = TRUE, fpkmCutoff = 0.5)
+  ods = filterExpression(ods, gtfFile = params$gtf, filterGenes = TRUE, savefpkm = TRUE, fpkmCutoff = 0.5)
   #ods = filterExpression(ods)
   ods = OUTRIDER(ods)
 
@@ -116,9 +117,9 @@ print(paste0('Done OUTRIDER per gene --- Time is: ', Sys.time()))
 
 # -----------------------------------------------------------------------------
 # 4. OUTRIDER per exon (expensive — cached to table_exons_file; only recomputed
-#    when that cache is absent AND force_outrider is explicitly requested)
+#    when that cache is absent OR force_outrider is explicitly requested)
 # -----------------------------------------------------------------------------
-if (!file.exists(params$table_exons_file) && params$force_outrider) {
+if (!file.exists(params$table_exons_file) | params$force_outrider) {
   fc_exons_raw_ALL = read.table(params$fc_perexon, sep = '\t', check.names = FALSE)
   fc_exons_raw_ALL = fc_exons_raw_ALL[, grepl('^bc', colnames(fc_exons_raw_ALL)) == FALSE]
 

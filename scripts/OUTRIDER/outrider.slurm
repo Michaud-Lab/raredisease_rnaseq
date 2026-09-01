@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --time=03:00:00
+#SBATCH --time=00:59:00
 #SBATCH --mem=128G
 #SBATCH --account=def-rallard
 #SBATCH --nodes=1
@@ -12,11 +12,11 @@ cpu=16
 # Set to TRUE to (re-)run the expensive per-gene OUTRIDER fit; when FALSE (default),
 # outrider.R loads the cached table_genes.rds from a previous run instead. Ignored
 # once table_genes.rds already exists (it's always loaded from cache in that case).
-force_outrider=FALSE
+force_outrider=TRUE
 
 #read configs.json
-read workdir  < <(
-  jq -r '.general | [.workdir] | @tsv' ../../data/input/configs.json
+read workdir gtf < <(
+  jq -r '.general | [.workdir, .gtf] | @tsv' ../../data/input/configs.json
 )
 
 read fc_pergene fc_perexon < <(
@@ -24,5 +24,5 @@ read fc_pergene fc_perexon < <(
 )
 
 #R script launches the bash script to prepare data and continues with analysis.
-Rscript outrider.R $workdir $fc_pergene $fc_perexon $cpu $force_outrider
-#echo $workdir $fc_pergene $fc_perexon $cpu $force_outrider
+Rscript outrider.R $workdir $fc_pergene $fc_perexon $cpu $gtf $force_outrider
+#echo $workdir $fc_pergene $fc_perexon $cpu  $gtf $force_outrider
