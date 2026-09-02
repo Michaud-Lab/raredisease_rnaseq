@@ -250,6 +250,36 @@ load_install_library = function(packages,silent = T) {
 # =============================================================================
 # rnaseq_helper_functions.R - Helper functions for featureCounts processing
 # =============================================================================
+# useEnsembl_retry: connects to Ensembl via biomaRt. Tries the main site directly first
+# (host = www.ensembl.org, bypassing biomaRt's mirror health-check/rotation, which trips
+# over mirrors that are hard down rather than just slow), then falls back to cycling
+# through named mirrors with retries for transient failures.
+# Arguments:
+#   mirrors - character vector: mirrors to try after the direct host attempt (default: useast, uswest, asia)
+#   tries_per_mirror - integer: attempts per mirror before moving to the next (default: 2)
+#   wait_sec - numeric: seconds to wait between attempts (default: 15)
+# Returns: a biomaRt Mart object
+useEnsembl_retry = function(mirrors = c('useast','uswest','asia'), tries_per_mirror = 2, wait_sec = 15){
+  ensembl = tryCatch(
+    biomaRt::useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", host = "https://www.ensembl.org"),
+    error = function(e) NULL)
+  if(!is.null(ensembl)) return(ensembl)
+
+  for(mirror in mirrors){
+    for(attempt in seq_len(tries_per_mirror)){
+      ensembl = tryCatch(
+        biomaRt::useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", mirror = mirror),
+        error = function(e) NULL)
+      if(!is.null(ensembl)) return(ensembl)
+      print(paste0('Ensembl mirror ', mirror, ' unresponsive (attempt ', attempt, '/', tries_per_mirror, '), retrying...'))
+      Sys.sleep(wait_sec)
+    }
+  }
+  stop(paste0('Unable to reach www.ensembl.org directly or any Ensembl mirror (', paste(mirrors, collapse = ', '), ') after retries. ',
+              'If this is running on an HPC compute node without internet access, generate ensembl_genes.csv / ensembl_exons.csv ',
+              'ahead of time on a node that has internet access and place them in the tmp directory (tmpdir) so gene_annotation() can use the cached copies.'))
+}
+
 # gene_annotation: fetches exon-level (and gene-body) annotations from Ensembl via biomaRt.
 # Arguments:
 #   unique_transcript_id - character vector: MANE-selected transcript IDs to keep when full = FALSE (default: unique(fc_exons_raw$transcriptID))
@@ -264,7 +294,7 @@ gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcript
 
     if(!file.exists(file.path(tmpdir,'ensembl_genes.csv'))){
     # Connect to Ensembl and select the human dataset for hg38 (GRCh38)
-    ensembl = biomaRt::useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", mirror = 'useast')
+    ensembl = useEnsembl_retry()
 
     # Get gene annotations
     genes = biomaRt::getBM(attributes = c("chromosome_name", "start_position", "end_position",
@@ -290,11 +320,11 @@ gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcript
 
   # Preview result
   if(full == F) {
-    ensembl = biomaRt::useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", mirror = 'useast')
-    
     wh = gr[gr$symbol %in% candidates$geneID[candidates$geneID !=""]]
     wh = wh[wh@seqnames %in% paste0('chr',candidates$chromosome),]
-  
+
+    ensembl = useEnsembl_retry()
+
     # genemodel
     exons_df = biomaRt::getBM(
       attributes = c(
