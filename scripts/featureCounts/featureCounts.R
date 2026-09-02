@@ -13,6 +13,7 @@ params$ens_gene = args[2]
 params$masterlog = args[3]
 params$fc_exons = args[4]
 params$fc_genes = args[5]
+params$gtf = args[6]
 # -----------------------------------------------------------------------------
 # 2. Load reference data
 # -----------------------------------------------------------------------------
@@ -36,7 +37,7 @@ candidatefiles = c(paste0(params$datadir,c('/gwFRASER.tsv','/candidates_OUTRIDER
 #generate the candidates
 for(i in 1:4)
 {
-  if(file.exists(gwfiles[i])){candidate_genes_automated_list[[i]] = candidate_genes_automated(gwfile = gwfiles[i],tmpdir = file.path(params$workdir,'tmp'),candidates=candidates_original)}
+  if(file.exists(gwfiles[i])){candidate_genes_automated_list[[i]] = candidate_genes_automated(gwfile = gwfiles[i],tmpdir = file.path(params$workdir,'tmp'),candidates=candidates_original,gtf=params$gtf)}
   }
 
 candidates_original$Criteria = 'Extra candidate added manually'
@@ -165,7 +166,7 @@ fc_genes_raw = fc_genes_raw[fc_genes_raw$geneID %in% candidates$geneID, ]
 # -----------------------------------------------------------------------------
 # 6. Gene model annotation and save outputs
 # -----------------------------------------------------------------------------
-gene_annotations = gene_annotation(unique_transcript_id = unique(fc_exons_raw$transcriptID),candidates = candidates,tmpdir = file.path(params$workdir,'tmp'))
+gene_annotations = gene_annotation(unique_transcript_id = unique(fc_exons_raw$transcriptID),candidates = candidates,tmpdir = file.path(params$workdir,'tmp'),gtf = params$gtf)
 save(gene_annotations, file= file.path(params$FCdir,"gene_annotations.rda"))
 
 write.table(fc_genes_raw,file.path(params$FCdir,'fc_genes_raw.tsv'),sep = '\t',quote = FALSE)
