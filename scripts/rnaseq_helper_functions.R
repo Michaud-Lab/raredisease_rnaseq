@@ -122,9 +122,10 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
 # Arguments:
 #   gwfile - character: path to one genome-wide results file (gwFRASER.csv, OUTRIDER, or gwASE); which analysis it is gets inferred from the filename
 #   tmpdir - character: directory used to cache/build the gene annotation object
-candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASER.tsv'),tmpdir = tmpdir,candidates=''){
-  #Generate the gene annotation  
-  gene_annotations = gene_annotation(full = T,tmpdir = tmpdir)
+#   gtf    - character: path to the Ensembl GTF file used as the annotation source (default: params$gtf)
+candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASER.tsv'),tmpdir = tmpdir,candidates='',gtf = params$gtf){
+  #Generate the gene annotation
+  gene_annotations = gene_annotation(full = T,tmpdir = tmpdir,gtf = gtf)
   
   #Load files
   gw = read.table(gwfile, row.names = 1, check.names = FALSE)
@@ -250,59 +251,37 @@ load_install_library = function(packages,silent = T) {
 # =============================================================================
 # rnaseq_helper_functions.R - Helper functions for featureCounts processing
 # =============================================================================
-# useEnsembl_retry: connects to Ensembl via biomaRt. Tries the main site directly first
-# (host = www.ensembl.org, bypassing biomaRt's mirror health-check/rotation, which trips
-# over mirrors that are hard down rather than just slow), then falls back to cycling
-# through named mirrors with retries for transient failures.
-# Arguments:
-#   mirrors - character vector: mirrors to try after the direct host attempt (default: useast, uswest, asia)
-#   tries_per_mirror - integer: attempts per mirror before moving to the next (default: 2)
-#   wait_sec - numeric: seconds to wait between attempts (default: 15)
-# Returns: a biomaRt Mart object
-useEnsembl_retry = function(mirrors = c('useast','uswest','asia'), tries_per_mirror = 2, wait_sec = 15){
-  ensembl = tryCatch(
-    biomaRt::useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", host = "https://www.ensembl.org"),
-    error = function(e) NULL)
-  if(!is.null(ensembl)) return(ensembl)
-
-  for(mirror in mirrors){
-    for(attempt in seq_len(tries_per_mirror)){
-      ensembl = tryCatch(
-        biomaRt::useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", mirror = mirror),
-        error = function(e) NULL)
-      if(!is.null(ensembl)) return(ensembl)
-      print(paste0('Ensembl mirror ', mirror, ' unresponsive (attempt ', attempt, '/', tries_per_mirror, '), retrying...'))
-      Sys.sleep(wait_sec)
-    }
-  }
-  stop(paste0('Unable to reach www.ensembl.org directly or any Ensembl mirror (', paste(mirrors, collapse = ', '), ') after retries. ',
-              'If this is running on an HPC compute node without internet access, generate ensembl_genes.csv / ensembl_exons.csv ',
-              'ahead of time on a node that has internet access and place them in the tmp directory (tmpdir) so gene_annotation() can use the cached copies.'))
-}
-
-# gene_annotation: fetches exon-level (and gene-body) annotations from Ensembl via biomaRt.
+# gene_annotation: builds exon-level (and gene-body) annotations from a local Ensembl GTF file.
 # Arguments:
 #   unique_transcript_id - character vector: MANE-selected transcript IDs to keep when full = FALSE (default: unique(fc_exons_raw$transcriptID))
-#   candidates           - data.frame: candidate genes/probands, used to restrict which genes/chromosomes are queried when full = FALSE (default: candidates)
-#   full                 - logical: if TRUE, only fetch gene-level GRanges for all genes and skip the per-exon query; if FALSE, also fetch exon-level detail for candidate genes (default: FALSE)
-#   tmpdir               - character: directory used to cache the Ensembl gene annotation table (default: 'tmp')
+#   candidates           - data.frame: candidate genes/probands, used to restrict which genes/chromosomes are kept when full = FALSE (default: candidates)
+#   full                 - logical: if TRUE, only build gene-level GRanges for all genes and skip the per-exon detail; if FALSE, also build exon-level detail for candidate genes (default: FALSE)
+#   tmpdir               - character: directory used to cache the parsed gene annotation table (default: 'tmp')
+#   gtf                  - character: path to the Ensembl GTF file used as the annotation source (default: params$gtf)
 # Returns: list; [[1]] GRanges of exons (NULL when full = TRUE), [[2]] GRanges of gene bodies
 gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcriptID),
-                           candidates = candidates, full = F,tmpdir = 'tmp'){
+                           candidates = candidates, full = F,tmpdir = 'tmp', gtf = params$gtf){
 
-  load_install_library(c('biomaRt', 'ggbio', 'GenomicAlignments'))
+  load_install_library(c('rtracklayer', 'ggbio', 'GenomicAlignments'))
+
+  # Parse the GTF once (needed to build the gene cache and/or the exon-level detail below)
+  need_gtf_parse = (full == F) || !file.exists(file.path(tmpdir,'ensembl_genes.csv'))
+  if(need_gtf_parse) gtf_gr = rtracklayer::import(gtf)
 
     if(!file.exists(file.path(tmpdir,'ensembl_genes.csv'))){
-    # Connect to Ensembl and select the human dataset for hg38 (GRCh38)
-    ensembl = useEnsembl_retry()
+    gene_gr = gtf_gr[gtf_gr$type == 'gene']
 
-    # Get gene annotations
-    genes = biomaRt::getBM(attributes = c("chromosome_name", "start_position", "end_position",
-                                "strand", "ensembl_gene_id", "hgnc_symbol", "gene_biotype"),mart = ensembl)
-    
+    genes = data.frame(chromosome_name = as.character(GenomicRanges::seqnames(gene_gr)),
+                        start_position = GenomicRanges::start(gene_gr),
+                        end_position = GenomicRanges::end(gene_gr),
+                        strand = ifelse(as.character(GenomicRanges::strand(gene_gr)) == '+', 1, -1),
+                        ensembl_gene_id = gene_gr$gene_id,
+                        hgnc_symbol = gene_gr$gene_name,
+                        gene_biotype = gene_gr$gene_biotype)
+
     #save it
     write.table(genes,file.path(tmpdir,'ensembl_genes.csv'),sep = '\t')} else {
-      print(paste0('ensembl gene annotation file already exists. I will use that copy (ensembl_genes.csv) instead of downloading it again'));
+      print(paste0('ensembl gene annotation file already exists. I will use that copy (ensembl_genes.csv) instead of re-parsing the GTF'));
       genes = read.table(file.path(tmpdir,'ensembl_genes.csv'))
       }
 
@@ -323,34 +302,19 @@ gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcript
     wh = gr[gr$symbol %in% candidates$geneID[candidates$geneID !=""]]
     wh = wh[wh@seqnames %in% paste0('chr',candidates$chromosome),]
 
-    ensembl = useEnsembl_retry()
+    # genemodel - exon-level detail for candidate genes, from the same GTF
+    exon_gr = gtf_gr[gtf_gr$type == 'exon' & gtf_gr$gene_name %in% candidates$geneID[candidates$geneID != ""]]
 
-    # genemodel
-    exons_df = biomaRt::getBM(
-      attributes = c(
-        "ensembl_gene_id",
-        "ensembl_transcript_id",
-        "ensembl_exon_id",
-        "chromosome_name",
-        "exon_chrom_start",
-        "exon_chrom_end",
-        "strand",
-        "rank"
-      ),
-      filters = "hgnc_symbol",
-      values = candidates$geneID,
-      mart = ensembl
+    exons_df = data.frame(
+      gene_id = exon_gr$gene_id,
+      transcript_id = exon_gr$transcript_id,
+      exon_id = exon_gr$exon_id,
+      chromosome = as.character(GenomicRanges::seqnames(exon_gr)),
+      start = GenomicRanges::start(exon_gr),
+      end = GenomicRanges::end(exon_gr),
+      strand = as.character(GenomicRanges::strand(exon_gr)),
+      exon_rank = as.integer(exon_gr$exon_number)
     )
-
-    # Rename columns for clarity
-    colnames(exons_df) = c(
-      "gene_id", "transcript_id", "exon_id",
-      "chromosome", "start", "end",
-      "strand", "exon_rank"
-    )
-
-    # Convert strand from numeric (1/-1) to "+" or "-"
-    exons_df$strand = ifelse(exons_df$strand == 1, "+", "-")
 
     # Filter to MANE-selected transcripts
     exons_df = exons_df[exons_df$transcript_id %in% unique_transcript_id, ]

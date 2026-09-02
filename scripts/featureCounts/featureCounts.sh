@@ -74,8 +74,8 @@ fi
 #paste $workdir/featureCounts/feature_counts_perexon_pertranscript_SR.txt  <(cut -f7-  $workdir/featureCounts/feature_counts_perexon_pertranscript_LR.txt) >$workdir/featureCounts/feature_counts_perexon_pertranscript.txt
 
 #Rscript for data clean-up
-Rscript featureCounts.R $workdir $ens_gene $masterlog $fc_exons $fc_genes
+Rscript featureCounts.R $workdir $ens_gene $masterlog $fc_exons $fc_genes $genome_in
 
-#echo $workdir $ens_gene $masterlog $fc_exons $fc_genes
+#echo $workdir $ens_gene $masterlog $fc_exons $fc_genes $genome_in
 echo 'Done featureCounts.R Rscript'
 
