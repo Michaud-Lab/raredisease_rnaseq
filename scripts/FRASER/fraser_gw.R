@@ -13,6 +13,7 @@ params$rnasplice_bamdir = args[4]
 params$fraser_chr_bamdir = args[1]
 options(scipen = 999)
 
+
 # -----------------------------------------------------------------------------
 # 2. Subset BAMs to chromosome (skip if already done)
 # -----------------------------------------------------------------------------
@@ -28,19 +29,26 @@ if (is.na(list.files(params$bams_subset)[1])) {
 # -----------------------------------------------------------------------------
 # 3. Run FRASER (skip if results already exist)
 # -----------------------------------------------------------------------------
-if (file.exists(file.path(params$bams_subset, 'res_dt.csv')) == TRUE) {
+if (file.exists(file.path(params$bams_subset, 'res_dt_ALL.csv')) == TRUE) {
   print(paste0('Already done chr ', params$chromosome, ': Sys.time is: ', Sys.time()))
 } else {
   load_install_library(c('FRASER','data.table'))
+  load_install_library(c('TxDb.Hsapiens.UCSC.hg38.knownGene', 'org.Hs.eg.db'))
+ 
+     txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
+     orgDb <- org.Hs.eg.db
 
-  register(MulticoreParam(params$ncores, params$ncores * 2, progressbar = TRUE))
+print(params$ncores-1000)
 
+  register(MulticoreParam(params$ncores, params$ncores * 2))
+print('Salut bob')
   sampleTable = data.table(data.frame(
     sampleID = gsub('.bam', '', list.files(params$bams_subset, pattern = '*bam$')),
     bamFile = list.files(params$bams_subset, pattern = '*bam$', full.names = FALSE),
     group = 1,
     pairedEnd = TRUE
   ))
+
   sampleTable$group = 1:nrow(sampleTable)
   sampleTable$bamFile = paste0(params$bams_subset, '/', sampleTable$bamFile)
 
@@ -52,23 +60,32 @@ if (file.exists(file.path(params$bams_subset, 'res_dt.csv')) == TRUE) {
   )
   settings = FraserDataSet(colData = sampleTable[probands, ], workingDir = params$bams_subset)
 
-  fds = suppressMessages(suppressWarnings(
-                                         countRNAData(settings, recount = FALSE, keepNonStandardChromosomes = FALSE,
+  fds =                                          countRNAData(settings, recount = FALSE, keepNonStandardChromosomes = FALSE,
                                                       minExpressionInOneSample = 50, filter = TRUE)
-                         ))
+
+#                         ))
   
-  fds = calculatePSIValues(fds,BPPARAM = SerialParam(progressbar = FALSE))
-  fds = annotateRanges(fds, GRCh = 38)
-  fds = FRASER(fds, q = c(jaccard = 2),BPPARAM = SerialParam(progressbar = FALSE))
+  fds = calculatePSIValues(fds)
+  fds = annotateRangesWithTxDb(fds, txdb=txdb, orgDb=orgDb)
+   
+#  fds = annotateRanges(fds, GRCh = 38)
+  fds = FRASER(fds, q = c(jaccard = 2))
 
   # Filter to significant results and save
   res = results(fds, all = TRUE, padjCutoff = NA, deltaPsiCutoff = NA)
   res_dt = as.data.table(res)
-  res_dt = res_dt[res_dt$pValue < 0.01, ]
+  res_dt_001 = res_dt[res_dt$pValue < 0.01, ]
+  res_dt_001$mean = (res_dt_001$start + res_dt_001$end) / 2
+  res_dt_001$minuslogpval = -log(res_dt_001$pValue, 10)
+  print(paste0('Dimensions of res_dt: ', nrow(res_dt_001)))
+  write.csv(res_dt_001, file.path(params$bams_subset, 'res_dt.csv'))
+
+  #res_dt_001 = res_dt[res_dt$pValue < 0.01, ]
   res_dt$mean = (res_dt$start + res_dt$end) / 2
   res_dt$minuslogpval = -log(res_dt$pValue, 10)
   print(paste0('Dimensions of res_dt: ', nrow(res_dt)))
-  write.csv(res_dt, file.path(params$bams_subset, 'res_dt.csv'))
+  write.csv(res_dt, file.path(params$bams_subset, 'res_dt_ALL.csv'))
+
 
   print(paste0('Done: Sys.time is: ', Sys.time()))
 }
