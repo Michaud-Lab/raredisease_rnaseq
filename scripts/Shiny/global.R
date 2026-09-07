@@ -56,6 +56,22 @@ if (file.exists(file.path(params$datadir, 'gwImprinted.tsv'))) {
 significant_perexons_OUTRIDER = read.table(file.path(params$datadir, 'gw_exons_OUTRIDER.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
 significant_perexons_OUTRIDER$chr = factor(significant_perexons_OUTRIDER$chr, levels = c(1:22, 'X', 'Y', 'MT'))
 
+# Per-gene, per-sample OUTRIDER statistics (genome-wide, all cohort samples).
+# The .rds stores the Ensembl gene ID under "geneID" — relabel it "ensemblID" and
+# join in the gene symbol (from fc_genes_raw_ALL) as "geneID", matching the
+# geneID=symbol / ensemblID=Ensembl convention used by the other tables above.
+table_genes_OUTRIDER = readRDS(file.path(params$datadir, 'table_genes_OUTRIDER.rds'))
+colnames(table_genes_OUTRIDER)[colnames(table_genes_OUTRIDER) == 'geneID'] = 'ensemblID'
+gene_symbol_map = unique(fc_genes_raw_ALL[, c('geneID', 'ensemblID')])
+table_genes_OUTRIDER = merge(gene_symbol_map, table_genes_OUTRIDER, by = 'ensemblID')
+
+# Per-gene, per-sample minimum FRASER splicing p-values (genome-wide, all cohort samples).
+# Already flattened across chromosomes; "hgncSymbol" can list several overlapping genes
+# separated by ';' per splicing event -- relabel it "geneID" for consistency with the
+# other tables, exact-matched (not token-parsed) against the selected gene in the Shiny app.
+gwFRASER_min = readRDS(file.path(params$datadir, 'gwFRASER_min.rds'))
+colnames(gwFRASER_min)[colnames(gwFRASER_min) == 'hgncSymbol'] = 'geneID'
+
 candidates_OUTRIDER = read.table(file.path(params$datadir, 'candidates_OUTRIDER.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
 candidates_perexons_OUTRIDER = read.table(file.path(params$datadir, 'candidates_perexons_OUTRIDER.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
 

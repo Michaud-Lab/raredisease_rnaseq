@@ -333,3 +333,57 @@ gene_annotation = function(unique_transcript_id = unique(fc_exons_raw$transcript
     # return output
     list(gr_exons,wh)
 }
+
+# annotateRanges_local: FRASER::annotateRanges() replacement that builds the gene-symbol
+# annotation track from a local Ensembl GTF instead of a live biomaRt/Ensembl query.
+# Mirrors FRASER's internal annotateRanges()/getFeatureAsGRange()/getAnnotationFeature()
+# logic exactly (protein-coding genes on standard chromosomes, overlap-based lookup,
+# semicolon-joined symbols on multi-gene overlap); only the annotation-track source
+# changes. featureName must stay 'hgnc_symbol': FRASER's own results()/resultsSingleSample()
+# hardcode that exact mcols name when populating the hgncSymbol column, regardless of what
+# name annotateRanges() was originally called with.
+# Arguments:
+#   fds         - FraserDataSet: object to annotate (theta/junction ranges)
+#   gtf         - character: path to the Ensembl GTF file used as the annotation source (default: params$gtf)
+#   gtf_feature - character: GTF gene attribute to use as the gene symbol (default: 'gene_name', the GTF equivalent of biomaRt's 'hgnc_symbol')
+#   featureName - character: name of the metadata column written onto fds (default: 'hgnc_symbol', see note above)
+#   biotype     - character vector: gene_biotype values to keep (default: 'protein_coding')
+# Returns: the annotated FraserDataSet (same contract as FRASER::annotateRanges)
+annotateRanges_local = function(fds, gtf = params$gtf, gtf_feature = 'gene_name', featureName = 'hgnc_symbol', biotype = 'protein_coding'){
+  load_install_library(c('FRASER', 'rtracklayer', 'data.table'))
+
+  if(length(fds) == 0) return(fds)
+
+  # Build the gene-symbol annotation track from the GTF (in place of a live biomaRt query)
+  genes_gr = rtracklayer::import(gtf, feature.type = 'gene')
+  genes_gr = genes_gr[genes_gr$gene_biotype %in% biotype]
+  genes_gr = genes_gr[!is.na(GenomicRanges::mcols(genes_gr)[[gtf_feature]]) & GenomicRanges::mcols(genes_gr)[[gtf_feature]] != '']
+  genes_gr = genes_gr[!grepl('_|\\.', as.character(GenomicRanges::seqnames(genes_gr)))]
+
+  anno = GenomicRanges::granges(genes_gr)
+  GenomicRanges::mcols(anno)[[featureName]] = GenomicRanges::mcols(genes_gr)[[gtf_feature]]
+
+  useUCSC = all(startsWith(GenomeInfoDb::seqlevels(fds), 'chr'))
+  if(useUCSC) GenomeInfoDb::seqlevels(anno) = paste0('chr', GenomeInfoDb::seqlevels(anno))
+
+  get_annotation_feature = function(data, feature, annotation){
+    if(any(BiocGenerics::strand(data) == '*')) BiocGenerics::strand(annotation) = '*'
+    hits = suppressWarnings(GenomicRanges::findOverlaps(data, annotation))
+    featureDT = data.table::data.table(from = S4Vectors::from(hits),
+                                        feature = GenomicRanges::mcols(annotation[S4Vectors::to(hits)])[[feature]])
+    missingValues = setdiff(seq_along(data), unique(S4Vectors::from(hits)))
+    if(length(missingValues) > 0) featureDT = rbind(featureDT, data.table::data.table(from = missingValues, feature = NA))
+    featureDT = featureDT[, feature := paste(unique(feature), collapse = ';'), by = 'from']
+    featureDT = featureDT[!duplicated(featureDT)]
+    featureDT[feature == 'NA', feature := NA]
+    featureDT[order(from), feature]
+  }
+
+  gr = FRASER::rowRanges(fds, type = 'theta')
+  BiocGenerics::mcols(fds, type = 'theta')[[featureName]] = get_annotation_feature(gr, featureName, anno)
+
+  gr = FRASER::rowRanges(fds, type = 'j')
+  BiocGenerics::mcols(fds, type = 'j')[[featureName]] = get_annotation_feature(gr, featureName, anno)
+
+  fds
+}

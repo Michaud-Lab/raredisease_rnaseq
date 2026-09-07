@@ -240,6 +240,27 @@ app_ui = page_fluid(
              )
     ),
 
+    ### Per-gene OUTRIDER statistics
+    tabPanel("Search stats",
+             card(
+               card_header(strong("OUTRIDER statistics for a gene of interest")),
+               'Per-sample OUTRIDER results (all cohort samples) for a single gene, searched by symbol.',
+               selectizeInput("stats_gene_search", label = "Select a gene:",
+                              choices = NULL,
+                              selected = NULL,
+                              options = list(placeholder = 'Type a gene name...')),
+               selectInput("stats_sample_search", label = "Select a sample:",
+                           choices = NULL,
+                           selected = NULL),
+               DTOutput("table_gene_statistics")
+             ),
+             card(
+               card_header(strong("FRASER splicing statistics for a gene of interest")),
+               'Per-sample minimum FRASER splicing p-value/adj. p-value (all cohort samples), exact gene symbol match only.',
+               DTOutput("table_gene_fraser")
+             )
+    ),
+
     ### multiQC
     tabPanel(
       "MultiQC",
@@ -616,6 +637,49 @@ server = function(input, output, session) {
   ### Haemoglobin barplot
   output$hb_barplot = renderPlotly({
     plot_hb_fraction(fc_genes_raw_ALL)
+  })
+
+  # Search OUTRIDER statistics by gene — populate choices server-side to avoid sending 20k+ options to browser
+  updateSelectizeInput(session, "stats_gene_search",
+                       choices = sort(unique(table_genes_OUTRIDER$geneID)),
+                       selected = 'MCM5',
+                       server = TRUE)
+
+  # Sample selector for OUTRIDER statistics — small, fixed cohort size, so no need for server-side selectize
+  updateSelectInput(session, "stats_sample_search",
+                    choices = c('All samples' = '', sort(unique(table_genes_OUTRIDER$sampleID))),
+                    selected = 'HSJ_001_03_PAX')
+
+  ### Per-gene OUTRIDER statistics table
+  output$table_gene_statistics = renderDT({
+    req(input$stats_gene_search)
+    data = table_genes_OUTRIDER[table_genes_OUTRIDER$geneID == input$stats_gene_search, ]
+    if (!is.null(input$stats_sample_search) && input$stats_sample_search != '') {
+      data = data[data$sampleID == input$stats_sample_search, ]
+    }
+    data = omim_link_geneID(data)
+    datatable(
+      data,
+      rownames = FALSE,
+      escape = -which(colnames(data) == 'geneID'),
+      options = list(pageLength = 100)
+    )
+  })
+
+  ### Per-gene FRASER splicing statistics table (exact gene symbol match only)
+  output$table_gene_fraser = renderDT({
+    req(input$stats_gene_search)
+    data = gwFRASER_min[gwFRASER_min$geneID == input$stats_gene_search, ]
+    if (!is.null(input$stats_sample_search) && input$stats_sample_search != '') {
+      data = data[data$sampleID == input$stats_sample_search, ]
+    }
+    data = omim_link_geneID(data)
+    datatable(
+      data,
+      rownames = FALSE,
+      escape = -which(colnames(data) == 'geneID'),
+      options = list(pageLength = 100)
+    )
   })
 
   ### Total reads barplot
