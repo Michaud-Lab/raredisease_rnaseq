@@ -26,6 +26,8 @@ system(cp_ASE)
 # -----------------------------------------------------------------------------
 chrs = list.files(file.path(params$workdir, 'FRASER/bams_chr_subset/'), full.names = TRUE)
 
+gwFRASER_min_list = list()
+
 for (c in 1:length(chrs)) {
   if (file.exists(file.path(chrs[c], 'res_dt.csv'))) {
     gwFRASER_temp = read.csv(file.path(chrs[c], 'res_dt.csv'), header = TRUE, row.names = 1)
@@ -34,7 +36,17 @@ for (c in 1:length(chrs)) {
     if (c == 1) gwFRASER = gwFRASER_temp
     if (c != 1) gwFRASER = rbind(gwFRASER, gwFRASER_temp)
   }
+
+  if (file.exists(file.path(chrs[c], 'res_dt_min.csv'))) {
+    gwFRASER_tempMIN = read.csv(file.path(chrs[c], 'res_dt_min.csv'), header = TRUE, row.names = 1)
+#    gwFRASER_tempMIN = gwFRASER_tempMIN[!grepl(';',gwFRASER_tempMIN$hgncSymbol),]
+    gwFRASER_min_list[[c]] = gwFRASER_tempMIN
+  }
 }
+
+gwFRASER_min = dplyr::bind_rows(gwFRASER_min_list)
+
+saveRDS(gwFRASER_min,file.path(params$datadir, 'gwFRASER_min.rds'))
 
 colnames(gwFRASER)[c(1, 20)] = c('chr', 'pos')
 write.table(gwFRASER, file.path(params$datadir, 'gwFRASER.tsv'),sep = '\t')
@@ -65,6 +77,7 @@ dir.create(file.path(params$datadir, 'sashimis'), showWarnings = FALSE)
 system(paste0('cp ', params$workdir, '/FRASER/results/*/*_sashimi.png ', params$datadir, '/sashimis/.'))
 system(paste0('cp -r ', params$workdir, '/consensus ', params$datadir, '/.'))
 system(paste0('cp -r ', params$workdir, '/OUTRIDER/*OUTRIDER.tsv ', params$datadir, '/.'))
+system(paste0('cp -r ', params$workdir, '/OUTRIDER/table_genes_OUTRIDER.rds ', params$datadir, '/.'))
 
 # -----------------------------------------------------------------------------
 # 7. Annotate candidates with FRASER/OUTRIDER/ASE/HPO results, then copy

@@ -60,6 +60,10 @@ fraser_pipeline = function(candidates = candidates, i = 1){
 
      load_install_library(c('patchwork', 'FRASER', 'tidyr', 'GenomeInfoDb'))
 
+      load_install_library(c('TxDb.Hsapiens.UCSC.hg38.knownGene', 'org.Hs.eg.db'))
+      txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
+      orgDb <- org.Hs.eg.db
+
       sampleTable = data.table(data.frame(
         sampleID = gsub('_sorted_chrN.bam', '', list.files(out_dir, pattern = '*bam$')),
         bamFile = list.files(out_dir, pattern = '*bam$', full.names = FALSE),
@@ -85,7 +89,8 @@ fraser_pipeline = function(candidates = candidates, i = 1){
           file = nullfile()
         ))
         fds = calculatePSIValues(fds)
-        fds = annotateRanges(fds, GRCh = 38)
+       #fds = annotateRanges(fds, GRCh = 38)
+        fds = annotateRangesWithTxDb(fds, txdb=txdb, orgDb=orgDb)
         fds = fit(fds, q = c(jaccard = 2))
         fds = calculatePvalues(fds)
         fds = calculatePadjValues(fds, method = 'none', geneLevel = FALSE)
@@ -113,7 +118,10 @@ fraser_pipeline = function(candidates = candidates, i = 1){
       print(paste0('Dimensions of res_dt: ', paste(dim(res_dt), collapse = ' x ')))
 
       # Annotation packages
-      load_install_library(c('TxDb.Hsapiens.UCSC.hg38.knownGene', 'org.Hs.eg.db'))
+#      load_install_library(c('TxDb.Hsapiens.UCSC.hg38.knownGene', 'org.Hs.eg.db'))
+#txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
+#orgDb <- org.Hs.eg.db
+
 
       txdb_chr = keepSeqlevels(
         TxDb.Hsapiens.UCSC.hg38.knownGene,
