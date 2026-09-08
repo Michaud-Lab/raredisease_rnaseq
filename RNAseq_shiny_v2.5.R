@@ -252,12 +252,14 @@ app_ui = page_fluid(
                selectInput("stats_sample_search", label = "Select a sample:",
                            choices = NULL,
                            selected = NULL),
-               DTOutput("table_gene_statistics")
+               DTOutput("table_gene_statistics"),
+               height = "800px"
              ),
              card(
                card_header(strong("FRASER splicing statistics for a gene of interest")),
                'Per-sample minimum FRASER splicing p-value/adj. p-value (all cohort samples), exact gene symbol match only.',
-               DTOutput("table_gene_fraser")
+               DTOutput("table_gene_fraser"),
+               height = "600px"
              )
     ),
 
@@ -645,16 +647,16 @@ server = function(input, output, session) {
                        selected = 'MCM5',
                        server = TRUE)
 
-  # Sample selector for OUTRIDER statistics — small, fixed cohort size, so no need for server-side selectize
+  # Sample selector for OUTRIDER statistics — small, fixed cohort size, so no need for server-side selectize.
   updateSelectInput(session, "stats_sample_search",
-                    choices = c('All samples' = '', sort(unique(table_genes_OUTRIDER$sampleID))),
-                    selected = 'HSJ_001_03_PAX')
+                    choices = c('All samples' = 'All', sort(unique(table_genes_OUTRIDER$sampleID))),
+                    selected = 'All')
 
   ### Per-gene OUTRIDER statistics table
   output$table_gene_statistics = renderDT({
     req(input$stats_gene_search)
     data = table_genes_OUTRIDER[table_genes_OUTRIDER$geneID == input$stats_gene_search, ]
-    if (!is.null(input$stats_sample_search) && input$stats_sample_search != '') {
+    if (!is.null(input$stats_sample_search) && input$stats_sample_search != 'All') {
       data = data[data$sampleID == input$stats_sample_search, ]
     }
     data = omim_link_geneID(data)
@@ -662,15 +664,15 @@ server = function(input, output, session) {
       data,
       rownames = FALSE,
       escape = -which(colnames(data) == 'geneID'),
-      options = list(pageLength = 100)
+      options = list(pageLength = 50)
     )
   })
-
+  
   ### Per-gene FRASER splicing statistics table (exact gene symbol match only)
   output$table_gene_fraser = renderDT({
     req(input$stats_gene_search)
     data = gwFRASER_min[gwFRASER_min$geneID == input$stats_gene_search, ]
-    if (!is.null(input$stats_sample_search) && input$stats_sample_search != '') {
+    if (!is.null(input$stats_sample_search) && input$stats_sample_search != 'All') {
       data = data[data$sampleID == input$stats_sample_search, ]
     }
     data = omim_link_geneID(data)
@@ -678,7 +680,7 @@ server = function(input, output, session) {
       data,
       rownames = FALSE,
       escape = -which(colnames(data) == 'geneID'),
-      options = list(pageLength = 100)
+      options = list(pageLength = 50)
     )
   })
 
