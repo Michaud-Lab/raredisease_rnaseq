@@ -47,6 +47,7 @@ candidate_genes_gw_annotations = function(candidates, gwfiles = gwfiles,candidat
   #annotate 
   for(g in 1:3)
   {
+    if(!file.exists(gwfiles[g])) return(candidates)
     gw = read.csv(gwfiles[g], row.names = 1,sep = ifelse(g ==1 , ',','\t'))
     #FRASER
     if(g==1){
