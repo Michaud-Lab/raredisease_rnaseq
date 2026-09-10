@@ -29,7 +29,7 @@ if (is.na(list.files(params$bams_subset)[1])) {
 # -----------------------------------------------------------------------------
 # 3. Run FRASER (skip if results already exist)
 # -----------------------------------------------------------------------------
-if (file.exists(file.path(params$bams_subset, 'res_dt_ALL.csv')) == TRUE) {
+if (file.exists(file.path(params$bams_subset, 'res_dt_min.csv')) == TRUE) {
   print(paste0('Already done chr ', params$chromosome, ': Sys.time is: ', Sys.time()))
 } else {
   load_install_library(c('FRASER','data.table','TxDb.Hsapiens.UCSC.hg38.knownGene', 'org.Hs.eg.db','tidyr','dplyr'))

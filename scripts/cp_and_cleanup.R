@@ -39,7 +39,7 @@ for (c in 1:length(chrs)) {
 
   if (file.exists(file.path(chrs[c], 'res_dt_min.csv'))) {
     gwFRASER_tempMIN = read.csv(file.path(chrs[c], 'res_dt_min.csv'), header = TRUE, row.names = 1)
-#    gwFRASER_tempMIN = gwFRASER_tempMIN[!grepl(';',gwFRASER_tempMIN$hgncSymbol),]
+    gwFRASER_tempMIN$seqnames = as.character(gwFRASER_tempMIN$seqnames)
     gwFRASER_min_list[[c]] = gwFRASER_tempMIN
   }
 }

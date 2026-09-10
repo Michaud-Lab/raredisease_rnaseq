@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#SBATCH --time=02:59:00
-#SBATCH --mem=120G
+#SBATCH --time=05:59:00
+#SBATCH --mem=240G
 #SBATCH --account=def-rallard
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=16
@@ -25,7 +25,7 @@ read fraser_temp_bamdir fraser_bamdir fraser_chr_bamdir  < <(
 #fraser genome wide
 cpu=12
 
-for i in $(seq 17 22) X Y MT; do
+for i in $(seq 1 22) X Y MT; do
 #for i in $(seq 1 11); do
   Rscript fraser_gw.R $fraser_chr_bamdir $i $cpu $rnasplice_bamdir
   #echo  $fraser_chr_bamdir $i $cpu $rnasplice_bamdir

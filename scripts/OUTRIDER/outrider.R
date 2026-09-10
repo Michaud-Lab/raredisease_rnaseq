@@ -17,8 +17,8 @@ params$fc_pergene = args[2]
 params$fc_perexon = args[3]
 params$cpu = as.numeric(args[4])
 params$force_outrider = ifelse(is.na(args[6]), FALSE, as.logical(args[6]))
-params$table_genes_file = file.path(params$OUTRIDER, 'table_genes.rds')
-params$table_exons_file = file.path(params$OUTRIDER, 'table_exons.rds')
+params$table_genes_file = file.path(params$OUTRIDER, 'table_genes_OUTRIDER.rds')
+params$table_exons_file = file.path(params$OUTRIDER, 'table_exons_OUTRIDER.rds')
 params$gtf = args[5]
 
 dir.create(params$OUTRIDER)
