@@ -326,8 +326,8 @@ server = function(input, output, session) {
   ### dynamic title
   output$dynamic_title = renderUI({
     titlePanel(
-      paste0("RNAseq dashboard (",candidates$proband[rd$i()], ' ~~~ ',candidates$geneID[rd$i()],')')
-    )
+      paste0("RNAseq dashboard ~~~ ",ifelse(grepl('PAX',candidates$proband[rd$i()]),"PAXgene","PBMC (Proband: "),candidates$proband[rd$i()], ' , geneID: ',candidates$geneID[rd$i()],')')
+       )
   })
 
   ### Image
