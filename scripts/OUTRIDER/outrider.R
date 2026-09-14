@@ -124,8 +124,8 @@ if (!file.exists(params$table_exons_file) | params$force_outrider) {
   fc_exons_raw_ALL = fc_exons_raw_ALL[, grepl('^bc', colnames(fc_exons_raw_ALL)) == FALSE]
 
   # HSJ samples appear with two naming conventions; add '_PAX' suffix to align them
-  colnames(fc_exons_raw_ALL)[grep('HSJ', colnames(fc_exons_raw_ALL))] =
-    paste0(colnames(fc_exons_raw_ALL)[grep('HSJ', colnames(fc_exons_raw_ALL))], '_PAX')
+#  colnames(fc_exons_raw_ALL)[grep('HSJ', colnames(fc_exons_raw_ALL))] =
+ #ù   paste0(colnames(fc_exons_raw_ALL)[grep('HSJ', colnames(fc_exons_raw_ALL))], '_PAX')
 
   rownames(fc_exons_raw_ALL) = paste0(
     fc_exons_raw_ALL$geneID, "_",
@@ -185,6 +185,7 @@ write.table(candidate_table_exon, file.path(params$OUTRIDER, 'candidates_perexon
 # Aggregate min p-value and max z-score per gene per sample
 table_minmax_exons = table_exons %>%
   group_by(geneID, sampleID) %>%
+  filter(pValue != Inf) %>%
   summarise(min_pValue = min(pValue), min_zscore = min(zScore), max_zscore = max(zScore))
 table_minmax_exons$exon_zScore = '0'
 colnames(table_minmax_exons)[3] = 'exon_pValue'

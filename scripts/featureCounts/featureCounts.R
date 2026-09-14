@@ -37,7 +37,7 @@ candidatefiles = c(paste0(params$datadir,c('/gwFRASER.tsv','/candidates_OUTRIDER
 #generate the candidates
 for(i in 1:4)
 {
-  if(file.exists(gwfiles[i])){candidate_genes_automated_list[[i]] = candidate_genes_automated(gwfile = gwfiles[i],tmpdir = file.path(params$workdir,'tmp'),candidates=candidates_original,gtf=params$gtf)}
+  if(file.exists(gwfiles[3])){candidate_genes_automated_list[[i]] = candidate_genes_automated(gwfile = gwfiles[i],tmpdir = file.path(params$workdir,'tmp'),candidates=candidates_original,gtf=params$gtf)}
   }
 
 candidates_original$Criteria = 'Extra candidate added manually'
@@ -51,6 +51,8 @@ candidates = rbind(candidates_original,candidates_extra,candidate_genes_automate
 clinical = readxl::read_xlsx(params$masterlog, sheet = 'Suivi - RNAseq', skip = 1)
 clinical$type = "Parent"
 clinical$type[grepl(pattern = '_0[34]_', x = clinical$`Patient ID`)] = 'Proband' # Parent versus Proband
+clinical$type[grepl(pattern = 'LC_', x = clinical$`Patient ID`)] = 'Proband'
+clinical$type[grepl(pattern = 'F0_', x = clinical$`Patient ID`)] = 'Proband'
 clinical = clinical[order(clinical$`Patient ID`), ] # Same order as the transcript expression data
 clinical$age = as.numeric(clinical$`Âge (années)`)
 clinical$age[clinical$`Âge (années)` == '0 (3 mois)'] = 0.25
@@ -119,17 +121,22 @@ fc_exons_tpm[,-c(1:5)] =  round(fc_exons_tpm[,-c(1:5)],2)
 fc_exons_raw_ALL = fc_exons_raw_ALL[,colnames(fc_exons_raw_ALL) %in% c('geneID','ensemblID','exonID','transcriptID','Length',clinical$`Patient ID`)]
 fc_exons_tpm = fc_exons_tpm[,colnames(fc_exons_tpm) %in% c('geneID','ensemblID','exonID','transcriptID','Length',clinical$`Patient ID`)]
 
-colnames(fc_exons_raw_ALL) = gsub('_PAX','',colnames(fc_exons_raw_ALL))
-colnames(fc_exons_tpm) = gsub('_PAX','',colnames(fc_exons_tpm))
+#colnames(fc_exons_raw_ALL) = gsub('_PAX','',colnames(fc_exons_raw_ALL))
+#colnames(fc_exons_tpm) = gsub('_PAX','',colnames(fc_exons_tpm))
 
 # ggplot data formatting
 fc_exons_tpm_ggplot = merge(fc_exons_tpm,candidates[,c('geneID','proband')],sort = FALSE)
 fc_exons_tpm_ggplot$proband = gsub('_PAX','',fc_exons_tpm_ggplot$proband)
-fc_exons_tpm_ggplot = fc_exons_tpm_ggplot %>% pivot_longer(cols = c(6:(ncol(fc_exons_tpm_ggplot)-1)), names_to = 'PatientID',values_to = 'expression')
-fc_exons_tpm_ggplot = merge(fc_exons_tpm_ggplot,clinical[,colnames(clinical) %in% c('PatientID','Sexe','type','age')])
+#fc_exons_tpm_ggplot = fc_exons_tpm_ggplot %>% pivot_longer(cols = c(6:(ncol(fc_exons_tpm_ggplot)-1)), names_to = 'PatientID',values_to = 'expression')
+#fc_exons_tpm_ggplot = merge(fc_exons_tpm_ggplot,clinical[,colnames(clinical) %in% c('PatientID','Sexe','type','age')])
+
+fc_exons_tpm_ggplot = fc_exons_tpm_ggplot %>% pivot_longer(cols = c(6:(ncol(fc_exons_tpm_ggplot)-1)), names_to = 'Patient ID',values_to = 'expression')
+fc_exons_tpm_ggplot = merge(fc_exons_tpm_ggplot,clinical[,colnames(clinical) %in% c('Patient ID','Sexe','type','age')])
+fc_exons_tpm_ggplot$PatientID = fc_exons_tpm_ggplot$`Patient ID` 
 
 # Filter: probands only, then candidate genes only
-proband_ids = gsub('_PAX', '', clinical$`Patient ID`[clinical$type == 'Proband'])
+#proband_ids = gsub('_PAX', '', clinical$`Patient ID`[clinical$type == 'Proband'])
+proband_ids = clinical$`Patient ID`[clinical$type == 'Proband']
 id_cols = c('geneID', 'ensemblID', 'transcriptID', 'exonID', 'Length')
 fc_exons_tpm = fc_exons_tpm[, colnames(fc_exons_tpm) %in% c(id_cols, proband_ids)]
 fc_exons_raw_ALL = fc_exons_raw_ALL[, colnames(fc_exons_raw_ALL) %in% c(id_cols, proband_ids)]
@@ -151,12 +158,12 @@ fc_genes_tpm[,-c(1:3)]  = fc_genes_tpm[,-c(1:3)]  / fc_genes_tpm[,3] * 1000
 fc_genes_tpm[,-c(1:3)] = lapply(fc_genes_tpm[,-c(1:3)] , function(x) x/sum(x) * 1000000)
 fc_genes_tpm[,-c(1:3)] =  round(fc_genes_tpm[,-c(1:3)],2)
 
-proband_patient_ids = clinical$`Patient ID`[clinical$type == 'Proband']
-fc_genes_tpm = fc_genes_tpm[, colnames(fc_genes_tpm) %in% c('geneID', 'ensemblID', 'exonID', 'Length', proband_patient_ids)]
-fc_genes_raw = fc_genes_raw[, colnames(fc_genes_raw) %in% c('geneID', 'ensemblID', 'exonID', 'Length', proband_patient_ids)]
+#proband_patient_ids = clinical$`Patient ID`[clinical$type == 'Proband']
+fc_genes_tpm = fc_genes_tpm[, colnames(fc_genes_tpm) %in% c('geneID', 'ensemblID', 'exonID', 'Length', proband_ids)]
+fc_genes_raw = fc_genes_raw[, colnames(fc_genes_raw) %in% c('geneID', 'ensemblID', 'exonID', 'Length', proband_ids)]
 
-colnames(fc_genes_raw) = gsub('_PAX','',colnames(fc_genes_raw))
-colnames(fc_genes_tpm) = gsub('_PAX','',colnames(fc_genes_tpm))
+#colnames(fc_genes_raw) = gsub('_PAX','',colnames(fc_genes_raw))
+#colnames(fc_genes_tpm) = gsub('_PAX','',colnames(fc_genes_tpm))
 
 write.table(fc_genes_raw,file.path(params$FCdir,'fc_genes_raw_ALL.tsv'),sep = '\t',quote = FALSE)
 

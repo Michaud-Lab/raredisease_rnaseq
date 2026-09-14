@@ -131,7 +131,7 @@ fraser_pipeline = function(candidates = candidates, i = 1){
 
       temp = which(res_dt$hgncSymbol == geneID)
       candidate_gene_localisation = temp[!is.na(temp)][1]
-      control_samples = sampleTable$sampleID[grepl('_03_', sampleTable$bamFile) | grepl('LC_', sampleTable$bamFile)]
+      control_samples = sampleTable$sampleID[grepl('_03_', sampleTable$bamFile) | grepl('LC_', sampleTable$bamFile) | grepl('F_', sampleTable$bamFile)]]
       control_samples = control_samples[control_samples != proband][1:5]
 
       # Save FRASER results for this candidate gene

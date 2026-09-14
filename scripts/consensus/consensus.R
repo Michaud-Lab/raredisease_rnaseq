@@ -37,7 +37,7 @@ consensus_pipeline = function(candidates = candidates, i = 1){
   stop = candidates$stop[i] + 5000
   params$geneID = candidates$geneID[i]
   params$out_dir = paste0(params$FRASER,'/bams_subset/gene',candidates$geneID[i],'_chr',chr,'_',start,'_',stop,'/')
-  params$bam_file = paste0(candidates$proband[i],'_sorted_chrN.bam')
+  params$bam_file = paste0(sub('_PBMC','_PB',candidates$proband[i]),'_sorted_chrN.bam')
   params$gene_variants_annotated = paste0(params$out_dir,'/gene',candidates$geneID[i],'variants_annotated.tsv')
   params$region = paste0('chr',chr,":",candidates$start[i],"-",candidates$stop[i])
   params$fasta_out = paste0(params$consensus,'gene',params$geneID,'_',candidates$proband[i],".fasta")

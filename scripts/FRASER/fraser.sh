@@ -26,7 +26,7 @@ for bam_in in $rnasplice_bamdir/*sorted.bam
     bam_chr_out=${bam_chr_out//$rnasplice_bamdir/$fraser_temp_bamdir}
 
     ###Down sample region of interest if necessary
-    nreads=$(samtools view -c $rnasplice_bamdir'HSJ_001_03_PAX_sorted.bam' $chromosome:$start-$stop)
+    nreads=$(samtools view -c $rnasplice_bamdir'HSJ_001_03_*_sorted.bam' $chromosome:$start-$stop)
 
     if [ "$nreads" -gt 2000000 ]; then
        [ "$iteration" -eq 0 ] && echo "Very high coverage ($nreads reads) → 0.1%"
