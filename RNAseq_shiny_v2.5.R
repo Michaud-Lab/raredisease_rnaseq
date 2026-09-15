@@ -54,10 +54,11 @@ logger::log_info('Defining UI')
 app_ui = page_fluid(
   theme = theme,
 
-  # Dark title header
+  # Title header
   title = "RNAseq dashboard",
   div(
-    class = "bg-dark text-white p-3 mb-4 d-flex justify-content-between align-items-center flex-wrap",
+    class = "text-white p-3 mb-4 d-flex justify-content-between align-items-center flex-wrap",
+    style = "background-color: #9c581f;",
     uiOutput("dynamic_title"),
     div(
       style = "min-width: 220px; color: black;",
