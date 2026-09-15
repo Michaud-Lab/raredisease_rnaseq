@@ -4,6 +4,25 @@ All notable changes to this project are documented here.
 
 ---
 
+## 2026-09-15 — in-app-dataset-selector
+
+**Added**
+- `RNAseq_shiny_v2.5.R`: new "Dataset" selector in the app header lets the user switch between dataset directories without restarting the app. Directories are auto-discovered at startup — every top-level folder whose name starts with `data` (`data/`, `data_minimal/`, `data_PBMC/`, ...) is offered as a choice.
+- `scripts/Shiny/global.R`: dataset loading (previously ~18 top-level variable assignments) extracted into `load_rnaseq_dataset(datadir)`, returning everything for one dataset directory as a single named list (including `datadir` itself, used by outputs that build file paths for images/BAMs/sashimi plots/consensus FASTA).
+- `.gitignore`: added `/data_PBMC/` (mirrors the existing `data/` exclusion).
+
+**Changed**
+- `RNAseq_shiny_v2.5.R`, `scripts/Shiny/reactive_module.R`: server outputs and the proband/gene reactive module now read through a per-session `active_ds()` reactive instead of bare globals, so every output re-renders correctly when the dataset selection changes. `active_ds()` calls `load_rnaseq_dataset()` lazily — only the first time a given dataset is selected — and caches the result for the rest of the session, so switching back to a previously loaded dataset doesn't re-read it from disk. The default dataset is still loaded eagerly at startup so the initial page has data before any selection is made.
+- `scripts/Shiny/global.R`: `table_genes_OUTRIDER.rds` and `gwFRASER_min.rds` are now optional, like `gwASE.tsv`/`gwImprinted.tsv` — a missing file falls back to `NULL` with a logged warning instead of crashing `readRDS()`, since `data_minimal/` doesn't ship them.
+
+**Fixed**
+- `scripts/Shiny/rnaseq_shinyhelper_functions.R`: `manhattan_plot()` could throw "missing value where TRUE/FALSE is required" when `sample` was empty (the proband/gene selectors briefly out of sync with a just-switched dataset) — added a length/NA guard before the `%in%` lookup.
+- `RNAseq_shiny_v2.5.R`: the Gene model tab's genomic-window slider could crash with "min, max, and value cannot be NULL, NA, or empty" during that same transient window — guarded with `req(length(rd$i()) == 1)`.
+- `scripts/Shiny/reactive_module.R`: `gene_prioritization_data` (Gene Prioritization tab) could crash with "subscript out of bounds" in the same window — guarded the same way.
+- `RNAseq_shiny_v2.5.R`: `table_gene_statistics`/`table_gene_fraser` outputs (Search stats tab) now guarded against a `NULL` `table_genes_OUTRIDER`/`gwFRASER_min`.
+
+---
+
 ## 2026-08-20 — fraser-annotation-fixes-and-omim-links
 
 **Fixed**

@@ -2,7 +2,11 @@
 # Shiny module: reactive data for RNAseq dashboard
 #
 # UI:    reactive_data_UI(id)
-# Server: reactive_data_server(id, proband, pvalue, geneprior_rm)
+# Server: reactive_data_server(id, proband, pvalue, geneprior_rm, active_ds)
+#
+# `active_ds` is a reactive returning the currently selected dataset's list
+# (as produced by load_rnaseq_dataset() in global.R), so the module re-derives
+# everything below from whichever dataset is currently selected.
 #
 # Returns a list of reactive expressions:
 #   $geneID              – character vector of gene IDs for the selected proband
@@ -16,13 +20,14 @@ reactive_data_UI = function(id) {
   uiOutput(ns("geneID_list"))
 }
 
-reactive_data_server = function(id, proband, pvalue, geneprior_rm) {
+reactive_data_server = function(id, proband, pvalue, geneprior_rm, active_ds) {
 
   moduleServer(id, function(input, output, session) {
 
     ### Gene IDs available for the selected proband
     geneID = reactive({
-      candidates$geneID[candidates$proband == proband()]
+      ds = active_ds()
+      ds$candidates$geneID[ds$candidates$proband == proband()]
     })
 
     ### Dynamic gene-selection dropdown (namespaced inside module)
@@ -37,11 +42,24 @@ reactive_data_server = function(id, proband, pvalue, geneprior_rm) {
 
     ### Row index in `candidates` for the current proband + gene combination
     i = reactive({
-      which(candidates$proband == proband() & candidates$geneID == input$gene_selection)
+      ds = active_ds()
+      which(ds$candidates$proband == proband() & ds$candidates$geneID == input$gene_selection)
     })
 
     ### All filtered / reshaped datasets consumed by the outputs
     reactive_inputs = reactive({
+
+      ds = active_ds()
+      candidates = ds$candidates
+      fc_exons_raw = ds$fc_exons_raw
+      fc_exons_tpm = ds$fc_exons_tpm
+      gwOUTRIDER = ds$gwOUTRIDER
+      candidates_OUTRIDER = ds$candidates_OUTRIDER
+      candidates_perexons_OUTRIDER = ds$candidates_perexons_OUTRIDER
+      significant_perexons_OUTRIDER = ds$significant_perexons_OUTRIDER
+      gwASE = ds$gwASE
+      gwASE_IMX = ds$gwASE_IMX
+      fc_exons_tpm_ggplot = ds$fc_exons_tpm_ggplot
 
       reactive_i = gsub('_PAX', '', proband())
 
@@ -152,13 +170,15 @@ reactive_data_server = function(id, proband, pvalue, geneprior_rm) {
 
     ### Gene prioritization table
     gene_prioritization_data = reactive({
+      ds = active_ds()
+      req(length(i()) == 1)
       gene_prioritization(
-        sample      = candidates$proband[i()],
+        sample      = ds$candidates$proband[i()],
         pcutoff         = 0.1,
-        hpo_sample  = clinical,
+        hpo_sample  = ds$clinical,
         hpo_all     = 'tmp/genes_to_phenotype.txt',
-        fraser      = gwFRASER,
-        outrider    = gwOUTRIDER,
+        fraser      = ds$gwFRASER,
+        outrider    = ds$gwOUTRIDER,
         geneprior_rm = geneprior_rm()
       )
     })
