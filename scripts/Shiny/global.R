@@ -22,8 +22,6 @@ theme = bs_theme(
   base_font = font_google("Roboto")
 )
 
-load(file = file.path(params$datadir, "gene_annotations.rda"))
-
 # -----------------------------------------------------------------------------
 # 3. Load datasets
 # -----------------------------------------------------------------------------
@@ -34,6 +32,12 @@ load_rnaseq_dataset = function(datadir) {
   logger::log_info(paste0("Loading datasets ~ ",datadir))
 
   ds = list(datadir = datadir)
+
+  ds$gene_annotations = local({
+    e = new.env()
+    load(file = file.path(datadir, "gene_annotations.rda"), envir = e)
+    e$gene_annotations
+  })
 
   ds$fc_exons_raw = read.table(file.path(datadir, 'fc_exons_raw.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
   ds$fc_exons_raw[, -c(1:5)] = round(ds$fc_exons_raw[, -c(1:5)])

@@ -538,7 +538,7 @@ server = function(input, output, session) {
         res_dt_candidate_gene_file = paste0(gene_dir,"gene_",candidates$geneID[rd$i()],"_",candidates$proband[rd$i()],"_res_dt_candidate_gene.csv"),
         bam_file = paste0(gene_dir,candidates$proband[rd$i()],"_sorted_chrN.bam"),
         colmean_genes_counts_file = paste0(ds$datadir,'/colmean_genes_counts.tsv'),
-        gene_annotations=gene_annotations,
+        gene_annotations=ds$gene_annotations,
         xlims = input$sliderxlims,
         conf.int = input$sliderConfInt)}
 
