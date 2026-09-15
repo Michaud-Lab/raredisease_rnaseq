@@ -5,6 +5,7 @@ scripts/**/.*
 **/.DS_Store
 
 #data directories
+/data_PBMC/
 /scripts/DESeq2*/
 /results*/
 /rnasplice_results/

@@ -8,19 +8,34 @@ if(Sys.info()['nodename'] == 'shiny-sebastien') {
   use_server       = FALSE
 }
 
-   
-   # Resolve directories:
+  
+# Resolve directories:
 params = list()
 params$datadir = if (use_data_minimal) file.path(getwd(),"data_minimal") else file.path(getwd(),"data")
-params$scriptsdir = if (dir.exists(file.path(params$datadir ,"scripts"))) {
-  file.path(params$datadir ,"scripts")} else {
-  file.path(getwd(),"scripts")
+params$scriptsdir = if (dir.exists(file.path(getwd() ,"scripts"))) {
+  file.path(getwd() ,"scripts")} else {
+  file.path(params$datadir,"scripts")
   }
 
-# source
+# Dataset directories the in-app "Dataset" selector can switch between:
+# every top-level directory in the repo whose name starts with "data"
+# (e.g. "data", "data_PBMC", "data_minimal").
+params$dataset_dirs = list.files(getwd(), pattern = "^data", full.names = TRUE)
+params$dataset_dirs = params$dataset_dirs[dir.exists(params$dataset_dirs)]
+names(params$dataset_dirs) = basename(params$dataset_dirs)
+
+# Source
 source(file.path(params$scriptsdir, "Shiny/global.R"),chdir = T)
 source(file.path(params$scriptsdir, "Shiny/rnaseq_shinyhelper_functions.R"),chdir = T)
 source(file.path(params$scriptsdir, "Shiny/reactive_module.R"),chdir = T)
+
+# Load all datasets into a single list (one entry per dataset directory)
+all_datasets = list()
+all_datasets[[basename(params$datadir)]] = load_rnaseq_dataset(params$datadir)
+
+# Expose the current dataset's objects as top-level variables, since the rest
+# of the app (below, and reactive_module.R) references them directly
+list2env(all_datasets[[basename(params$datadir)]], envir = globalenv())
 
 
 #####
@@ -42,8 +57,17 @@ app_ui = page_fluid(
   # Dark title header
   title = "RNAseq dashboard",
   div(
-    class = "bg-dark text-white p-3 mb-4",
-    uiOutput("dynamic_title")
+    class = "bg-dark text-white p-3 mb-4 d-flex justify-content-between align-items-center flex-wrap",
+    uiOutput("dynamic_title"),
+    div(
+      style = "min-width: 220px; color: black;",
+      selectInput(
+        inputId = "dataset_choice",
+        label = "Dataset:",
+        choices = names(params$dataset_dirs),
+        selected = basename(params$datadir)
+      )
+    )
   ),
 
   tabsetPanel(
@@ -310,6 +334,50 @@ server = function(input, output, session) {
     logger::log_info(paste0("[", logged_user(), "] ", input$main_tabs, ' tab selected'))
   })
 
+  ##### active dataset ("data" / "data_PBMC"), driven by the "Dataset" selector.
+  ##### load_rnaseq_dataset() is called here, already-loaded datasets are cached so
+  ##### switching back to one doesn't re-read it from disk.
+  loaded_datasets = reactiveVal(all_datasets)
+
+  active_ds = reactive({
+    req(input$dataset_choice)
+    cache = loaded_datasets()
+    if (is.null(cache[[input$dataset_choice]])) {
+      logger::log_info(paste0("[", logged_user(), "] Loading dataset ~ ", input$dataset_choice))
+      cache[[input$dataset_choice]] = load_rnaseq_dataset(params$dataset_dirs[[input$dataset_choice]])
+      loaded_datasets(cache)
+    }
+    cache[[input$dataset_choice]]
+  })
+
+  ### Refresh every dataset-dependent choice list when the user switches datasets
+  observeEvent(input$dataset_choice, {
+    ds = active_ds()
+    logger::log_info(paste0("[", logged_user(), "] Dataset switched to ", input$dataset_choice))
+
+    probands = sort(unique(ds$candidates$proband))
+    updateSelectInput(session, "proband", choices = probands,
+                       selected = probands[1])
+
+    updateSelectizeInput(session, "gene_search",
+                         choices = sort(unique(ds$fc_genes_raw_ALL$geneID)),
+                         selected = 'LDHA',
+                         server = TRUE)
+
+    updateSelectizeInput(session, "stats_gene_search",
+                         choices = sort(unique(ds$table_genes_OUTRIDER$geneID)),
+                         selected = 'MCM5',
+                         server = TRUE)
+
+    updateSelectInput(session, "stats_sample_search",
+                      choices = c('All samples' = 'All', sort(unique(ds$table_genes_OUTRIDER$sampleID))),
+                      selected = 'All')
+
+    updateSelectInput(session, "multiQCs",
+                      choices = seq_along(ds$html_files),
+                      selected = 1)
+  }, ignoreNULL = TRUE)
+
   #####
   ##### reactive data (module)
   #####
@@ -317,7 +385,8 @@ server = function(input, output, session) {
     id           = "reactive_data",
     proband      = reactive(input$proband),
     pvalue       = reactive(input$pvalue),
-    geneprior_rm = reactive(input$geneprior_rm)
+    geneprior_rm = reactive(input$geneprior_rm),
+    active_ds    = active_ds
   )
 
   #####
@@ -325,8 +394,9 @@ server = function(input, output, session) {
   #####
   ### dynamic title
   output$dynamic_title = renderUI({
+    candidates = active_ds()$candidates
     titlePanel(
-      paste0("RNAseq dashboard ~~~ ",ifelse(grepl('PAX',candidates$proband[rd$i()]),"PAXgene","PBMC (Proband: "),candidates$proband[rd$i()], ' , geneID: ',candidates$geneID[rd$i()],')')
+      paste0("RNAseq dashboard ~~~ ",ifelse(grepl('PAX',candidates$proband[rd$i()]),"PAXgene (Proband: ","PBMC (Proband: "),candidates$proband[rd$i()], ', geneID: ',candidates$geneID[rd$i()],')')
        )
   })
 
@@ -424,8 +494,9 @@ server = function(input, output, session) {
 
   ### Sashimi plots FRASER
   output$Sashimi = renderImage({
+    candidates = active_ds()$candidates
     list(
-      src = paste0(params$datadir,"/sashimis/gene_",candidates$geneID[rd$i()],"_",candidates$proband[rd$i()],'_sashimi.png')[1], #path to the file
+      src = paste0(active_ds()$datadir,"/sashimis/gene_",candidates$geneID[rd$i()],"_",candidates$proband[rd$i()],'_sashimi.png')[1], #path to the file
       contentType = "image/png",
       width = 900,
       alt = "My Figure"
@@ -433,6 +504,8 @@ server = function(input, output, session) {
 
   ### Reactive slider
   output$genemodel_slider = renderUI({
+    candidates = active_ds()$candidates
+    req(length(rd$i()) == 1)
     cmin = floor(candidates$start[rd$i()]/1000)
     cmax = ceiling(candidates$stop[rd$i()]/1000)
     sliderInput(
@@ -452,16 +525,18 @@ server = function(input, output, session) {
 
   ### Coverage ggplots
   output$Figure_genemodel = renderPlot({
+    ds = active_ds()
+    candidates = ds$candidates
     req(candidates$geneID[rd$i()]!="")
     if(is.null(input$sliderxlims)) {genemodel = ggplot() +  theme_void() + geom_text(aes(0,0,label='Plotting in ¨Progress')) + xlab(NULL)} else {
-      gene_dir = paste0(params$datadir,'/bams_subset/gene',candidates$geneID[rd$i()],'_chr',candidates$chromosome[rd$i()],'_',candidates$start[rd$i()]-5000,'_',candidates$stop[rd$i()]+5000,'/')
-    
+      gene_dir = paste0(ds$datadir,'/bams_subset/gene',candidates$geneID[rd$i()],'_chr',candidates$chromosome[rd$i()],'_',candidates$start[rd$i()]-5000,'_',candidates$stop[rd$i()]+5000,'/')
+
       genemodel = genemodel_plot(
         candidate = candidates[rd$i(),],
         depth_file = paste0(gene_dir,"gene_",candidates$geneID[rd$i()],"_",candidates$proband[rd$i()],"_depth5.csv"),
         res_dt_candidate_gene_file = paste0(gene_dir,"gene_",candidates$geneID[rd$i()],"_",candidates$proband[rd$i()],"_res_dt_candidate_gene.csv"),
         bam_file = paste0(gene_dir,candidates$proband[rd$i()],"_sorted_chrN.bam"),
-        colmean_genes_counts_file = paste0(params$datadir,'/colmean_genes_counts.tsv'),
+        colmean_genes_counts_file = paste0(ds$datadir,'/colmean_genes_counts.tsv'),
         gene_annotations=gene_annotations,
         xlims = input$sliderxlims,
         conf.int = input$sliderConfInt)}
@@ -477,29 +552,34 @@ server = function(input, output, session) {
 
   ### DOWNLOAD gene prioritization Table
   output$gp_download = downloadHandler(
-    filename = function() {paste0("gene_prioritization_", candidates$geneID[rd$i()],'_',candidates$proband[rd$i()], ".csv")},
+    filename = function() {
+      candidates = active_ds()$candidates
+      paste0("gene_prioritization_", candidates$geneID[rd$i()],'_',candidates$proband[rd$i()], ".csv")
+    },
     content = function(file) {write.csv(rd$gene_prioritization_data(),file,row.names = FALSE)}
   )
 
   ### genome-wide OUTRIDER
   output$gwOUTRIDER = renderPlot({
-    manhattan_plot(res_dt=gwOUTRIDER,sample = candidates$proband[rd$i()],geneID = 'geneID',pvalue = 'pValue',pcutoff = 0.01,shape = TRUE)
+    manhattan_plot(res_dt=active_ds()$gwOUTRIDER,sample = active_ds()$candidates$proband[rd$i()],geneID = 'geneID',pvalue = 'pValue',pcutoff = 0.01,shape = TRUE)
   })
 
   ### genome-wide FRASER
   output$gwFRASER = renderPlot({
-    manhattan_plot(res_dt=gwFRASER,sample = candidates$proband[rd$i()])
+    manhattan_plot(res_dt=active_ds()$gwFRASER,sample = active_ds()$candidates$proband[rd$i()])
   })
 
   output$gwFRASER_table = renderDT({
     datatable(
-      gwFRASER_table(res_dt=gwFRASER,sample = candidates$proband[rd$i()]),
+      gwFRASER_table(res_dt=active_ds()$gwFRASER,sample = active_ds()$candidates$proband[rd$i()]),
       rownames = FALSE,options = list(pageLength = 100,columnDefs = list(list(className = 'dt-center', targets = "_all"))))
   })
 
   ### IGV
   observeEvent(input$addBamLocalFileButton, {
-    gene_dir = paste0(params$datadir,'/bams_subset/gene',candidates$geneID[rd$i()],'_chr',candidates$chromosome[rd$i()],'_',candidates$start[rd$i()]-5000,'_',candidates$stop[rd$i()]+5000,'/')
+    ds = active_ds()
+    candidates = ds$candidates
+    gene_dir = paste0(ds$datadir,'/bams_subset/gene',candidates$geneID[rd$i()],'_chr',candidates$chromosome[rd$i()],'_',candidates$start[rd$i()]-5000,'_',candidates$stop[rd$i()]+5000,'/')
     bamFile = paste0(gene_dir,candidates$proband[rd$i()],"_sorted_chrN.bam")
     if (!file.exists(bamFile)) {
       showNotification(paste0("No BAM file found for ", candidates$proband[rd$i()], " ~ ", candidates$geneID[rd$i()]), type = "warning")
@@ -514,13 +594,14 @@ server = function(input, output, session) {
   ### Default hg38 view
   output$igvShiny = renderIgvShiny({
     runjs("document.getElementById('addBamLocalFileButton').style.backgroundColor = 'red';")
+    candidates = active_ds()$candidates
     genomeOptions = parseAndValidateGenomeSpec('hg38',initialLocus=paste0("chr",candidates$chromosome[rd$i()],":",candidates$start[rd$i()],"-",candidates$stop[rd$i()]))
     igvShiny(genomeOptions)
   })
 
   ### genome-wide ASE table
   output$gwASE_table = renderDT({
-    req(!is.null(gwASE))
+    req(!is.null(active_ds()$gwASE))
     data = omim_link_geneID(rd$reactive_inputs()$gwASE_table)
     datatable(
       data,
@@ -530,7 +611,7 @@ server = function(input, output, session) {
 
   ### genome-wide ASE Imprinted table
   output$gwImprinted_table = renderDT({
-    req(!is.null(gwASE_IMX))
+    req(!is.null(active_ds()$gwASE_IMX))
     data = omim_link_geneID(rd$reactive_inputs()$gwIMX_table[rd$reactive_inputs()$gwIMX_table$Type == 'I',1:12])
     datatable(
       data,
@@ -540,7 +621,7 @@ server = function(input, output, session) {
 
   ### genome-wide ASE X table
   output$gwX_table = renderDT({
-    req(!is.null(gwASE_IMX))
+    req(!is.null(active_ds()$gwASE_IMX))
     data = omim_link_geneID(rd$reactive_inputs()$gwIMX_table[rd$reactive_inputs()$gwIMX_table$Type == 'X',1:12])
     datatable(
       data,
@@ -550,26 +631,31 @@ server = function(input, output, session) {
 
   ### genome-wide ASE manhattan
   output$gwASE = renderPlot({
-    req(!is.null(gwASE))
-    manhattan_plot(res_dt=gwASE,sample = candidates$proband[rd$i()],end= 'pos',pcutoff=0.01, pvalue='pvalue',geneID = 'geneID')
+    req(!is.null(active_ds()$gwASE))
+    manhattan_plot(res_dt=active_ds()$gwASE,sample = active_ds()$candidates$proband[rd$i()],end= 'pos',pcutoff=0.01, pvalue='pvalue',geneID = 'geneID')
   })
 
   ### FASTA
   output$fasta = renderUI({
-    fasta.file = paste0(params$datadir,"/consensus/","gene",candidates$geneID[rd$i()],'_',candidates$proband[rd$i()],'.fasta')
+    ds = active_ds()
+    candidates = ds$candidates
+    fasta.file = paste0(ds$datadir,"/consensus/","gene",candidates$geneID[rd$i()],'_',candidates$proband[rd$i()],'.fasta')
     if(file.exists(fasta.file)) {lines = readLines(fasta.file)} else {lines = 'No gene specified'}
     HTML(paste0("<span style='color: black; font-family: Courier New; font-size: 16px;'>",paste0(lines,collapse = '<br>'),"</span>",collapse = "\n"))
   })
 
   ### Description
   output$description = renderUI({
+    ds = active_ds()
+    candidates = ds$candidates
+    clinical = ds$clinical
     req(candidates$proband[rd$i()]!="")
     selected_ensembl = candidates$ensembl[rd$i()]
     selected_geneID = candidates$geneID[rd$i()]
     selected_patient = candidates$proband[rd$i()]
     selected_origin = candidates$Criteria[rd$i()]
     selected_clinical = clinical[clinical$`Patient ID` == selected_patient,]
-    selected_bam = paste0(params$datadir,'/bams_subset/gene',selected_geneID,'_chr',candidates$chromosome[rd$i()],'_',candidates$start[rd$i()]-5000,'_',candidates$stop[rd$i()]+5000,'/',selected_patient,"_sorted_chrN.bam")
+    selected_bam = paste0(ds$datadir,'/bams_subset/gene',selected_geneID,'_chr',candidates$chromosome[rd$i()],'_',candidates$start[rd$i()]-5000,'_',candidates$stop[rd$i()]+5000,'/',selected_patient,"_sorted_chrN.bam")
     if(selected_geneID == "") selected_bam = ''
     log_info(paste0("[", logged_user(), "] Selecting ~~~ ",selected_patient,' ~~~ ',selected_geneID,' ~~~ ',rd$i()))
     omim_url = paste0("https://www.omim.org/search/?search=", selected_geneID, "&type=entry")
@@ -587,6 +673,7 @@ server = function(input, output, session) {
 
   ### Figure legends
   output$Figure_genemodel_legend = renderUI({
+    candidates = active_ds()$candidates
     HTML(
       paste0("<span><b>Figure 2:</b> Visualisation des altérations d’épissage détectées par l'outil FRASER.
         <br><b>A:</b> Carte des introns/exons du gène ",candidates$geneID[rd$i()]," et localisation du/des variant.s (ligne bleue pointillée).
@@ -613,6 +700,7 @@ server = function(input, output, session) {
 
   ### Versioning
   output$Version = renderDT({
+    report_version = active_ds()$report_version
     datatable(
       data.frame(Parameter=names(unlist(report_version)),Value=unlist(report_version)),
       rownames = FALSE,options = list(pageLength = 50, searching = F, lengthChange = F))
@@ -621,41 +709,28 @@ server = function(input, output, session) {
 
   ### Candidate genes table
   output$candidates_table = renderReactable({
-    candidates_summary_reactable(candidates)
+    candidates_summary_reactable(active_ds()$candidates)
   })
 
-  # Search gene expression — populate choices server-side to avoid sending 20k options to browser
-  updateSelectizeInput(session, "gene_search",
-                       choices = sort(unique(fc_genes_raw_ALL$geneID)),
-                       selected = 'LDHA',
-                       server = TRUE)
-
+  # Search gene expression choices are (re)populated server-side by the
+  # dataset-switch observer above (avoids sending 20k options to the browser)
   output$searchExpression = renderPlotly({
     req(input$gene_search)
-    plot_hb_fraction(fc_genes_raw_ALL, hb_genes = input$gene_search)
+    plot_hb_fraction(active_ds()$fc_genes_raw_ALL, hb_genes = input$gene_search)
   })
 
 
   ### Haemoglobin barplot
   output$hb_barplot = renderPlotly({
-    plot_hb_fraction(fc_genes_raw_ALL)
+    plot_hb_fraction(active_ds()$fc_genes_raw_ALL)
   })
-
-  # Search OUTRIDER statistics by gene — populate choices server-side to avoid sending 20k+ options to browser
-  updateSelectizeInput(session, "stats_gene_search",
-                       choices = sort(unique(table_genes_OUTRIDER$geneID)),
-                       selected = 'MCM5',
-                       server = TRUE)
-
-  # Sample selector for OUTRIDER statistics — small, fixed cohort size, so no need for server-side selectize.
-  updateSelectInput(session, "stats_sample_search",
-                    choices = c('All samples' = 'All', sort(unique(table_genes_OUTRIDER$sampleID))),
-                    selected = 'All')
 
   ### Per-gene OUTRIDER statistics table
   output$table_gene_statistics = renderDT({
     req(input$stats_gene_search)
-    data = table_genes_OUTRIDER[table_genes_OUTRIDER$geneID == input$stats_gene_search, ]
+    req(!is.null(active_ds()$table_genes_OUTRIDER))
+    data = active_ds()$table_genes_OUTRIDER
+    data = data[data$geneID == input$stats_gene_search, ]
     if (!is.null(input$stats_sample_search) && input$stats_sample_search != 'All') {
       data = data[data$sampleID == input$stats_sample_search, ]
     }
@@ -671,7 +746,9 @@ server = function(input, output, session) {
   ### Per-gene FRASER splicing statistics table (exact gene symbol match only)
   output$table_gene_fraser = renderDT({
     req(input$stats_gene_search)
-    data = gwFRASER_min[gwFRASER_min$geneID == input$stats_gene_search, ]
+    req(!is.null(active_ds()$gwFRASER_min))
+    data = active_ds()$gwFRASER_min
+    data = data[data$geneID == input$stats_gene_search, ]
     if (!is.null(input$stats_sample_search) && input$stats_sample_search != 'All') {
       data = data[data$sampleID == input$stats_sample_search, ]
     }
@@ -686,12 +763,13 @@ server = function(input, output, session) {
 
   ### Total reads barplot
   output$total_reads_barplot = renderPlotly({
-    plot_total_reads(fc_genes_raw_ALL)
+    plot_total_reads(active_ds()$fc_genes_raw_ALL)
   })
 
   ### multiQC
   output$htmlViewer = renderUI({
-    HTML(paste(readLines(html_files[as.numeric(input$multiQCs)]), collapse = "\n"))
+    req(input$multiQCs)
+    HTML(paste(readLines(active_ds()$html_files[as.numeric(input$multiQCs)]), collapse = "\n"))
   })
 }
   

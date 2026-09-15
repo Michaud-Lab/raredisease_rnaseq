@@ -358,7 +358,7 @@ gwFRASER_table = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',pcutoff=0.05
 #   end      - character: name of the column giving each event's genomic end position, used for chromosome sizes (default: 'end')
 manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcutoff=0.05, pvalue='padjust', geneID = 'hgncSymbol',shape = FALSE, end = 'end'){
 
-  if (is.null(res_dt) || nrow(res_dt) == 0 || !sample %in% res_dt$sampleID) {
+  if (is.null(res_dt) || nrow(res_dt) == 0 || length(sample) != 1 || is.na(sample) || !sample %in% res_dt$sampleID) {
     return(plot(0, main = 'no data available'))
   }
 
