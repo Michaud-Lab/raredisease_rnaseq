@@ -132,7 +132,10 @@ for(i in 1:length(html_files)){
 # 10. Zip everything for transfer
 # -----------------------------------------------------------------------------
 setwd(params$workdir)
-zip(zipfile = paste0('tmp/data_', as.character(format(Sys.time(), format = "%Y_%m_%d_%H_%M")), '.zip'),
-    files = 'data')
+
+paths = strsplit(getwd(),'/',fixed = T)[[1]]
+data_name = strsplit(tail(paths,1),'_')[[1]][1]
+
+zip(zipfile = paste0('tmp/data_',data_name,'_', as.character(format(Sys.time(), format = "%Y_%m_%d_%H_%M")), '.zip'), files = 'data')
 
 print(paste0('All done, Time is: ', Sys.time()))
