@@ -566,10 +566,11 @@ gene_prioritization = function(sample = 'HSJ_001_03_PAX',pcutoff=0.5,hpo_sample=
   hpo_un$hpo_name_shortened[nchar(hpo_un$hpo_name_shortened)!=nchar(hpo_un$hpo_name)] = paste0(hpo_un$hpo_name_shortened[nchar(hpo_un$hpo_name_shortened)!=nchar(hpo_un$hpo_name)],'.')
 
   # generate a named list that contains all the genes in all the HPO terms.
-  temp = strsplit(hpo_sample$`HPO terms`[hpo_sample$`Patient ID` == sample],split = '||',fixed = TRUE)[[1]]
-  temp = unlist(strsplit(temp,split = ': '))
-  temp = temp[grepl('HP:',temp)]
-
+  if(sample %in% hpo_sample$`Patient ID`) {
+    temp = strsplit(hpo_sample$`HPO terms`[hpo_sample$`Patient ID` == sample],split = '||',fixed = TRUE)[[1]]
+    temp = unlist(strsplit(temp,split = ': '))
+    temp = temp[grepl('HP:',temp)]} else {temp = NULL}
+  
   if(length(temp)>0) {
    temp = gsub(' ','',temp)
    hpo_genes = as.list(temp)

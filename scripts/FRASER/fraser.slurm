@@ -25,11 +25,11 @@ read fraser_temp_bamdir fraser_bamdir fraser_chr_bamdir  < <(
 #fraser genome wide
 cpu=12
 
-for i in $(seq 1 22) X Y MT; do
-#for i in $(seq 1 11); do
+#for i in $(seq 1 22) X Y MT; do
+for i in $(seq 1 5); do
   Rscript fraser_gw.R $fraser_chr_bamdir $i $cpu $rnasplice_bamdir
   #echo  $fraser_chr_bamdir $i $cpu $rnasplice_bamdir
-# echo 'Done chr:'$i
+  echo 'Done chr:'$i
 done
 
 echo 'All done FRASER'

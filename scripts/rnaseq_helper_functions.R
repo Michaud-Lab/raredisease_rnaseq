@@ -136,7 +136,7 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
     gw_top = gw %>%
       filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ|^HBM|^SELPLG", hgncSymbol), !is.na(hgncSymbol)) %>%
       group_by(sampleID) %>%
-      filter(padjust < 0.0001) %>%
+      filter(padjust < 0.01) %>%
       slice_min(padjust, n = 5) %>%
       distinct(hgncSymbol, sampleID,.keep_all = T)
   
@@ -205,24 +205,29 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
   #format them to the candidate format.
   candidates_automated = data.frame(matrix(ncol = 10, nrow = 0))
   colnames(candidates_automated) = c('geneID','ensembl','proband','chromosome','start','stop','proband2','mutation','position','Criteria')
-  candidates_automated[1:nrow(gw_top),c(1,3,10)] = gw_top
-  candidates_automated[,4:6] = 1
-  candidates_automated[,8:9] = ''
-  candidates_automated$proband2 = gsub('_PAX','',candidates_automated$proband)
+
+  if(nrow(gw_top)>0) {
+	  candidates_automated[1:nrow(gw_top),c(1,3,10)] = gw_top
+ 	 candidates_automated[,4:6] = 1
+  	candidates_automated[,8:9] = ''
+  	candidates_automated$proband2 = gsub('_PAX','',candidates_automated$proband)
   
-  for(i in 1:nrow(candidates_automated))
-  {
-    temp = gene_annotations[[2]][gene_annotations[[2]]$symbol == candidates_automated[i,1],]
-    if(length(temp@seqnames)==1) {
-      candidates_automated$start[i] = temp@ranges@start
-      candidates_automated$stop[i] = temp@ranges@start + temp@ranges@width
-      candidates_automated$ensembl[i] = temp$gene_id
-      candidates_automated$chromosome[i] = gsub('chr','',temp@seqnames@values)}
-  }
-  candidates_automated = candidates_automated[!is.na(candidates_automated$chromosome),]
-  candidates_automated = candidates_automated[candidates_automated$start != 1,]
-  print(paste0('Done candidates_automated with ',gwfile,', found ', nrow(candidates_automated), ' new candidates'))
-  return(candidates_automated)
+	  for(i in 1:nrow(candidates_automated))
+ 	 {
+    	temp = gene_annotations[[2]][gene_annotations[[2]]$symbol == candidates_automated[i,1],]
+   	 if(length(temp@seqnames)==1) {
+    	  candidates_automated$start[i] = temp@ranges@start
+     	 candidates_automated$stop[i] = temp@ranges@start + temp@ranges@width
+     	 candidates_automated$ensembl[i] = temp$gene_id
+     	 candidates_automated$chromosome[i] = gsub('chr','',temp@seqnames@values)}
+ 	 }
+  	candidates_automated = candidates_automated[!is.na(candidates_automated$chromosome),]
+  	candidates_automated = candidates_automated[candidates_automated$start != 1,]
+  	print(paste0('Done candidates_automated with ',gwfile,', found ', nrow(candidates_automated), ' new candidates'))
+  	return(candidates_automated)} else {
+      	print(paste0('Done candidates_automated with ',gwfile,', found ', nrow(candidates_automated), ' new candidates'))
+      	return(candidates_automated)
+      }
 }
 
 # load_install_library: loads each package, installing it first (from CRAN, Bioconductor, or GitHub) if not already installed.
