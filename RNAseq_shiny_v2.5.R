@@ -125,9 +125,8 @@ app_ui = page_fluid(
     tabPanel("OUTRIDER",
              card(
                card_header(strong('OUTlier in RNA-Seq fInDER')),
-               'Identification of aberrant gene expression in RNA-seq data, Outliers are identified as read counts that significantly deviate from the population',
-               '(all probands, including some adults from the LC & F0 cohorts)'),
-             card(
+               'Identification of aberrant gene expression in RNA-seq data, Outliers are identified as read counts that significantly deviate from the population  
+               (Note that HB genes, HLA and SELPLG are likely statistical artefacts are therefore filtered out).',
                card_header(strong('Genome-wide significance')),
                plotOutput("gwOUTRIDER", width = '1500px', height = "600px")),
              card(
@@ -189,7 +188,8 @@ app_ui = page_fluid(
       "FRASER",
       card(
         card_header(strong('Find RAre Splicing Events in RNAseq Data')),
-        'Identification of aberrant splicing events from RNAseq. Outliers are identified intron retention / exon skipping events that significantly deviate from the population.'),
+        'Identification of aberrant splicing events from RNAseq. Outliers are identified intron retention / exon skipping events that significantly deviate from the population  
+        (Note that HB genes, HLA and SELPLG are likely statistical artefacts are therefore filtered out).'),
       card(
         card_header(strong('Genome-wide significance')),
         plotOutput("gwFRASER", width = '1500px', height = "600px")),
