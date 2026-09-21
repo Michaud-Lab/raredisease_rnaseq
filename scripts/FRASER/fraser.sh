@@ -24,7 +24,7 @@ for bam_in in $rnasplice_bamdir/*sorted.bam
   do
     bam_chr_out=${bam_in//'.bam'/'_chrN.bam'}
     bam_chr_out=${bam_chr_out//$rnasplice_bamdir/$fraser_temp_bamdir}
-    bam_ref=$rnasplice_bamdir'HSJ_003_03_PB_sorted.bam'
+    bam_ref=$rnasplice_bamdir'HSJ_003_03_*_sorted.bam'
 
     ###Down sample region of interest if necessary
     nreads=$(samtools view -c $bam_ref $chromosome:$start-$stop)
