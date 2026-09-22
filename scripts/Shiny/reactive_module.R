@@ -61,11 +61,17 @@ reactive_data_server = function(id, proband, pvalue, geneprior_rm, active_ds) {
       gwASE_IMX = ds$gwASE_IMX
       fc_exons_tpm_ggplot = ds$fc_exons_tpm_ggplot
 
-      reactive_i = gsub('_PAX', '', proband())
+      # Sample-ID matching is normalised by stripping a trailing "_PAX" from
+      # both sides: depending on the dataset/pipeline version, some tables
+      # keep the suffix (e.g. PatientID) while others already strip it
+      # (e.g. the ggplot proband column), so comparing raw values can silently
+      # match nothing.
+      strip_pax = function(x) gsub('_PAX$', '', x)
+      reactive_i = strip_pax(proband())
 
       # Exon raw counts
-      column = which(colnames(fc_exons_raw) == reactive_i)
-      column_not = which(colnames(fc_exons_raw) != reactive_i)
+      column = which(strip_pax(colnames(fc_exons_raw)) == reactive_i)
+      column_not = which(strip_pax(colnames(fc_exons_raw)) != reactive_i)
       column_not = column_not[-c(1, 2, 3, 4, 5, length(column_not))]
       fc_exons_raw_reactive = fc_exons_raw[
         fc_exons_raw$geneID == candidates$geneID[i()],
@@ -129,18 +135,18 @@ reactive_data_server = function(id, proband, pvalue, geneprior_rm, active_ds) {
 
       # Plotly – family and per-age subsets
       fc_exons_ggplot_reactive = fc_exons_tpm_ggplot[
-        fc_exons_tpm_ggplot$proband == reactive_i, ]
+        strip_pax(fc_exons_tpm_ggplot$proband) == reactive_i, ]
       fc_exons_ggplot_reactive = fc_exons_ggplot_reactive[
         fc_exons_ggplot_reactive$geneID == candidates$geneID[i()], ]
 
       fc_exons_ggplot_reactive_family = fc_exons_ggplot_reactive[
-        gsub('_0[123]$', '', fc_exons_ggplot_reactive$PatientID) ==
+        gsub('_0[123]$', '', strip_pax(fc_exons_ggplot_reactive$PatientID)) ==
           gsub('_03$', '', reactive_i), ]
 
       fc_exons_ggplot_reactive_patient = fc_exons_ggplot_reactive[
-        fc_exons_ggplot_reactive$PatientID == reactive_i, ]
+        strip_pax(fc_exons_ggplot_reactive$PatientID) == reactive_i, ]
       fc_exons_ggplot_reactive = fc_exons_ggplot_reactive[
-        fc_exons_ggplot_reactive$PatientID != reactive_i, ]
+        strip_pax(fc_exons_ggplot_reactive$PatientID) != reactive_i, ]
 
       fc_exons_ggplot_reactive_child = fc_exons_ggplot_reactive[
         fc_exons_ggplot_reactive$age <  18, ]
