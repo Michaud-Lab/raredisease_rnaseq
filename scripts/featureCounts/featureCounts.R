@@ -121,14 +121,8 @@ fc_exons_tpm[,-c(1:5)] =  round(fc_exons_tpm[,-c(1:5)],2)
 fc_exons_raw_ALL = fc_exons_raw_ALL[,colnames(fc_exons_raw_ALL) %in% c('geneID','ensemblID','exonID','transcriptID','Length',clinical$`Patient ID`)]
 fc_exons_tpm = fc_exons_tpm[,colnames(fc_exons_tpm) %in% c('geneID','ensemblID','exonID','transcriptID','Length',clinical$`Patient ID`)]
 
-#colnames(fc_exons_raw_ALL) = gsub('_PAX','',colnames(fc_exons_raw_ALL))
-#colnames(fc_exons_tpm) = gsub('_PAX','',colnames(fc_exons_tpm))
-
 # ggplot data formatting
 fc_exons_tpm_ggplot = merge(fc_exons_tpm,candidates[,c('geneID','proband')],sort = FALSE)
-fc_exons_tpm_ggplot$proband = gsub('_PAX','',fc_exons_tpm_ggplot$proband)
-#fc_exons_tpm_ggplot = fc_exons_tpm_ggplot %>% pivot_longer(cols = c(6:(ncol(fc_exons_tpm_ggplot)-1)), names_to = 'PatientID',values_to = 'expression')
-#fc_exons_tpm_ggplot = merge(fc_exons_tpm_ggplot,clinical[,colnames(clinical) %in% c('PatientID','Sexe','type','age')])
 
 fc_exons_tpm_ggplot = fc_exons_tpm_ggplot %>% pivot_longer(cols = c(6:(ncol(fc_exons_tpm_ggplot)-1)), names_to = 'Patient ID',values_to = 'expression')
 fc_exons_tpm_ggplot = merge(fc_exons_tpm_ggplot,clinical[,colnames(clinical) %in% c('Patient ID','Sexe','type','age')])
