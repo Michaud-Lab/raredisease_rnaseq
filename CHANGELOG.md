@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 
 ---
 
+## 2026-09-23 — data-minimal-refresh
+
+**Added**
+- `data_minimal/table_genes_OUTRIDER.rds`, `data_minimal/gwFRASER_min.rds`: synthetic versions of the two files read by the "Search stats" tab, with the same columns as the real `data/` files (OUTRIDER values for MCM5/TTI1 taken from `gw_genes_OUTRIDER.tsv`; FRASER rows are the per-gene/per-sample minimum-p-value event from `gwFRASER.tsv`). The tab's tables now populate when running on `data_minimal/`.
+- `data_minimal/fc_exons_raw.tsv`, `fc_exons_tpm.tsv`, `fc_genes_raw_ALL.tsv`, `fc_genes_tpm.tsv`, `fc_exons_tpm_ggplot.tsv`: sample IDs renamed `RNA_xxx_03` → `RNA_xxx_03_PAX` to match the proband IDs in `candidate_genes_ALL.csv` (and the `_PAX` convention of the real `data/` files). The "Plot" tab and the exon expression table were empty because the app filters these tables on the full proband ID.
+- `data_minimal/fc_genes_raw_ALL.tsv`: added an `LDHA` row so the "Gene search" default selection (`LDHA`) has data instead of rendering an empty plot.
+
+---
+
 ## 2026-09-15 — in-app-dataset-selector
 
 **Added**
