@@ -136,7 +136,7 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
     gw_top = gw %>%
       filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ|^HBM|^SELPLG", hgncSymbol), !is.na(hgncSymbol)) %>%
       group_by(sampleID) %>%
-      filter(padjust < 0.01) %>%
+      filter(padjust < 0.0001) %>%
       slice_min(padjust, n = 5) %>%
       distinct(hgncSymbol, sampleID,.keep_all = T)
   
