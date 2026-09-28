@@ -214,12 +214,12 @@ wh = wh[wh$gene_id == candidate$ensembl,]
 
   if(all.equal(xlims,candidate_limit) ==TRUE) merged_exons_df$exonsnb[!(1:nrow(merged_exons_df) %in% seq(1,nrow(merged_exons_df),by = 5))]= ""
 
-  mut_pos = as.numeric(strsplit(as.character(candidate$position), '_')[[1]])
+  mut_pos = as.numeric(strsplit(as.character(candidate$position), '___')[[1]])
   mut_pos = mut_pos[!is.na(mut_pos)]
   xintercept = mut_pos/1000
   if(length(mut_pos) == 0) {xintercept = (min(merged_exons_df$start)+max(merged_exons_df$end))/2}
   if(length(mut_pos) == 0) mut_pos = xintercept
-  mutation = candidate$mutation
+  mutation = strsplit(as.character(candidate$mutation), '___')[[1]]
 
     # gene model
     candidate_gene_model = merged_exons_df %>%
