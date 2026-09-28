@@ -227,10 +227,10 @@ wh = wh[wh$gene_id == candidate$ensembl,]
       geom_range(aes(fill = 'red')) +
       geom_intron(data = to_intron(merged_exons_df),aes(strand = strand),arrow.min.intron.length = 100) +
       geom_text(aes(x = end,vjust = -3, label = exonsnb),size = 6) +
-      geom_vline(xintercept = xintercept,col = 'darkblue',linewidth = 0.5,linetype = "dashed",alpha = ifelse(mutation=='',0,1)) +
+      geom_vline(xintercept = xintercept,col = 'darkblue',linewidth = 0.5,linetype = "dashed",alpha = ifelse(length(mutation)==0,0,1)) +
       ylab(candidate$geneID) +
       xlab(paste0('Chromosome ',merged_exons_df[1,1],' (Kb)')) +
-      annotate('text', x = xintercept,y = 0.6, label = ifelse(mutation == '','',paste0(mutation,' (Position: ',mut_pos,')')), col = 'darkblue', vjust = 0, hjust = 0.8, size = 5) +
+      annotate('text', x = xintercept,y = 0.6, label = ifelse(length(mutation) == 0,'',paste0(mutation,' (Position: ',mut_pos,')')), col = 'darkblue', vjust = 0, hjust = 0.8, size = 5) +
       coord_cartesian(xlim = xlims) +
       ggtitle('Gene Model') +
       theme(legend.position = 'none',plot.title = element_text(size = 24),axis.title = element_text(size = 18),axis.text = element_text(size = 14))
@@ -250,7 +250,7 @@ wh = wh[wh$gene_id == candidate$ensembl,]
     
     signif = ggplot(res_dt_candidate_gene,aes(x = mean, y = minuslogpval,color = minuslogpval)) +
       geom_point() +
-      geom_vline(xintercept = xintercept,col = 'darkblue',linewidth = 0.5,linetype = "dashed",alpha = ifelse(mutation=='',0,1)) +
+      geom_vline(xintercept = xintercept,col = 'darkblue',linewidth = 0.5,linetype = "dashed",alpha = ifelse(length(mutation)==0,0,1)) +
       coord_cartesian(xlim = xlims) +
       ylab(bquote(-log[10]~(italic(p-value)))) +
       xlab(paste0('Chromosome ',merged_exons_df[1,1],' (Kb)')) +
@@ -265,7 +265,7 @@ wh = wh[wh$gene_id == candidate$ensembl,]
 
         signif = ggplot(res_dt_candidate_gene_subset,aes(x = start, xend = end, yend = minuslogpval, y = minuslogpval, color = minuslogpval)) +
           geom_segment(linewidth = 1) +
-          geom_vline(xintercept = xintercept,col = 'darkblue',linewidth = 0.5,linetype = "dashed",alpha = ifelse(mutation=='',0,1)) +
+          geom_vline(xintercept = xintercept,col = 'darkblue',linewidth = 0.5,linetype = "dashed",alpha = ifelse(length(mutation)==0,0,1)) +
           coord_cartesian(xlim = xlims, ylim = c(0,max(res_dt_candidate_gene$minuslogpval))) +
           ylab(bquote(-log[10]~(italic(p-value))))+
           scale_color_continuous(palette = c('black','red'),limits = c(0,max(res_dt_candidate_gene$minuslogpval))) +
@@ -301,7 +301,7 @@ wh = wh[wh$gene_id == candidate$ensembl,]
       ggplot(depth_pivoted[depth_pivoted$PatientID != candidate$proband,],aes(x = POS, y = Coverage)) +
       stat_summary(geom="ribbon", fun.data=median_hilow,fun.args = list(conf.int=conf.int),fill=alpha('darkorange1', alpha =0.7),col= alpha('darkorange1', alpha =0.7)) +
       geom_line(data = depth_pivoted[depth_pivoted$PatientID == candidate$proband,],aes(x = POS, y = Coverage),col = 'black') +
-      geom_vline(xintercept = xintercept,col = 'darkblue',linewidth = 0.5,linetype = "dashed",alpha = ifelse(mutation=='',0,1)) +
+      geom_vline(xintercept = xintercept,col = 'darkblue',linewidth = 0.5,linetype = "dashed",alpha = ifelse(length(mutation)==0,0,1)) +
       coord_cartesian(xlim = xlims) +
       ylab('Normalised coverage') +
       xlab(paste0('Chromosome ',merged_exons_df[1,1], ' (Kb)')) +
