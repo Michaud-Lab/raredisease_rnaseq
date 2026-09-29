@@ -220,7 +220,8 @@ wh = wh[wh$gene_id == candidate$ensembl,]
   if(length(mut_pos) == 0) {xintercept = (min(merged_exons_df$start)+max(merged_exons_df$end))/2}
   if(length(mut_pos) == 0) mut_pos = xintercept
   mutation = strsplit(as.character(candidate$mutation), '___')[[1]]
-
+  if(length(mutation) > 0) {annotate_label = paste0(mutation,' (Position: ',mut_pos,')')}else annotate_label = ''
+  
     # gene model
     candidate_gene_model = merged_exons_df %>%
       ggplot(aes(xstart = start,xend = end,y = '')) +
@@ -230,7 +231,7 @@ wh = wh[wh$gene_id == candidate$ensembl,]
       geom_vline(xintercept = xintercept,col = 'darkblue',linewidth = 0.5,linetype = "dashed",alpha = ifelse(length(mutation)==0,0,1)) +
       ylab(candidate$geneID) +
       xlab(paste0('Chromosome ',merged_exons_df[1,1],' (Kb)')) +
-      annotate('text', x = xintercept,y = 0.6, label = ifelse(length(mutation) == 0,'',paste0(mutation,' (Position: ',mut_pos,')')), col = 'darkblue', vjust = 0, hjust = 0.8, size = 5) +
+      annotate('text', x = xintercept,y = 0.6, label = annotate_label, col = 'darkblue', vjust = 0, hjust = 0.8, size = 5) +
       coord_cartesian(xlim = xlims) +
       ggtitle('Gene Model') +
       theme(legend.position = 'none',plot.title = element_text(size = 24),axis.title = element_text(size = 18),axis.text = element_text(size = 14))
@@ -468,9 +469,9 @@ candidates_summary_reactable = function(candidates) {
   detail_cols = c('geneID', 'Chr', 'position', 'Criteria', 'Mutation','Hypothèse','HPO proband-gene matches','FRASER','OUTRIDER','ASE')
 
   full = candidates %>%
-    select(proband, geneID, Criteria, Age = `Âge (années)`, Sexe, Hypothèse, `HPO terms`, Mutation,`HPO proband-gene matches`,Chr = chromosome, start, stop,FRASER,OUTRIDER,ASE) %>%
+    select(Notes, proband, geneID, Criteria, Age = `Âge (années)`, Sexe, Hypothèse, `HPO terms`, Mutation,`HPO proband-gene matches`,Chr = chromosome, start, stop,FRASER,OUTRIDER,ASE) %>%
     arrange(proband, geneID) %>%
-    mutate(across(c(Age, Sexe, Hypothèse, `HPO terms`, Mutation, Criteria, `HPO proband-gene matches`, FRASER, OUTRIDER, ASE), ~ ifelse(is.na(.x), '', as.character(.x)))) %>%
+    mutate(across(c(Notes, Age, Sexe, Hypothèse, `HPO terms`, Mutation, Criteria, `HPO proband-gene matches`, FRASER, OUTRIDER, ASE), ~ ifelse(is.na(.x), '', as.character(.x)))) %>%
     mutate(position = paste0(round((start + stop) / 2000000,2),' Mb'))
 
   first_non_na = function(x) {
@@ -483,6 +484,7 @@ candidates_summary_reactable = function(candidates) {
   summary_tbl = full %>%
     group_by(proband) %>%
     summarise(
+      Notes = first_non_na(Notes),
       Genes = n(),
       Age = first_non_na(Age),
       Sexe = first_non_na(Sexe),
@@ -490,11 +492,13 @@ candidates_summary_reactable = function(candidates) {
       search_detail = paste(geneID, Criteria, Hypothèse, Mutation, `HPO proband-gene matches`, FRASER, OUTRIDER, ASE, collapse = ' | '),
       .groups = 'drop'
     ) %>%
+    relocate(Notes) %>%
     arrange(proband)
 
   reactable(
     summary_tbl,
     columns = list(
+      Notes   = colDef(name = 'Notes', align = 'left', width = 200),
       proband = colDef(name = 'Proband',width = 150),
       Genes   = colDef(name = 'Genes', align = 'left', width = 100),
       Age     = colDef(name = 'Age', align = 'left', width = 100),
