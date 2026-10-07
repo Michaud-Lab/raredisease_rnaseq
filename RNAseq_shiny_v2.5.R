@@ -4,7 +4,7 @@ if(Sys.info()['nodename'] == 'shiny-sebastien') {
   use_password     = TRUE;
   use_server       = TRUE
 } else {
-  use_password     = TRUE
+  use_password     = FALSE
   use_server       = FALSE
 }
 

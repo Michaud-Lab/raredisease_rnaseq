@@ -22,6 +22,21 @@ source(file.path(params$workdir,'scripts/rnaseq_helper_functions.R'))
 source(file.path(params$workdir,'scripts/Shiny/rnaseq_shinyhelper_functions.R'))
 load_install_library(c('readxl', 'tidyr', 'dplyr'))
 
+# Clinical data
+clinical = readxl::read_xlsx(params$masterlog, sheet = 'Suivi - RNAseq', skip = 1)
+clinical$type = "Parent"
+clinical$type[grepl(pattern = '_0[34]_', x = clinical$`Patient ID`)] = 'Proband' # Parent versus Proband
+clinical$type[grepl(pattern = 'LC_', x = clinical$`Patient ID`)] = 'Proband'
+clinical$type[grepl(pattern = 'F0_', x = clinical$`Patient ID`)] = 'Proband'
+clinical = clinical[order(clinical$`Patient ID`), ] # Same order as the transcript expression data
+clinical$age = as.numeric(clinical$`Âge (années)`)
+clinical$age[clinical$`Âge (années)` == '0 (3 mois)'] = 0.25
+clinical$age[clinical$`Âge (années)` == '0 (9 mois)'] = 0.75
+clinical$PatientID = gsub('_PAX', '', clinical$`Patient ID`)
+clinical$Notes[is.na(clinical$Notes)] = ''
+clinical$geneID = clinical$Gène; clinical$geneID[grepl('analyse agno|N/A|Sans hypo',clinical$geneID) |is.na(clinical$geneID)] = ''
+write.table(clinical,file.path(params$datadir,'clinical.tsv'), sep = '\t',quote = TRUE)
+
 # Ensembl - GeneID correspondence file
 ensembl_geneid = read.table(params$ens_gene,header = TRUE)
 
@@ -46,20 +61,6 @@ candidates_extra$Criteria = 'Extra candidate added manually'
 candidates = rbind(candidates_original,candidates_extra,candidate_genes_automated_list[[1]],candidate_genes_automated_list[[2]],candidate_genes_automated_list[[3]],candidate_genes_automated_list[[4]]) %>%
   arrange(order(Criteria)) %>% 
   distinct(geneID,ensembl, proband, .keep_all = TRUE)
-
-# Clinical data
-clinical = readxl::read_xlsx(params$masterlog, sheet = 'Suivi - RNAseq', skip = 1)
-clinical$type = "Parent"
-clinical$type[grepl(pattern = '_0[34]_', x = clinical$`Patient ID`)] = 'Proband' # Parent versus Proband
-clinical$type[grepl(pattern = 'LC_', x = clinical$`Patient ID`)] = 'Proband'
-clinical$type[grepl(pattern = 'F0_', x = clinical$`Patient ID`)] = 'Proband'
-clinical = clinical[order(clinical$`Patient ID`), ] # Same order as the transcript expression data
-clinical$age = as.numeric(clinical$`Âge (années)`)
-clinical$age[clinical$`Âge (années)` == '0 (3 mois)'] = 0.25
-clinical$age[clinical$`Âge (années)` == '0 (9 mois)'] = 0.75
-clinical$PatientID = gsub('_PAX', '', clinical$`Patient ID`)
-clinical$Notes[is.na(clinical$Notes)] = ''
-clinical$geneID = clinical$Gène; clinical$geneID[grepl('analyse agno|N/A|Sans hypo',clinical$geneID) |is.na(clinical$geneID)] = ''
 
 candidates <- merge(candidates, clinical, by.x = c("proband", "geneID"), by.y = c("Patient ID", "geneID"),all.x = TRUE)
 candidates$Criteria[!is.na(candidates$Hypothèse)] = 'Targeted analysis'
@@ -177,6 +178,5 @@ write.table(fc_exons_raw_ALL,file.path(params$FCdir,'fc_exons_raw.tsv_ALL'),sep 
 write.table(fc_exons_raw,file.path(params$FCdir,'fc_exons_raw.tsv'),sep = '\t',quote = FALSE)
 write.table(fc_exons_tpm,file.path(params$FCdir,'fc_exons_tpm.tsv'),sep = '\t',quote = FALSE)
 write.table(fc_exons_tpm_ggplot,file.path(params$FCdir,'fc_exons_tpm_ggplot.tsv'), sep = '\t',quote = FALSE)
-write.table(clinical,file.path(params$FCdir,'clinical.tsv'), sep = '\t',quote = TRUE)
 
 print(paste0('Done write table --- ', Sys.time()))
