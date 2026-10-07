@@ -4,7 +4,7 @@ if(Sys.info()['nodename'] == 'shiny-sebastien') {
   use_password     = TRUE;
   use_server       = TRUE
 } else {
-  use_password     = FALSE
+  use_password     = TRUE
   use_server       = FALSE
 }
 
@@ -65,8 +65,9 @@ app_ui = page_fluid(
       selectInput(
         inputId = "dataset_choice",
         label = "Dataset:",
-        choices = names(params$dataset_dirs),
-        selected = basename(params$datadir)
+        # With authentication, choices are filled in after login from the user's allowed datasets
+        choices = if (use_password) NULL else names(params$dataset_dirs),
+        selected = if (use_password) NULL else basename(params$datadir)
       )
     )
   ),
@@ -335,13 +336,27 @@ server = function(input, output, session) {
     logger::log_info(paste0("[", logged_user(), "] ", input$main_tabs, ' tab selected'))
   })
 
+  ##### datasets the logged-in user may access: "datasets" column of the credentials DB
+  ##### ("*" = all, otherwise comma-separated names, e.g. "data,data_PBMC"). No column / empty = none.
+  allowed_ds = reactive({
+    if (!use_password) return(names(params$dataset_dirs))
+    req(auth$user)
+    a = trimws(strsplit(as.character(auth$datasets), ",")[[1]])
+    if ("*" %in% a) names(params$dataset_dirs) else intersect(a, names(params$dataset_dirs))
+  })
+
+  observeEvent(allowed_ds(), {
+    default = if (basename(params$datadir) %in% allowed_ds()) basename(params$datadir) else allowed_ds()[1]
+    updateSelectInput(session, "dataset_choice", choices = allowed_ds(), selected = default)
+  })
+
   ##### active dataset ("data" / "data_PBMC"), driven by the "Dataset" selector.
   ##### load_rnaseq_dataset() is called here, already-loaded datasets are cached so
   ##### switching back to one doesn't re-read it from disk.
   loaded_datasets = reactiveVal(all_datasets)
 
   active_ds = reactive({
-    req(input$dataset_choice)
+    req(input$dataset_choice, input$dataset_choice %in% allowed_ds())  # server-side enforcement
     cache = loaded_datasets()
     if (is.null(cache[[input$dataset_choice]])) {
       logger::log_info(paste0("[", logged_user(), "] Loading dataset ~ ", input$dataset_choice))

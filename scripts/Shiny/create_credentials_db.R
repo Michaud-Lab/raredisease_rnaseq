@@ -8,9 +8,11 @@ library(shinymanager)
 
 credentials = data.frame(
   user     = c("admin",    "guest",    "sebastien"),
-  password = c("CHANGE_ME", "CHANGE_ME", "CHANGE_ME"),  # replace before running
+  password = c("CHANGE_ME1", "CHANGE_ME2", "CHANGE_ME3"),  # replace before running
   admin    = c(TRUE,        FALSE,       FALSE),
   comment  = c("Admin user", "Read-only", "Sebastien"),
+  # Datasets each user may open: "*" = all, otherwise comma-separated folder names
+  datasets = c("*",        "data",     "*"),
   stringsAsFactors = FALSE
 )
 
