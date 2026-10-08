@@ -552,7 +552,7 @@ candidates_summary_reactable = function(candidates) {
 #   fraser       - data.frame: genome-wide FRASER results (splicing outliers)
 #   outrider     - data.frame: genome-wide OUTRIDER results (expression outliers)
 #   geneprior_rm - character: column name; rows with NA in this column are removed before ranking (default: 'gene score')
-gene_prioritization2 = function(sample = 'HSJ_001_03_PAX',pcutoff=0.5,hpo_sample=clinical,hpo_all='genes_to_phenotype.txt',fraser="",outrider="",geneprior_rm = "gene score"){
+gene_prioritization = function(sample = 'HSJ_001_03_PAX',pcutoff=0.5,hpo_sample=clinical,hpo_all='genes_to_phenotype.txt',fraser="",outrider="",geneprior_rm = "gene score"){
 
   # hpo
   #hpo_all = file.path("tmp",hpo_all)
