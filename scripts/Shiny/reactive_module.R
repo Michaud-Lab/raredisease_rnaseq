@@ -27,7 +27,7 @@ reactive_data_server = function(id, proband, pvalue, geneprior_rm, active_ds) {
     ### Gene IDs available for the selected proband
     geneID = reactive({
       ds = active_ds()
-      ds$candidates$geneID[ds$candidates$proband == proband()]
+      unique(ds$candidates$geneID[ds$candidates$proband == proband()])
     })
 
     ### Dynamic gene-selection dropdown (namespaced inside module)
@@ -43,7 +43,8 @@ reactive_data_server = function(id, proband, pvalue, geneprior_rm, active_ds) {
     ### Row index in `candidates` for the current proband + gene combination
     i = reactive({
       ds = active_ds()
-      which(ds$candidates$proband == proband() & ds$candidates$geneID == input$gene_selection)
+      # a proband can have several candidate rows for the same gene: keep the first
+      which(ds$candidates$proband == proband() & ds$candidates$geneID == input$gene_selection)[1]
     })
 
     ### All filtered / reshaped datasets consumed by the outputs
