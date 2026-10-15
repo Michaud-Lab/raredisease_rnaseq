@@ -18,6 +18,7 @@ colnames(ase) = c("SNPchr","SNPstart","pos","sampleID",'ref','alt','chr','START'
 
 # get rid of HSJ_045_04 because it should not be there...
 ase = ase[ase$sampleID != 'HSJ_042_04_PAX', ]
+ase = ase[ase$sampleID != 'HSJ_083_03_PAX', ]
 ase$sample_vcf = gsub('_PAX','',ase$sampleID)
 ase$pos = as.character(ase$pos)
 ase$pvalue = NA
@@ -72,7 +73,7 @@ for(i in 1:nrow(ase)){
     ase$WGS_GQ[i] = gt[4]
   }
 
-  if(i %% 10000 == 0) print(paste('Done ',i,' of ',nrow(ase), ', Time is: ',Sys.time()))
+  if(i %% 100000 == 0) print(paste('Done ',i,' of ',nrow(ase), ', Time is: ',Sys.time()))
 }
 
 # subset the hetero SNVs.

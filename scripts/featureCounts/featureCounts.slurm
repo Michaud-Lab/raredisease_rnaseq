@@ -1,12 +1,12 @@
 #!/bin/bash
 
 #SBATCH --time=00:59:00
-#SBATCH --mem=64G
+#SBATCH --mem=200G
 #SBATCH --account=def-rallard
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=32
 
-cpu=16
+cpu=30
 module load subread/2.0.6
 module load r
 
@@ -23,7 +23,7 @@ read fc_exons fc_genes gtf_out gtf_MANE ens_gene masterlog  < <(
 echo $candidate_genes_extra
 
 #run
-./featureCounts.sh $cpu $gtf $gtf_out $rnasplice_bamdir $workdir $gtf_MANE $ens_gene $masterlog $fc_exons $fc_genes
-#echo $cpu $gtf $gtf_out $rnasplice_bamdir $workdir $gtf_MANE $ens_gene $masterlog $fc_exons $fc_genes
+./featureCounts.sh $cpu $gtf $gtf_out "$rnasplice_bamdir" $workdir $gtf_MANE $ens_gene $masterlog $fc_exons $fc_genes
+#echo $cpu $gtf $gtf_out "$rnasplice_bamdir" $workdir $gtf_MANE $ens_gene $masterlog $fc_exons $fc_genes
 #echo 'Done featureCounts.sh'
 

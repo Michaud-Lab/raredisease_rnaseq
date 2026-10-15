@@ -41,7 +41,7 @@ echo "DONE ~~~ STEP1 ~~~ bcftools prep ~~~ $(date)"
 ############################
 # STEP 2: ASEReadCounter
 ############################
-cut -f1 ${INPUT_DIR}vcf_bam_families.txt | parallel -j 5 'gatk ASEReadCounter \
+cut -f1 ${INPUT_DIR}vcf_bam_families.txt | parallel -j 16 'gatk ASEReadCounter \
 -R ${REF} \
 -I ${BAM_DIR}{}_sorted.bam \
 -V ${VCF_DIR}biallelic_sites.vcf.gz \

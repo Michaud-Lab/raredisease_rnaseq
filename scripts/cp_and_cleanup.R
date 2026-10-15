@@ -19,7 +19,7 @@ dir.create(paste0(params$datadir, 'bams_subset'), showWarnings = FALSE)
 # 2. Copy ASE results
 # -----------------------------------------------------------------------------
 cp_ASE = paste0('cp ', params$workdir, '/ASE/gw* ', params$datadir, '/.')
-system(cp_ASE)
+if(file.exists(paste0(params$workdir,'/ASE/gw*'))) system(cp_ASE)
 
 # -----------------------------------------------------------------------------
 # 3. Compile genome-wide FRASER results

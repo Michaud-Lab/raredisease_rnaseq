@@ -18,8 +18,11 @@ options(scipen = 999)
 # 2. Subset BAMs to chromosome (skip if already done)
 # -----------------------------------------------------------------------------
 dir.create(params$bams_subset, showWarnings = FALSE, recursive = TRUE)
-command = paste0('./fraser_gw.sh ', params$chromosome, ' ', params$rnasplice_bamdir,
-                 ' ', params$fraser_chr_bamdir, '/', params$chromosome)
+command = paste("./fraser_gw.sh",params$chromosome,
+                  paste0("'",params$rnasplice_bamdir,"' ",
+                 params$fraser_chr_bamdir, '/', params$chromosome,'/'))
+
+
 if (is.na(list.files(params$bams_subset)[1])) {
   system(command)
 } else {

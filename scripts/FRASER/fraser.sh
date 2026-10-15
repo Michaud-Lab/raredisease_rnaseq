@@ -12,7 +12,7 @@ fraser_bamdir=$8
 
 
 #data directories
-fraser_perregion=$fraser_bamdir'gene'$geneID'_chr'$chromosome'_'$start'_'$stop
+fraser_perregion=$fraser_bamdir'gene'$geneID'_chr'$chromosome'_'$start'_'$stop'/'
 
 mkdir -p $fraser_temp_bamdir
 mkdir -p $fraser_bamdir
@@ -23,7 +23,12 @@ iteration=0
 for bam_in in $rnasplice_bamdir/*sorted.bam
   do
     bam_chr_out=${bam_in//'.bam'/'_chrN.bam'}
-    bam_chr_out=${bam_chr_out//$rnasplice_bamdir/$fraser_temp_bamdir}
+    bam_chr_out=$(basename "$bam_chr_out")
+    bam_chr_out=$fraser_temp_bamdir$bam_chr_out
+
+    #bam_chr_out=${bam_chr_out//$rnasplice_bamdir/$fraser_temp_bamdir}
+    #echo $bam_chr_out
+
     bam_ref=$rnasplice_bamdir'HSJ_003_03_*_sorted.bam'
 
     ###Down sample region of interest if necessary
@@ -88,5 +93,5 @@ for bam_in in $rnasplice_bamdir/*sorted.bam
 samtools depth -H -a $(ls $fraser_perregion/*sorted_chrN.bam | grep -v 'bc0') -r chr$chromosome:$start-$stop | awk 'NR % 5 == 1' >"$fraser_perregion"/gene_"$geneID"_"$proband"_depth5.csv
 
 #clean up
-rm -r $fraser_temp_bamdir
+#rm -r $fraser_temp_bamdir
 echo 'DONE fraser.sh' $fraser_perregion

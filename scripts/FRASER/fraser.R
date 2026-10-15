@@ -44,10 +44,11 @@ fraser_pipeline = function(candidates = candidates, i = 1){
     out_dir = paste0(params$FRASER, '/bams_subset/gene', geneID, '_chr', chr, '_', start, '_', stop)
     dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
-    command = paste('./fraser.sh', chr, start, stop, geneID, proband,
-                    params$rnasplice_bamdir, params$fraser_temp_bamdir, params$fraser_bamdir)
-
-   res_dt_outfile = paste0(out_dir, "/gene_", geneID, "_", proband, "_res_dt_candidate_gene.csv")
+    command = paste("./fraser.sh", chr, start, stop, geneID, proband,
+                    paste0("'",params$rnasplice_bamdir,"'"),
+                    params$fraser_temp_bamdir, params$fraser_bamdir)
+#    print(command)
+    res_dt_outfile = paste0(out_dir, "/gene_", geneID, "_", proband, "_res_dt_candidate_gene.csv")
 
     #if statement to run only if file does not exist or is empty
     if (!file.exists(res_dt_outfile) | (file.exists(res_dt_outfile) && length(readLines(res_dt_outfile)) < 1)) {

@@ -23,7 +23,9 @@ fi
 for bam_in in $rnasplice_bamdir/*sorted.bam
   do
     bam_chr_out=${bam_in//'sorted'/$chromosome}
-    bam_chr_out=${bam_chr_out//$rnasplice_bamdir/$fraser_chr_bamdir}
+    bam_chr_out=$(basename "$bam_chr_out")
+    bam_chr_out=$fraser_chr_bamdir$bam_chr_out
+    #bam_chr_out=${bam_chr_out//$rnasplice_bamdir/$fraser_chr_bamdir}
     samtools view $fraction --threads 16 -b "$bam_in" $chromosome > "$bam_chr_out"
 
     #5. Index the sorted BAM
