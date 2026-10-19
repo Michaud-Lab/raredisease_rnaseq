@@ -446,17 +446,35 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
 }
 
 
-# omim_link_geneID: replaces each value in a data.frame's geneID column with an HTML link to its OMIM search entry.
+# omim_phenotypes_lookup: named character vector (names = Approved Gene Symbol) of OMIM Phenotypes, read once from genemap2 and cached.
+omim_genemap2_file = 'data/input/genemap2.20260911.txt'
+omim_phenotypes_lookup = local({
+  cache = NULL
+  function() {
+    if (is.null(cache)) {
+      gm = read.delim(omim_genemap2_file, comment.char = '#', header = FALSE, sep = '\t', quote = '', colClasses = 'character', na.strings = '', fill = TRUE)
+      # genemap2 columns: 9 = Approved Gene Symbol, 13 = Phenotypes
+      gm = gm[!is.na(gm[[9]]) & !is.na(gm[[13]]) & !duplicated(gm[[9]]), ]
+      cache <<- setNames(gm[[13]], gm[[9]])
+    }
+    cache
+  }
+})
+
+# omim_link_geneID: replaces each value in a data.frame's geneID column with an HTML link to its OMIM search entry,
+# and adds a 'Phenotypes' column right after geneID (OMIM genemap2 Phenotypes matched on Approved Gene Symbol; NA if none).
 # For use with DT::datatable(..., escape = -which(colnames(data) == 'geneID')).
 # Arguments:
 #   data - data.frame containing a geneID column
 omim_link_geneID = function(data) {
+  data$Phenotypes = unname(omim_phenotypes_lookup()[as.character(data$geneID)])
   data$geneID = ifelse(
     is.na(data$geneID) | data$geneID == '',
     data$geneID,
     paste0("<a href='https://www.omim.org/search/?search=", data$geneID, "&type=entry' target='_blank'>", data$geneID, "</a>")
   )
-  data
+  gene_pos = which(colnames(data) == 'geneID')
+  data[, append(setdiff(colnames(data), 'Phenotypes'), 'Phenotypes', after = gene_pos), drop = FALSE]
 }
 
 # candidates_summary_reactable: builds the Summary-tab reactable, one row per proband, expandable to that proband's candidate genes.
