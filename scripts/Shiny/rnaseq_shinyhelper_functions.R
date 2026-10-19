@@ -447,12 +447,19 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
 
 
 # omim_phenotypes_lookup: named character vector (names = Approved Gene Symbol) of OMIM Phenotypes, read once from genemap2 and cached.
-omim_genemap2_file = 'data/input/genemap2.20260911.txt'
+omim_genemap2_name = 'genemap2.20260911.txt'
+# Looks in <datadir>/input (as set in params by the app) first, then in <wd>/data/input (e.g. when datadir is data_minimal).
+omim_genemap2_path = function() {
+  candidates = file.path(c(if (exists('params')) params$datadir, file.path(getwd(), 'data')), 'input', omim_genemap2_name)
+  found = candidates[file.exists(candidates)]
+  if (length(found) == 0) stop('OMIM genemap2 file not found; looked in: ', paste(candidates, collapse = ', '))
+  found[1]
+}
 omim_phenotypes_lookup = local({
   cache = NULL
   function() {
     if (is.null(cache)) {
-      gm = read.delim(omim_genemap2_file, comment.char = '#', header = FALSE, sep = '\t', quote = '', colClasses = 'character', na.strings = '', fill = TRUE)
+      gm = read.delim(omim_genemap2_path(), comment.char = '#', header = FALSE, sep = '\t', quote = '', colClasses = 'character', na.strings = '', fill = TRUE)
       # genemap2 columns: 9 = Approved Gene Symbol, 13 = Phenotypes
       gm = gm[!is.na(gm[[9]]) & !is.na(gm[[13]]) & !duplicated(gm[[9]]), ]
       cache <<- setNames(gm[[13]], gm[[9]])
