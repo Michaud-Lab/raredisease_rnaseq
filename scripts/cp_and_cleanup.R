@@ -86,14 +86,14 @@ system(paste0('cp -r ', params$workdir, '/OUTRIDER/table_genes_OUTRIDER.rds ', p
 candidates = read.csv(file.path(params$datadir, 'input/candidate_genes_ALL.csv'), check.names = FALSE)
 configs = read_json(file.path(params$datadir, 'input/configs.json'))
 
-gwfiles = paste0(params$datadir, c('/gwFRASER.tsv', '/gw_genes_OUTRIDER.tsv', '/gwASE.tsv', '/clinical.tsv'))
-candidatefiles = paste0(params$datadir, c('/gwFRASER.tsv', '/candidates_OUTRIDER.tsv', '/gwASE.tsv'))
+#gwfiles = paste0(params$datadir, c('/gwFRASER.tsv', '/gw_genes_OUTRIDER.tsv', '/gwASE.tsv', '/clinical.tsv'))
+#candidatefiles = paste0(params$datadir, c('/gwFRASER.tsv', '/candidates_OUTRIDER.tsv', '/gwASE.tsv'))
 
-candidates = candidate_genes_gw_annotations(
-  candidates, gwfiles = gwfiles, candidatefiles = candidatefiles,
-  datadir = file.path(params$workdir, 'FRASER'),
-  hpo_all = file.path(params$workdir, 'tmp/genes_to_phenotype.txt')
-)
+#candidates = candidate_genes_gw_annotations(
+#  candidates, gwfiles = gwfiles, candidatefiles = candidatefiles,
+#  datadir = file.path(params$workdir, 'FRASER'),
+#  hpo_all = file.path(params$workdir, 'tmp/genes_to_phenotype.txt')
+#)
 write.csv(candidates, file.path(params$datadir, 'input/candidate_genes_ALL.csv'), quote = TRUE, row.names = FALSE)
 
 for (i in 1:nrow(candidates)) {

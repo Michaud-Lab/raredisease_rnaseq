@@ -1,10 +1,10 @@
 #!/bin/bash
 
 #SBATCH --time=03:59:00
-#SBATCH --mem=200G
+#SBATCH --mem=100G
 #SBATCH --account=def-rallard
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=5
+#SBATCH --cpus-per-task=2
 
 
 module load samtools
@@ -20,16 +20,18 @@ read fraser_temp_bamdir fraser_bamdir fraser_chr_bamdir  < <(
   jq -r '.FRASER | [.fraser_temp_bamdir, .fraser_bamdir, .fraser_chr_bamdir] | @tsv' ../../data/input/configs.json
 )
 
-#Rscript fraser.R $workdir "$rnasplice_bamdir" $fraser_temp_bamdir $fraser_bamdir
+Rscript fraser.R $workdir "$rnasplice_bamdir" $fraser_temp_bamdir $fraser_bamdir
 
 #fraser genome wide
-cpu=4
+#cpu=4
 
-#for i in $(seq 1 22) X Y MT; do
-for i in $(seq 4 9); do
-  Rscript fraser_gw.R $fraser_chr_bamdir $i $cpu "$rnasplice_bamdir"
+#for i in $(seq 19 22) X Y MT; do
+#for i in $(seq 4 9); do
+#i=16
+#Rscript fraser_gw.R $fraser_chr_bamdir $i $cpu "$rnasplice_bamdir"
   #echo  $fraser_chr_bamdir $i $cpu "$rnasplice_bamdir"
   echo 'Done chr:'$i
-done
+#done
 
 echo 'All done FRASER'
+

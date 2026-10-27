@@ -1,3 +1,256 @@
+# candidate_genes_automated: automatically proposes new candidate genes from genome-wide FRASER, OUTRIDER, or ASE outlier results.
+# Arguments:
+#   gwfile - character: path to one genome-wide results file (gwFRASER.csv, OUTRIDER, or gwASE); which analysis it is gets inferred from the filename
+#   tmpdir - character: directory used to cache/build the gene annotation object
+#   gtf    - character: path to the Ensembl GTF file used as the annotation source (default: params$gtf)
+candidate_genes_automated2 = function(gwfiles = gwfiles,
+                                     tmpdir = tmpdir,
+                                     candidates=candidates_original,
+                                     gtf = params$gtf){
+  
+  #Generate the gene annotation
+  gene_annotations = gene_annotation(full = T,tmpdir = tmpdir,gtf = gtf)
+  
+  #format them to the candidate format.
+  candidates_automated = data.frame(matrix(ncol = 10, nrow = 0))
+  colnames(candidates_automated) = c('geneID','ensembl','proband','chromosome','start','stop','proband2','mutation','position','Criteria')
+  
+  #Load files
+  gw_l = list()
+  for(g in 1:4){
+    gw_l[[g]] = read.table(gwfiles[g], row.names = 1, check.names = FALSE)
+  
+    #get the candidate genes
+    if(grepl('FRASER',gwfiles[g])) {
+      gw_top = gw_l[[g]] %>%
+        filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ|^HBM|^SELPLG", hgncSymbol), !is.na(hgncSymbol)) %>%
+        group_by(sampleID) %>%
+        filter(padjust < 0.0001) %>%
+        slice_min(padjust, n = 5) %>%
+        distinct(hgncSymbol, sampleID,.keep_all = T)
+    
+      gw_top$hgncSymbol = sapply(strsplit(gw_top$hgncSymbol,';'),'[[',1)
+      gw_top$Criteria = 'Automated analysis (gw FRASER)'
+      gw_top = gw_top[,c('hgncSymbol','sampleID','Criteria')]
+    }
+  
+    #get the candidate genes
+    if(grepl('OUTRIDER',gwfiles[g])) {
+      gw_top = gw_l[[g]] %>%
+        filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ|^HBM|^SELPLG", geneID), !is.na(geneID)) %>%
+        group_by(sampleID) %>%
+        filter(pValue < 0.000001) %>%
+        slice_min(pValue, n = 2) %>%
+        distinct(geneID, sampleID,.keep_all = T)
+    
+      gw_top$geneID = sapply(strsplit(gw_top$geneID,';'),'[[',1)
+      gw_top$Criteria = 'Automated analysis (gw OUTRIDER)'
+      gw_top = gw_top[,c('geneID','sampleID','Criteria')]
+    }
+  
+    #get the candidate genes
+    if(grepl('gwASE',gwfiles[g])) {
+      gw_top = gw_l[[g]] %>%
+        filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ|^HBM|^SELPLG", geneID), !is.na(geneID)) %>%
+        group_by(sampleID,geneID) %>%
+        filter(pvalue < 1e-49) %>%
+        dplyr::filter(dplyr::n() >= 2) %>%
+        distinct(geneID, sampleID,.keep_all = T)
+    
+      gw_top$geneID = sapply(strsplit(gw_top$geneID,';'),'[[',1)
+      gw_top$Criteria = 'Automated analysis (gw ASE, at least 2 signif. markers)'
+      gw_top = gw_top[,c('geneID','sampleID','Criteria')]
+    }
+  
+  
+    ###LET US ADD MORE CANDIDATES BASED ON HPO TERMS
+    if(grepl('clinical.tsv',gwfiles[g])) {
+      probands_unique = unique(candidates$proband)
+      gw_top = data.frame(geneID = character(), sampleID = integer(), Criteria = numeric())
+    
+      gwFRASER = gw_l[[1]]
+      gwOUTRIDER = gw_l[[2]]
+      clinical = gw_l[[4]] # this is the clinical data for the hpo terms
+    
+      for(c in 1:length(probands_unique)){
+        temp = gene_prioritization(
+          sample      = probands_unique[c],
+          pcutoff     = 0.01,
+          hpo_sample  = clinical,
+          hpo_all     = file.path(tmpdir,'genes_to_phenotype.txt'),
+          fraser      = gwFRASER,
+          outrider    = gwOUTRIDER,
+          geneprior_rm = "gene score")
+      
+        if(nrow(temp)>0) {
+          temp = head(temp,2)
+          temp$sampleID = probands_unique[c]
+          temp$Criteria = paste0('Automated analysis (over-repres. of HPO), pval = ',temp$`gene score adj. pvalue`)
+          gw_top = rbind(gw_top,temp[,c('geneID','sampleID','Criteria')])
+        }
+      }
+    }
+  
+    #add them to the final output
+    if(nrow(gw_top)>0) {
+      candidates_automated[(nrow(candidates_automated) + 1):(nrow(gw_top)+nrow(candidates_automated)),c(1,3,10)] = gw_top
+    }
+    
+    print(paste0('Done candidates_automated with ',gwfiles[[g]],', found ', nrow(gw_top), ' new candidates'))
+  }
+  
+  #format
+  candidates_automated[,4:6] = 1
+  candidates_automated[,8:9] = ''
+  candidates_automated$proband2 = gsub('_PAX','',candidates_automated$proband)
+
+  #position  
+    for(i in 1:nrow(candidates_automated))
+    {
+      temp = gene_annotations[[2]][gene_annotations[[2]]$symbol == candidates_automated[i,1],]
+      if(length(temp@seqnames)==1) {
+        candidates_automated$start[i] = temp@ranges@start
+        candidates_automated$stop[i] = temp@ranges@start + temp@ranges@width
+        candidates_automated$ensembl[i] = temp$gene_id
+        candidates_automated$chromosome[i] = gsub('chr','',temp@seqnames@values)}
+    }
+  
+    candidates_automated = candidates_automated[!is.na(candidates_automated$chromosome),]
+    candidates_automated = candidates_automated[candidates_automated$start != 1,]
+    
+    return(candidates_automated)
+}
+
+
+
+
+
+# candidate_genes_gw_annotations: annotates each candidate gene/proband row with FRASER, OUTRIDER, ASE stats and HPO term matches.
+# Arguments:
+#   candidates     - data.frame: candidate_genes_ALL.csv contents (one row per proband-gene pair); must include proband, geneID, chromosome, start, stop, `HPO terms`
+#   gwfiles        - character vector length 3: paths to genome-wide FRASER, OUTRIDER, and ASE results files, in that order
+#   datadir        - character: base directory containing the bams_subset/ folder with per-candidate-gene result files (default: getwd())
+#   hpo_all        - character: path/filename of the HPO gene-to-phenotype annotation file, downloaded if missing (default: 'genes_to_phenotype.txt')
+candidate_genes_gw_annotations2 = function(candidates,
+                                           gwfiles = gwfiles,
+                                           datadir = getwd(),
+                                           hpo_all='genes_to_phenotype.txt') {
+  
+  #
+  candidates$FRASER = 'no data'
+  candidates$OUTRIDER = 'no data'
+  candidates$ASE = 'no data'
+  candidates$`HPO proband-gene matches` = 'no match'
+  
+  #hpo terms
+  if(!file.exists(hpo_all)) {
+    dir.create(dirname(hpo_all),showWarnings = FALSE)
+    download.file(url='https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/genes_to_phenotype.txt',dest=hpo_all)
+  } else {print(paste0('file ', hpo_all,' exists'))}
+  if(!exists('hpo')) hpo = read.delim(hpo_all)
+  hpo = hpo |> distinct(gene_symbol,hpo_id,.keep_all = T)
+  
+  #annotate hpo terms
+  for(i in 1:nrow(candidates))
+  {
+    #clinical HPO terms for proband
+    hpo_proband = candidates$`HPO terms`[candidates$proband == candidates$proband[i]]
+    hpo_proband = hpo_proband[!is.na(hpo_proband)][1]
+    hpo_temp = strsplit(hpo_proband,split = '||',fixed = TRUE)[[1]]
+    hpo_temp = unlist(strsplit(hpo_temp,split = ': '))
+    hpo_temp = hpo_temp[grepl('HP:',hpo_temp)]
+    hpo_temp = gsub(' ','',hpo_temp)
+    
+    #HPO terms for candidate gene
+    hpo_gene = hpo[hpo$gene_symbol == candidates$geneID[i],]
+    
+    #clinical HPO proband terms vs gene HPO terms.
+    hpo_match = hpo_gene[hpo_gene$hpo_id %in% hpo_temp,] 
+    hpo_match = paste0(paste(hpo_match[[3]],hpo_match[[4]],sep = ': '),collapse = ' || ')
+    
+    #match
+    if(nchar(hpo_match)>0) candidates$`HPO proband-gene matches`[i] = hpo_match
+  }
+  
+  #remove the candidates with no HPO match in the automated analysis:
+  temp_nrow = nrow(candidates)
+  candidates = candidates[!(candidates$`HPO proband-gene matches` == 'no match' & grepl('Automated',candidates$Criteria)),]
+  print(paste0('Removed ', temp_nrow - nrow(candidates), ' low priority candidates'))
+  
+  #Load files
+  gw_l = list()
+
+  #annotate 
+  for(g in 1:3)
+  {
+    if(!file.exists(gwfiles[g])) return(candidates)
+    gw_l[[g]] = read.table(gwfiles[g], row.names = 1, check.names = FALSE)
+   #FRASER
+    if(g==1){
+      gw = gw_l[[1]][!is.na(gw_l[[1]]$hgncSymbol),]
+      
+      for(i in 1:nrow(candidates))
+      {
+        resdt = data.frame(sampleID = numeric(0), hgncSymbol = numeric(0))
+        gw_temp = gw[gw$sampleID == candidates$proband[i] & gw$hgncSymbol == candidates$geneID[i],]
+        
+        resdt_file = paste0(datadir,'/bams_subset/gene',
+                            candidates$geneID[i],
+                            '_chr',
+                            candidates$chromosome[i],
+                            '_',candidates$start[i]-5000,
+                            '_',
+                            candidates$stop[i]+5000,
+                            '/gene_',
+                            candidates$geneID[i],
+                            '_',
+                            candidates$proband[i],
+                            '_res_dt_candidate_gene.csv')
+        
+        if(file.exists(resdt_file) && R.utils::countLines(resdt_file)>0) {resdt = read.csv(resdt_file)}
+        
+        if(nrow(resdt)>0) {temp = resdt} else {temp = gw_temp}
+        
+        if(nrow(temp)>0) {stats = paste0('padj = ',signif(min(temp$padjust),2),', ΔPSI = ',temp$deltaPsi[temp$padjust == min(temp$padjust)]);
+        candidates$FRASER[i] = stats[1]}
+        
+        if(nrow(temp)==0) candidates$FRASER[i] = names(resdt)
+      }
+    }
+    
+    #OUTRIDER
+    if(g==2){
+      gw = gw_l[[2]][!is.na(gw_l[[2]]$geneID),]
+      for(i in 1:nrow(candidates))
+      {
+        gw_temp = gw[gw$sampleID == candidates$proband[i] & gw$geneID == candidates$geneID[i],]
+        
+        if(nrow(gw_temp)>0) {
+          stats = paste0('padj = ',signif(min(gw_temp$pValue),2),', log 2 FC = ',gw_temp$l2fc[gw_temp$pValue == min(gw_temp$pValue)]);
+          candidates$OUTRIDER[i] = stats[1]} 
+      }
+    }
+    
+    #ASE
+    if(g==3){
+      gw = gw_l[[3]][!is.na(gw_l[[3]]$geneID),]
+      
+      for(i in 1:nrow(candidates))
+      {
+        gw_temp = 0
+        gw_temp = gw[gw$sampleID == candidates$proband[i] & gw$geneID == candidates$geneID[i],]
+        
+        if(nrow(gw_temp)>0) stats = paste0('pval = ',signif(min(gw_temp$pvalue),2),', Read Depth = [',gw_temp$RNA_DP[gw_temp$pvalue == min(gw_temp$pvalue)],']')
+        if(nrow(gw_temp)>0)  candidates$ASE[i] = stats[1]
+      }
+    }
+  }
+  print(paste0('Done annotation of ',nrow(candidates),' candidate genes ~~~ Time is: ',Sys.time()))
+  return(candidates)
+}
+
+
+
 # candidate_genes_gw_annotations: annotates each candidate gene/proband row with FRASER, OUTRIDER, ASE stats and HPO term matches.
 # Arguments:
 #   candidates     - data.frame: candidate_genes_ALL.csv contents (one row per proband-gene pair); must include proband, geneID, chromosome, start, stop, `HPO terms`
@@ -136,7 +389,7 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
     gw_top = gw %>%
       filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ|^HBM|^SELPLG", hgncSymbol), !is.na(hgncSymbol)) %>%
       group_by(sampleID) %>%
-      filter(padjust < 0.0001) %>%
+      filter(padjust < 0.000001) %>%
       slice_min(padjust, n = 5) %>%
       distinct(hgncSymbol, sampleID,.keep_all = T)
   
@@ -150,7 +403,7 @@ candidate_genes_automated = function(gwfile = file.path(params$datadir, 'gwFRASE
     gw_top = gw %>%
       filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ|^HBM|^SELPLG", geneID), !is.na(geneID)) %>%
       group_by(sampleID) %>%
-      filter(pValue < 0.000001) %>%
+      filter(pValue < 0.00000001) %>%
       slice_min(pValue, n = 2) %>%
       distinct(geneID, sampleID,.keep_all = T)
     

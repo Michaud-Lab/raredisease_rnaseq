@@ -98,6 +98,7 @@ MANE = MANE %>% group_by(V2) %>% slice_max(V1, n = 1, with_ties = FALSE)
 MANE = as.data.frame(MANE[,c(1,3)])
 
 MANE = rbind(MANE, c(7, "ENST00000374555")) # MDS2 not in MANE (it is a lncRNA) but exon data exists ALTERNATIVELY IF ONE OF THE GENE IS NOT IN THE MANE, WE CAN POTENTIALLY FIND IT USING THE FUNCTION GENE_ANNOTATION...       
+MANE = rbind(MANE, c(7, "ENST00000579879")) # SNORD95_ENSG00000264549_ENST00000579879_1
 MT = fc_exons$transcriptID[fc_exons$Chr == 'MT']
 MANE = rbind(MANE, data.frame(V1 = rep(1, length(MT)), V3 = MT)) # add mitochondrial genes
 
