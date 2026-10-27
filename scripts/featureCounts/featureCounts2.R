@@ -63,7 +63,7 @@ candidate_genes_automated = candidate_genes_automated2(
 
 #merge (original, extra, automated and also the clinical data)
 candidates = rbind(candidates_original,candidates_extra,candidate_genes_automated) %>%
-  arrange(order(Criteria)) %>% 
+  arrange(order(Criteria,decreasing = T)) %>% 
   distinct(geneID,ensembl, proband, .keep_all = TRUE)
 
 candidates <- merge(candidates, clinical, by.x = c("proband", "geneID"), by.y = c("Patient ID", "geneID"),all.x = TRUE)
