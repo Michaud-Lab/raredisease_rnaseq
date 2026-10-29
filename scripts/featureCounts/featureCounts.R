@@ -40,30 +40,41 @@ write.table(clinical,file.path(params$datadir,'clinical.tsv'), sep = '\t',quote 
 # Ensembl - GeneID correspondence file
 ensembl_geneid = read.table(params$ens_gene,header = TRUE)
 
-# candidate genes
+# -----------------------------------------------------------------------------
+# 2b. Generate,  merge and annotate the candidate
+# -----------------------------------------------------------------------------
+
+gwfiles = c(paste0(params$datadir,c('/gwFRASER.tsv','/gw_genes_OUTRIDER.tsv','/gwASE.tsv','/clinical.tsv')))
+
+#get the ones you already have
 candidates_original = read.csv(file.path(params$datadir,'input/candidate_genes.csv'))
 candidates_extra = read.table(file.path(params$datadir,'input/candidate_genes_extra.csv'),comment.char = "#",header = T ,sep = ',');candidates_extra[is.na(candidates_extra)] = ''
 candidates_extra = candidates_extra[, colnames(candidates_original)]
-
-candidate_genes_automated_list = list(NULL,NULL,NULL,NULL)
-gwfiles = c(paste0(params$datadir,c('/gwFRASER.tsv','/gw_genes_OUTRIDER.tsv','/gwASE.tsv','/clinical.tsv')))
-candidatefiles = c(paste0(params$datadir,c('/gwFRASER.tsv','/candidates_OUTRIDER.tsv','/gwASE.tsv')))
-
-#generate the candidates
-for(i in 1:4)
-{
-  if(file.exists(gwfiles[3])){candidate_genes_automated_list[[i]] = candidate_genes_automated(gwfile = gwfiles[i],tmpdir = file.path(params$workdir,'tmp'),candidates=candidates_original,gtf=params$gtf)}
-  }
-
 candidates_original$Criteria = 'Extra candidate added manually'
 candidates_extra$Criteria = 'Extra candidate added manually'
 
-candidates = rbind(candidates_original,candidates_extra,candidate_genes_automated_list[[1]],candidate_genes_automated_list[[2]],candidate_genes_automated_list[[3]],candidate_genes_automated_list[[4]]) %>%
-  arrange(order(Criteria)) %>% 
+#generate new candidates
+candidate_genes_automated = candidate_genes_automated2(
+  candidates = candidates_original,
+  gwfiles = gwfiles,
+  tmpdir = file.path(params$workdir,'tmp'),
+  gtf = params$gtf)
+
+#merge (original, extra, automated and also the clinical data)
+candidates = rbind(candidates_original,candidates_extra,candidate_genes_automated) %>%
+  arrange(order(Criteria,decreasing = T)) %>%
   distinct(geneID,ensembl, proband, .keep_all = TRUE)
 
 candidates <- merge(candidates, clinical, by.x = c("proband", "geneID"), by.y = c("Patient ID", "geneID"),all.x = TRUE)
 candidates$Criteria[!is.na(candidates$Hypothèse)] = 'Targeted analysis'
+
+
+#annotate
+candidates = candidate_genes_gw_annotations2(candidates = candidates,
+                                                 gwfiles = gwfiles,
+                                                 datadir = file.path(params$workdir, 'FRASER'),
+                                                 hpo_all = file.path(params$workdir, 'tmp/genes_to_phenotype.txt'))
+
 
 write.csv(candidates,file.path(params$datadir, 'input/candidate_genes_ALL.csv'),quote = T, row.names = F)
 
