@@ -447,24 +447,27 @@ manhattan_plot = function(res_dt=gwFRASER,sample = 'HSJ_036_03_PAX',top=25,pcuto
 
 
 # omim_phenotypes_lookup: named character vector (names = Approved Gene Symbol) of OMIM Phenotypes, read once from genemap2 and cached.
-omim_genemap2_name = 'genemap2.20260911.txt'
+# Returns NULL (with a warning) if the genemap2 file is not found.
+# Arguments:
+#   omim_genemap2_name - file name of the OMIM genemap2 export (cached per file name)
 # Looks in <datadir>/input (as set in params by the app) first, then in <wd>/data/input (e.g. when datadir is data_minimal).
-omim_genemap2_path = function() {
-  candidates = file.path(c(if (exists('params')) params$datadir, file.path(getwd(), 'data')), 'input', omim_genemap2_name)
-  found = candidates[file.exists(candidates)]
-  if (length(found) == 0) stop('OMIM genemap2 file not found; looked in: ', paste(candidates, collapse = ', '))
-  found[1]
-}
 omim_phenotypes_lookup = local({
-  cache = NULL
-  function() {
-    if (is.null(cache)) {
-      gm = read.delim(omim_genemap2_path(), comment.char = '#', header = FALSE, sep = '\t', quote = '', colClasses = 'character', na.strings = '', fill = TRUE)
+  cache = list()
+  function(omim_genemap2_name = 'genemap2.20260911.txt') {
+    if (is.null(cache[[omim_genemap2_name]])) {
+      candidates = file.path(c(if (exists('params')) params$datadir, file.path(getwd(), 'data')), 'input', omim_genemap2_name)
+      found = candidates[file.exists(candidates)]
+      if (length(found) == 0) {
+        warning('OMIM genemap2 file not found; looked in: ', paste(candidates, collapse = ', '))
+        return(NULL)
+      }
+      
+      gm = read.delim(found[1], comment.char = '#', header = FALSE, sep = '\t', quote = '', colClasses = 'character', na.strings = '', fill = TRUE)
       # genemap2 columns: 9 = Approved Gene Symbol, 13 = Phenotypes
       gm = gm[!is.na(gm[[9]]) & !is.na(gm[[13]]) & !duplicated(gm[[9]]), ]
-      cache <<- setNames(gm[[13]], gm[[9]])
+      cache[[omim_genemap2_name]] <<- setNames(gm[[13]], gm[[9]])
     }
-    cache
+    cache[[omim_genemap2_name]]
   }
 })
 
@@ -474,7 +477,8 @@ omim_phenotypes_lookup = local({
 # Arguments:
 #   data - data.frame containing a geneID column
 omim_link_geneID = function(data) {
-  data$Phenotypes = unname(omim_phenotypes_lookup()[as.character(data$geneID)])
+  lookup = omim_phenotypes_lookup()
+  data$Phenotypes = if (is.null(lookup)) 'no reference data' else unname(lookup[as.character(data$geneID)])
   data$geneID = ifelse(
     is.na(data$geneID) | data$geneID == '',
     data$geneID,
