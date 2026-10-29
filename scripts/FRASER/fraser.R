@@ -129,7 +129,8 @@ fraser_pipeline = function(candidates = candidates, i = 1){
         paste0('chr', c(1:22, 'X', 'Y', 'M')),
         pruning.mode = "coarse"
       )
-
+  
+      if(geneID == 'CHKB') geneID = 'CHKB;CHKB-CPT1B'
       temp = which(res_dt$hgncSymbol == geneID)
       candidate_gene_localisation = temp[!is.na(temp)][1]
       control_samples = sampleTable$sampleID[grepl('_03_', sampleTable$bamFile) | grepl('LC_', sampleTable$bamFile) | grepl('F_', sampleTable$bamFile)]
