@@ -45,7 +45,7 @@ ensembl_geneid = read.table(params$ens_gene,header = TRUE)
 # -----------------------------------------------------------------------------
 
 gwfiles = c(paste0(params$datadir,c('/gwFRASER.tsv','/gw_genes_OUTRIDER.tsv','/gwASE.tsv','/clinical.tsv')))
-gwfiles_automated = c(paste0(params$datadir,c('/gwFRASER_min.rds','/table_genes_OUTRIDER.rds','/gwASE.tsv','/clinical.tsv')))
+gwfiles_annotation = c(paste0(params$datadir,c('/gwFRASER_min.rds','/table_genes_OUTRIDER.rds','/gwASE.tsv','/clinical.tsv')))
 
 #get the ones you already have
 candidates_original = read.csv(file.path(params$datadir,'input/candidate_genes.csv'))
@@ -57,7 +57,7 @@ candidates_extra$Criteria = 'Extra candidate added manually'
 #generate new candidates
 candidate_genes_automated = candidate_genes_automated2(
   candidates = candidates_original,
-  gwfiles = gwfiles_automated,
+  gwfiles = gwfiles,
   tmpdir = file.path(params$workdir,'tmp'),
   gtf = params$gtf)
 
@@ -72,7 +72,7 @@ candidates$Criteria[!is.na(candidates$Hypothèse)] = 'Targeted analysis'
 
 #annotate
 candidates = candidate_genes_gw_annotations2(candidates = candidates,
-                                                 gwfiles = gwfiles,
+                                                 gwfiles = gwfiles_annotation,
                                                  datadir = file.path(params$workdir, 'FRASER'),
                                                  hpo_all = file.path(params$workdir, 'tmp/genes_to_phenotype.txt'))
 
