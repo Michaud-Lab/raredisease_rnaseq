@@ -1,6 +1,7 @@
 # candidate_genes_automated: automatically proposes new candidate genes from genome-wide FRASER, OUTRIDER, or ASE outlier results.
 # Arguments:
-#   gwfile - character: path to one genome-wide results file (gwFRASER.csv, OUTRIDER, or gwASE); which analysis it is gets inferred from the filename
+#   gwfiles - character vector length 4: paths to the genome-wide FRASER (gwFRASER_min.rds), OUTRIDER (table_genes_OUTRIDER.rds), ASE (gwASE.tsv) and clinical (clinical.tsv) files, in that order;
+#             which analysis each one is gets inferred from the filename. The two .rds files are read with readRDS(), the others with read.table()
 #   tmpdir - character: directory used to cache/build the gene annotation object
 #   gtf    - character: path to the Ensembl GTF file used as the annotation source (default: params$gtf)
 candidate_genes_automated2 = function(gwfiles = gwfiles,
@@ -18,7 +19,19 @@ candidate_genes_automated2 = function(gwfiles = gwfiles,
   #Load files
   gw_l = list()
   for(g in 1:4){
-    gw_l[[g]] = read.table(gwfiles[g], row.names = 1, check.names = FALSE)
+    if(grepl('\\.rds$',gwfiles[g])) {
+      gw_l[[g]] = readRDS(gwfiles[g])
+    } else {
+      gw_l[[g]] = read.table(gwfiles[g], row.names = 1, check.names = FALSE)
+    }
+  
+    #table_genes_OUTRIDER.rds stores the Ensembl ID in geneID and lacks the exon columns: convert to the gw_genes_OUTRIDER.tsv layout (symbol in geneID)
+    if(grepl('OUTRIDER',gwfiles[g]) && grepl('\\.rds$',gwfiles[g])) {
+      gw_l[[g]]$ensemblID = gw_l[[g]]$geneID
+      gw_l[[g]]$geneID = gene_annotations[[2]]$symbol[match(gw_l[[g]]$ensemblID, gene_annotations[[2]]$gene_id)]
+      gw_l[[g]]$exon_pValue = NA
+      gw_l[[g]]$exon_zScore = NA
+    }
   
     #get the candidate genes
     if(grepl('FRASER',gwfiles[g])) {
