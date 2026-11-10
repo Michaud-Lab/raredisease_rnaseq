@@ -103,7 +103,7 @@ fraser_pipeline = function(candidates = candidates, i = 1){
         
         # Write an empty CSV (header only) so this sample is not re-run
         system(paste0("echo 'FRASER failed ~ no splice junctions' >",res_dt_outfile))
-      #  write.csv('FRASER failed ~ no splice junctions',res_dt_outfile,row.names = F)
+
        NULL
      })
 
@@ -112,35 +112,34 @@ fraser_pipeline = function(candidates = candidates, i = 1){
         return(invisible(NULL))
      }
 
+
       res = results(fds, all = TRUE, padjCutoff = NA, deltaPsiCutoff = NA)
+
+      print(paste0('Dimensions of res: ', paste(dim(as.data.table(res)), collapse = ' x ')))
+
       res_dt = as.data.table(res)
       res_dt = res_dt[sampleID == proband, ]
 
       print(paste0('Dimensions of res_dt: ', paste(dim(res_dt), collapse = ' x ')))
-
-      # Annotation packages
-#      load_install_library(c('TxDb.Hsapiens.UCSC.hg38.knownGene', 'org.Hs.eg.db'))
-#txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
-#orgDb <- org.Hs.eg.db
-
 
       txdb_chr = keepSeqlevels(
         TxDb.Hsapiens.UCSC.hg38.knownGene,
         paste0('chr', c(1:22, 'X', 'Y', 'M')),
         pruning.mode = "coarse"
       )
-  
+
       if(geneID == 'CHKB') geneID = 'CHKB;CHKB-CPT1B'
       temp = which(res_dt$hgncSymbol == geneID)
       candidate_gene_localisation = temp[!is.na(temp)][1]
       control_samples = sampleTable$sampleID[grepl('_03_', sampleTable$bamFile) | grepl('LC_', sampleTable$bamFile) | grepl('F_', sampleTable$bamFile)]
       control_samples = control_samples[control_samples != proband][1:5]
 
-      # Save FRASER results for this candidate gene
-      res_dt_candidate_gene = res_dt[temp[!is.na(temp)], ]
+      #
+      in_window = (res_dt$start >= start) & (res_dt$end <= stop)
+      res_dt_candidate_gene = res_dt[which(in_window), ]
       res_dt_candidate_gene$mean = (res_dt_candidate_gene$start + res_dt_candidate_gene$end) / 2
       res_dt_candidate_gene$minuslogpval = -log(res_dt_candidate_gene$pValue, 10)
-      write.csv(res_dt_candidate_gene, res_dt_outfile)
+      write.csv(res_dt_candidate_gene,res_dt_outfile)
 
       print(paste0('Dimensions of res_dt_candidate_gene: ', paste(dim(res_dt_candidate_gene), collapse = ' x ')))
 
