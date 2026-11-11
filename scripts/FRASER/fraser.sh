@@ -9,6 +9,7 @@ proband=$5
 rnasplice_bamdir=$6
 fraser_temp_bamdir=$7
 fraser_bamdir=$8
+samples=$9   #comma-separated sample IDs (reference cohort + proband) whose *sorted.bam are processed
 
 
 #data directories
@@ -18,10 +19,14 @@ mkdir -p $fraser_temp_bamdir
 mkdir -p $fraser_bamdir
 mkdir -p $fraser_perregion
 
-#subset all the big .bam file to keep only the region of interest.
+#subset the big .bam files of the listed samples to keep only the region of interest.
 iteration=0
-for bam_in in $rnasplice_bamdir/*sorted.bam
+IFS=',' read -ra sample_array <<< "$samples"
+for sample in "${sample_array[@]}"
   do
+  for bam_in in $rnasplice_bamdir/${sample}_*sorted.bam
+  do
+    [ -e "$bam_in" ] || { echo "WARNING: no *sorted.bam found for $sample"; continue; }
     bam_chr_out=${bam_in//'.bam'/'_chrN.bam'}
     bam_chr_out=$(basename "$bam_chr_out")
     bam_chr_out=$fraser_temp_bamdir$bam_chr_out
@@ -86,6 +91,7 @@ for bam_in in $rnasplice_bamdir/*sorted.bam
       #6. Clean up temporary files
       rm tempFRASER.sam tempFRASER_chr.sam tempFRASER_chrM.sam
     fi
+  done
   done
 
 #run coverage once all bam files have been generated for a particular gene

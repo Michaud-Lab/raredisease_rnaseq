@@ -14,18 +14,19 @@ params$FRASER = file.path(params$workdir, 'FRASER')
 params$rnasplice_bamdir = args[2]
 params$fraser_temp_bamdir = args[3]
 params$fraser_bamdir = args[4]
-params$candidate_genes_extra = args[5]
+params$reference_cohorte = args[5]
 options(scipen = 999)
 
 # -----------------------------------------------------------------------------
-# 2. candidate genes to run
+# 2. candidate genes to run and reference cohort
 # -----------------------------------------------------------------------------
+# reference cohort sample IDs (one per line, possibly quoted); only these .bam (plus the proband's) are processed by fraser.sh
 candidates = read.csv(file.path(params$workdir, 'data/input/candidate_genes_ALL.csv'))
-
+reference_cohorte = read.table(params$reference_cohorte)[,1]
 # -----------------------------------------------------------------------------
 # 3. fraser_pipeline function
 # -----------------------------------------------------------------------------
-fraser_pipeline = function(candidates = candidates, i = 1){
+fraser_pipeline = function(candidates = candidates, i = 1,reference_cohorte = NULL){
   params$output = paste0(params$FRASER, '/results/output_FRASER_', candidates$proband[i])
 
   dir.create(params$FRASER, showWarnings = FALSE)
@@ -44,9 +45,12 @@ fraser_pipeline = function(candidates = candidates, i = 1){
     out_dir = paste0(params$FRASER, '/bams_subset/gene', geneID, '_chr', chr, '_', start, '_', stop)
     dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
+    samples = paste(unique(c(reference_cohorte, proband)), collapse = ',')
+    
     command = paste("./fraser.sh", chr, start, stop, geneID, proband,
                     paste0("'",params$rnasplice_bamdir,"'"),
-                    params$fraser_temp_bamdir, params$fraser_bamdir)
+                    params$fraser_temp_bamdir, params$fraser_bamdir, samples)
+    
 #    print(command)
     res_dt_outfile = paste0(out_dir, "/gene_", geneID, "_", proband, "_res_dt_candidate_gene.csv")
 
