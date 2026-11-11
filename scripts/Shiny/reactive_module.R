@@ -114,7 +114,7 @@ reactive_data_server = function(id, proband, pvalue, geneprior_rm, active_ds) {
         gwASE_table = gwASE[gwASE$sampleID == candidates$proband[i()], ]
         gwASE_table = gwASE_table[gwASE_table$pvalue < 0.01, ]
         gwASE_table = gwASE_table[
-          order(gwASE_table$chr, gwASE_table$pos, gwASE_table$geneID), ]
+          order(gwASE_table$CHROM, gwASE_table$POS, gwASE_table$geneID), ]
       } else {
         gwASE_table = data.frame()
       }
@@ -123,7 +123,7 @@ reactive_data_server = function(id, proband, pvalue, geneprior_rm, active_ds) {
       if (!is.null(gwASE_IMX)) {
         gwIMX_table = gwASE_IMX[gwASE_IMX$sampleID == candidates$proband[i()], ]
         gwIMX_table = gwIMX_table[
-          order(gwIMX_table$chr, gwIMX_table$pos, gwIMX_table$geneID), ]
+          order(gwIMX_table$CHROM, gwIMX_table$POS, gwIMX_table$geneID), ]
       } else {
         gwIMX_table = data.frame()
       }
