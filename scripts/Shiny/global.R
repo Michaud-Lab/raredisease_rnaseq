@@ -50,6 +50,10 @@ load_rnaseq_dataset = function(datadir) {
 
   if (file.exists(file.path(datadir, 'gwASE.tsv'))) {
     ds$gwASE = read.table(file.path(datadir, 'gwASE.tsv'), row.names = 1, sep = '\t', header = TRUE)
+    # Newer ASE output (ASE3.R) has CHROM/POS but no chr/pos columns, which the
+    # Manhattan plot expects: derive them when missing.
+    if (!'chr' %in% colnames(ds$gwASE)) ds$gwASE$chr = gsub('^chr', '', as.character(ds$gwASE$CHROM))
+    if (!'pos' %in% colnames(ds$gwASE)) ds$gwASE$pos = ds$gwASE$POS
     ds$gwASE$chr = factor(ds$gwASE$chr, levels = c(1:22, 'X', 'Y', 'MT'))
   } else {
     ds$gwASE = NULL
