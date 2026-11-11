@@ -21,14 +21,5 @@ read genome2 < <(
   jq -r '.ASE | [.genome2] | @tsv' ../../data/input/configs.json
 )
 
-
-
-#./ASE_rscriptonly.sh $genome2 $gtf $rnasplice_bamdir $workdir
-
 #echo $genome2 $gtf $rnasplice_bamdir $workdir
-./ASE.sh $genome2 $gtf $rnasplice_bamdir $workdir
-
-#./ASE_newsamples2.sh $genome2 $gtf $rnasplice_bamdir $workdir
-#./ASE_commonvariants.sh
-
-#echo $genome2 $gtf $rnasplice_bamdir $workdir
+./ASE.sh $genome2 $gtf "$rnasplice_bamdir" $workdir

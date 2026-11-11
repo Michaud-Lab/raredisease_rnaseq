@@ -8,103 +8,127 @@ load_install_library(c('dplyr', 'tidyr', 'DESeq2', 'vcfR', 'ggplot2',
 # -----------------------------------------------------------------------------
 # 1. Arguments and parameters
 # -----------------------------------------------------------------------------
-args = commandArgs(trailingOnly = TRUE)
+#args = commandArgs(trailingOnly = TRUE)
 params = list(overlap = args[1])
 params$vcf = args[2]
 params$imprinting = args[3]
 params$workdir = dirname(params$overlap)
 ase = read.table(params$overlap,header=FALSE)
-colnames(ase) = c("SNPchr","SNPstart","pos","sampleID",'ref','alt','chr','START','STOP','ensemblID')
+
+colnames(ase) = c("CHROM","SNPstart","POS","sampleID",'ref','alt','chr','START','STOP','ensemblID')
 
 # get rid of HSJ_045_04 because it should not be there...
 ase = ase[ase$sampleID != 'HSJ_042_04_PAX', ]
 ase = ase[ase$sampleID != 'HSJ_083_03_PAX', ]
 ase$sample_vcf = gsub('_PAX','',ase$sampleID)
-ase$pos = as.character(ase$pos)
-ase$pvalue = NA
-ase$WGS_GT = NA
-ase$WGS_DP = NA
-ase$WGS_GQ = NA
-ase$WGS_ratio = NA
 
 ase = ase %>%
   mutate(total = ref + alt, RNA_ratio = signif(alt / total,2),RNA_DP = paste0(ref,',',alt))
 
-# get the actual chromosome names from the ase file
-aes_rle = rle(ase$SNPchr)
-aes_rle = data.frame(lengths = aes_rle$lengths, values = aes_rle$values, c = 1:length(aes_rle$lengths))
+#pivot
+pase = ase[,c(1,3,4,14)] %>% 
+  distinct(CHROM,POS,sampleID, .keep_all = TRUE) %>%
+  pivot_wider(names_from = sampleID, values_from = RNA_DP,values_fill = ".")
+
+#to filter
+key_target <- paste(pase$CHROM, pase$POS, sep = ":")
+
 
 # -----------------------------------------------------------------------------
 # 2. Read and filter ASE based on .vcf to check the expected count
 # -----------------------------------------------------------------------------
-vcf = read.vcfR(params$vcf,verbose = TRUE)
+vcf_all = read.vcfR(params$vcf,verbose = TRUE)
+key_vcf <- paste(vcf_all@fix[, "CHROM"], vcf_all@fix[, "POS"], sep = ":")
+vcf <- vcf_all[key_vcf %in% key_target, ]
+
+#vcf = read.vcfR('test.vcf.gz',verbose = TRUE) 
+
 colnames(vcf@gt) = gsub('-','_',colnames(vcf@gt))
 
-# split things per chromosome for quicker access
-vcf_per_chr = list()
 
-for(c in 1:length(aes_rle$values)){
-  vcf_per_chr[[c]] = data.frame(position = vcf@fix[vcf@fix[,1] == aes_rle$values[c],2],vcf@gt[vcf@fix[,1] == aes_rle$values[c],])
-}
-names(vcf_per_chr) = aes_rle$values
+gt <- extract.gt(vcf, element = "GT")
+ad <- extract.gt(vcf, element = "AD")
+ad_ref <- masplit(ad, record = 1) # reference allele depth
+ad_alt <- masplit(ad, record = 2) # alt  
+dp  <- extract.gt(vcf, element = "DP", as.numeric = TRUE)
+gq <- extract.gt(vcf, element = "GQ", as.numeric = TRUE)
+ratio <- extract.gt(vcf, element = "GQ", as.numeric = TRUE)
+vcf_extract = list(gt,ad_ref,ad_alt,dp,gq,ratio,ratio)
 
-# -----------------------------------------------------------------------------
-# 3. Calculate expected count and binomial test for 0.5 HET variants
-# -----------------------------------------------------------------------------
-for(i in 1:nrow(ase)){
-  # temp vcf file when using a new chromosome
-  if((i == 1) | ((i!=1) && (ase[i-1,1] != ase[i,1]))) {
-    temp_vcf_per_chr = vcf_per_chr[names(vcf_per_chr) == ase$SNPchr[i]][[1]]
-  }
-
-  # temp vcf file when using a locus
-  if((i == 1) | ((i!=1) && (ase[i-1,2] != ase[i,2]))) {
-    temp_geno = temp_vcf_per_chr[temp_vcf_per_chr$position == ase$pos[i],]
-  }
-
-  temp_geno2 = 'nosnp'
-  if(nrow(temp_geno) >0){
-   temp_geno2 = temp_geno[,colnames(temp_geno) == ase$sample_vcf[i]]}
-
-  if(nchar(temp_geno2) > 15) {
-    gt = strsplit(temp_geno2, ':')[[1]]
-    ase$WGS_GT[i] = gt[1]
-    ase$WGS_DP[i] = gt[3]
-    ase$WGS_GQ[i] = gt[4]
-  }
-
-  if(i %% 100000 == 0) print(paste('Done ',i,' of ',nrow(ase), ', Time is: ',Sys.time()))
+for(i in 1:7){
+  gt_df <- data.frame(
+    CHROM = vcf@fix[, "CHROM"],
+    POS   = as.integer(vcf@fix[, "POS"]),
+    REF   = vcf@fix[, "REF"],
+    ALT   = vcf@fix[, "ALT"],
+    gt <- vcf_extract[[i]],
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  
+  #
+  if(i==1) WGS_GT = left_join(pase[,c(1,2)], gt_df, by = c("CHROM", "POS"))
+  if(i==2) WGS_REF = left_join(pase[,c(1,2)], gt_df, by = c("CHROM", "POS"))
+  if(i==3) WGS_ALT = left_join(pase[,c(1,2)], gt_df, by = c("CHROM", "POS"))
+  if(i==4) WGS_DP = left_join(pase[,c(1,2)], gt_df, by = c("CHROM", "POS"))
+  if(i==5) WGS_GQ = left_join(pase[,c(1,2)], gt_df, by = c("CHROM", "POS"))
+  if(i==6) WGS_ratio = left_join(pase[,c(1,2)], gt_df, by = c("CHROM", "POS"))
+  if(i==7) WGS_pvalue = left_join(pase[,c(1,2)], gt_df, by = c("CHROM", "POS"))
 }
 
-# subset the hetero SNVs.
-ase$WGS_ratio[ase$WGS_GT == "0|1" | ase$WGS_GT == "1|0" | ase$WGS_GT == "0/1" | ase$WGS_GT == "1/0"] = 0.5
-ase$WGS_ratio[ase$WGS_GT == ".|." | ase$WGS_GT == "./."] = 1
-ase$WGS_ratio[ase$WGS_GT == "0|0" | ase$WGS_GT == "0/0"] = 1
-ase$WGS_ratio[ase$WGS_GT == "1|1" | ase$WGS_GT == "1/1"] = 0
+WGS_pvalue[,-c(1:4)] = NA
 
-ase_signif = ase
-ase_signif = ase_signif[!is.na(ase_signif$WGS_GT),]
-ase_signif = ase_signif[ase_signif$WGS_GT == "0|1" | ase_signif$WGS_GT == "1|0" | ase_signif$WGS_GT == "0/1" | ase_signif$WGS_GT == "1/0",]
-
-for(i in 1:nrow(ase_signif)){
-  ase_signif$WGS_ratio[i] = 0.5 # heterozygous
-  ase_signif$pvalue[i] = signif(binom.test(ase_signif$ref[i], ase_signif$total[i], p = 0.5)$p.value, 2) # binomial test for ASE
-
-  if(i %% 5000 == 0) print(paste('Done ',i,' of ',nrow(ase_signif), ', Time is: ',Sys.time()))
+for(i in 1:nrow(WGS_GT))
+  #  for(i in 1:10000)
+{
+  for(j in 5:ncol(WGS_GT))
+  {
+    if(!is.na(WGS_DP[i, j])) {
+      if(WGS_GT[i,j] == "0|1" | WGS_GT[i,j] == "1|0" | WGS_GT[i,j] == "0/1" | WGS_GT[i,j] == "1/0" ) {
+        WGS_ratio[i,j] = 0.5
+        WGS_pvalue[i,j] = signif(binom.test(as.numeric(WGS_REF[i,j]), as.numeric(WGS_DP[i,j]), p = 0.5)$p.value, 2) # binomial test for ASE
+      }
+    }
+  }
+  if(i %% 1000 == 0) print(paste0('Done ',i, ' of ' ,nrow(WGS_GT),', Time is: ', Sys.time()))
 }
 
-ase_signif = ase_signif[ase_signif$pvalue < 0.5, ]
-ase_signif$pvalue[ase_signif$pvalue < 1e-50] = 1e-50
 
-ase_signif_dedup = ase[!duplicated(ase[,c(3,4)]),]
-ase_pivoted = pivot_wider(ase_signif_dedup[,c(3,4,19)],names_from = sampleID,values_from = RNA_DP)
+#
+WGS_GT_pivoted = pivot_longer(WGS_GT,cols = 5:ncol(WGS_pvalue),values_to = 'WGS_GT')
+WGS_ref_pivoted = pivot_longer(WGS_REF,cols = 5:ncol(WGS_pvalue),values_to = 'REF_DP')
+WGS_alt_pivoted = pivot_longer(WGS_ALT,cols = 5:ncol(WGS_pvalue),values_to = 'ALT_DP')
+WGS_gq_pivoted = pivot_longer(WGS_GQ,cols = 5:ncol(WGS_pvalue),values_to = 'GQ')
+WGS_pvalue_pivoted = pivot_longer(WGS_pvalue,cols = 5:ncol(WGS_pvalue),values_to = 'pvalue')
+pase_pivoted = pivot_longer(pase,cols = 3:ncol(pase),values_to = 'RNA_DP')
+
+parts = strsplit(as.character(pase_pivoted$RNA_DP), ",", fixed = TRUE)
+before = as.numeric(sapply(parts, `[`, 1))
+after = as.numeric(sapply(parts, `[`, 2))
+pase_pivoted$RNA_ratio <- after / before
+
+WGS_ref_pivoted = WGS_ref_pivoted[!is.na(WGS_pvalue_pivoted$pvalue),]
+WGS_alt_pivoted = WGS_alt_pivoted[!is.na(WGS_pvalue_pivoted$pvalue),]
+WGS_gq_pivoted = WGS_gq_pivoted[!is.na(WGS_pvalue_pivoted$pvalue),]
+WGS_GT_pivoted = WGS_GT_pivoted[!is.na(WGS_GT_pivoted$pvalue),]
+pase_pivoted = pase_pivoted[!is.na(WGS_pvalue_pivoted$pvalue),]
+WGS_pvalue_pivoted = WGS_pvalue_pivoted[!is.na(WGS_pvalue_pivoted$pvalue),]
+
+WGS = data.frame(WGS_pvalue_pivoted,
+                 WGS_DP = paste(WGS_ref_pivoted$REF_DP,WGS_alt_pivoted$ALT_DP,sep = ','),
+                 WGS_GQ = WGS_gq_pivoted$GQ,
+                 RNA_DP = pase_pivoted$RNA_DP,
+                 RNA_ratio = pase_pivoted$RNA_ratio,
+                 WGS_GT = WGS_GT_pivoted$WGS_GT)
+
+WGS_signif = WGS[WGS$pvalue < 0.1,]
 
 # -----------------------------------------------------------------------------
 # 4. Add geneID from hg38 annotation file
 # -----------------------------------------------------------------------------
 # mapping genes
 map = select(org.Hs.eg.db, keys=keys(TxDb.Hsapiens.UCSC.hg38.knownGene, keytype = "GENEID"),
-                keytype="ENTREZID", columns=c("ENSEMBL","SYMBOL"))
+             keytype="ENTREZID", columns=c("ENSEMBL","SYMBOL"))
 map = map[!is.na(map$ENSEMBL),]
 colnames(map)[3] = 'geneID'
 
@@ -113,26 +137,24 @@ gene_locations = genes(TxDb.Hsapiens.UCSC.hg38.knownGene,single.strand.genes.onl
 gene_locations = as.data.frame(gene_locations)
 gene_locations = gene_locations[nchar(as.character(gene_locations$seqnames))<6,]
 map = merge(map, gene_locations, by.y = 'group_name', by.x = 'ENTREZID')
-colnames(map)[c(2,3,5)] = c('ensemblID','geneID','chr')
-map$chr = gsub('chr','',map$chr)
+colnames(map)[c(2,3,5)] = c('ensemblID','geneID','CHROM')
+map$CHROM = gsub('chr','',map$CHROM)
+map = map[,c(2,3,5:9)]
 
 # -----------------------------------------------------------------------------
 # 5. Imprinting and X-linked variants
 # -----------------------------------------------------------------------------
 high_confidence_imprinted_genes = read.csv(params$imprinting, header =TRUE)
-ase_map = merge(ase,map,by = 'ensemblID',all.x = TRUE)
-ase_map = ase_map[!is.na(ase_map$WGS_ratio),]
-ase_map = ase_map[!is.na(ase_map$geneID),]
-ase_map_X = ase_map[ase_map$chr.x == 'X',]
-ase_map_X = ase_map_X[ase_map_X$WGS_ratio == 0.5, ]
-ase_map_X$Type = 'X'
 
-ase_map_imprinted = ase_map[ase_map$geneID %in% high_confidence_imprinted_genes$Gene,]
-ase_map_imprinted = ase_map_imprinted[ase_map_imprinted$WGS_ratio == 0.5, ]
+WGS_map = inner_join(WGS,map, by = join_by(CHROM, between(POS, start, end)))
+WGS_X = WGS_map[WGS_map$CHROM == 'X',]
+
+if(nrow(WGS_X)==0) WGS_X = WGS_map[1:10,]
+WGS_X$Type = 'X'
+
+ase_map_imprinted = WGS_map[WGS_map$geneID %in% high_confidence_imprinted_genes$Gene,]
 ase_map_imprinted$Type = 'I'
-ase_map_imprinted = rbind(ase_map_imprinted, ase_map_X)
-ase_map_imprinted = ase_map_imprinted[,c(5,1,21,2,4,19:18,13:16,12,28)]
-colnames(ase_map_imprinted)[4] = 'chr'
+ase_map_imprinted = rbind(ase_map_imprinted,WGS_X)
 
 write.table(ase_map_imprinted, file.path(params$workdir,"gwImprinted.tsv"),sep = '\t',quote = FALSE)
 
@@ -140,9 +162,8 @@ write.table(ase_map_imprinted, file.path(params$workdir,"gwImprinted.tsv"),sep =
 # -----------------------------------------------------------------------------
 # 6. Save results
 # -----------------------------------------------------------------------------
-signif_map = merge(ase_signif, map, by = 'ensemblID', all.x = TRUE)
-signif_map_ASE = signif_map[, c(5, 1, 21, 2, 4, 19:18, 13:16, 12)]
-signif_map_ASE = signif_map_ASE[!is.na(signif_map_ASE$geneID), ]
-colnames(signif_map_ASE)[4] = 'chr'
+signif_map = inner_join(WGS_signif,map, by = join_by(CHROM, between(POS, start, end)))
+signif_map = signif_map[!is.na(signif_map$geneID),]
 
-write.table(signif_map_ASE, file.path(params$workdir,"gwASE.tsv"),sep = '\t',quote = FALSE)
+
+write.table(signif_map, file.path(params$workdir,"gwASE.tsv"),sep = '\t',quote = FALSE)

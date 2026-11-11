@@ -34,7 +34,10 @@ echo "DONE ~~~ STEP0 ~~~ define inputs ~~~ $(date)"
 
 #merge and index all vcf's  (all VCFs calls merged here, irrespective if it is present in the RNAseq .bam data, because this is filtered further.
 #bcftools merge ${VCF_DIR}/*temp -Oz -o ${VCF_DIR}/biallelic_sites.vcf.gz
-gatk IndexFeatureFile -I ${VCF_DIR}/biallelic_sites.vcf.gz --verbosity ERROR
+bcftools +fill-tags ${VCF_DIR}biallelic_codingsites.vcf.gz -- -t F_MISSING | bcftools view -e 'F_MISSING>0.5' -Oz -o ${VCF_DIR}biallelic_codingsites_filtered.vcf.gz
+
+gatk IndexFeatureFile -I ${VCF_DIR}/biallelic_codingsites_filtered.vcf.gz --verbosity ERROR
+ 
 
 echo "DONE ~~~ STEP1 ~~~ bcftools prep ~~~ $(date)"
 
@@ -44,7 +47,7 @@ echo "DONE ~~~ STEP1 ~~~ bcftools prep ~~~ $(date)"
 cut -f1 ${INPUT_DIR}vcf_bam_families.txt | parallel -j 16 'gatk ASEReadCounter \
 -R ${REF} \
 -I ${BAM_DIR}{}_sorted.bam \
--V ${VCF_DIR}biallelic_sites.vcf.gz \
+-V ${VCF_DIR}biallelic_codingsites_filtered.vcf.gz \
 -O ${ASE_DIR}ase/{}.ase.tsv \
 --verbosity ERROR \
 --java-options '-Xmx60G' \
@@ -104,7 +107,7 @@ echo "DONE ~~~ STEP6 ~~~ bedtools intersect ~~~ $(date)"
 ############################
 # STEP 7:  Deseq2
 ###########################
-Rscript ./ASE.R ${ASE_DIR}/overlaps.tsv ${VCF_DIR}/biallelic_sites.vcf.gz ${INPUT_DIR}/high_confidence_imprinted_genes.csv
+Rscript ./ASE.R ${ASE_DIR}/overlaps.tsv ${VCF_DIR}/biallelic_codingsites_filtered.vcf.gz ${INPUT_DIR}/high_confidence_imprinted_genes.csv
 
 echo "DONE ~~~ STEP7 ~~~ DeSeq2 ~~~ $(date)"
 
