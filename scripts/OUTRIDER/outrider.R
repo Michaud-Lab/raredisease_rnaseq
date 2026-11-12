@@ -26,37 +26,42 @@ register(MulticoreParam(params$cpu, params$cpu * 2, progressbar = FALSE))
 
 
 # -----------------------------------------------------------------------------
-# 2. Load candidate genes and gene annotation map
+# 2. Load candidate genes
 # -----------------------------------------------------------------------------
 candidates = read.csv(file.path(args[1], 'data/input/candidate_genes_ALL.csv'))
 candidates$ensembl_proband = paste0(candidates$ensembl,'_',candidates$proband)
 
-# Map Entrez IDs to Ensembl IDs and gene symbols
-map = select(
-  org.Hs.eg.db,
-  keys = keys(TxDb.Hsapiens.UCSC.hg38.knownGene, keytype = "GENEID"),
-  keytype = "ENTREZID",
-  columns = c("ENSEMBL", "SYMBOL")
-)
-map = map[!is.na(map$ENSEMBL), ]
-colnames(map)[3] = 'geneID'
+# -----------------------------------------------------------------------------
+# 3. gene annotation map
+# -----------------------------------------------------------------------------
+# Map Entrez IDs to Ensembl IDs and gene symbols, with gene location info
+create_map = function() {
+  map = select(
+    org.Hs.eg.db,
+    keys = keys(TxDb.Hsapiens.UCSC.hg38.knownGene, keytype = "GENEID"),
+    keytype = "ENTREZID",
+    columns = c("ENSEMBL", "SYMBOL")
+  )
+  map = map[!is.na(map$ENSEMBL), ]
+  colnames(map)[3] = 'geneID'
 
-# Add gene location info
-gene_locations = genes(TxDb.Hsapiens.UCSC.hg38.knownGene, single.strand.genes.only = FALSE)
-gene_locations = as.data.table(gene_locations)
-gene_locations = gene_locations[nchar(as.character(gene_locations$seqnames)) < 6, ]
-map = merge(map, gene_locations, by.y = 'group_name', by.x = 'ENTREZID')
-colnames(map)[c(2, 3, 5)] = c('ensemblID', 'geneID', 'chr')
-map$pos = (map$start + map$end) / 2
-map$chr = gsub('chr', '', map$chr)
+  # Add gene location info
+  gene_locations = genes(TxDb.Hsapiens.UCSC.hg38.knownGene, single.strand.genes.only = FALSE)
+  gene_locations = as.data.table(gene_locations)
+  gene_locations = gene_locations[nchar(as.character(gene_locations$seqnames)) < 6, ]
+  map = merge(map, gene_locations, by.y = 'group_name', by.x = 'ENTREZID')
+  colnames(map)[c(2, 3, 5)] = c('ensemblID', 'geneID', 'chr')
+  map$pos = (map$start + map$end) / 2
+  map$chr = gsub('chr', '', map$chr)
+  map
+}
 
-# Haemoglobin genes are excluded before running OUTRIDER; also needed by the per-exon section below
-hemo_ensembl = map$ensemblID[map$geneID %in% c('HBB','HBA1','HBA2','HBD')]
 
 # -----------------------------------------------------------------------------
-# 3. OUTRIDER per gene (expensive — cached to table_genes_file; only recomputed
+# 4. OUTRIDER per gene (expensive — cached to table_genes_file; only recomputed
 #    when that cache is absent OR force_outrider is explicitly requested)
 # -----------------------------------------------------------------------------
+outrider_per_gene = function(params, map, hemo_ensembl, candidates) {
 if (!file.exists(params$table_genes_file) | params$force_outrider) {
   genes_counts = read.table(params$fc_pergene, sep = '\t', header = TRUE, comment.char = '#', check.names = FALSE)
   rownames(genes_counts) = genes_counts[, 1]
@@ -85,40 +90,39 @@ if (!file.exists(params$table_genes_file) | params$force_outrider) {
   table_genes$pValue = signif(table_genes$pValue, 4)
 
   saveRDS(table_genes, params$table_genes_file)
-} else {
-  if (!file.exists(params$table_genes_file)) {
+  } else {
+    if (!file.exists(params$table_genes_file)) {
     stop(paste0(params$table_genes_file, ' does not exist yet — rerun with force_outrider = TRUE to compute it.'))
   }
-  table_genes = readRDS(params$table_genes_file)
-  print(paste0('Loaded cached table_genes from ', params$table_genes_file ))
-}
+    table_genes = readRDS(params$table_genes_file)
+    print(paste0('Loaded cached table_genes from ', params$table_genes_file ))
+    }
+  
+  significant_table = table_genes[table_genes$pValue < 0.05, ]
+  significant_table$padjust = signif(significant_table$padjust, 4)
+  colnames(significant_table)[1] = 'ensemblID'
+  significant_table = merge(significant_table, map, by = 'ensemblID')
+  table_genes$ensemblID_sampleID = paste0(table_genes$geneID, '_', table_genes$sampleID)
 
-significant_table = table_genes[table_genes$pValue < 0.05, ]
-significant_table$padjust = signif(significant_table$padjust, 4)
-colnames(significant_table)[1] = 'ensemblID'
-significant_table = merge(significant_table, map, by = 'ensemblID')
-table_genes$ensemblID_sampleID = paste0(table_genes$geneID, '_', table_genes$sampleID)
+  candidate_table = table_genes[table_genes$ensemblID_sampleID %in% candidates$ensembl_proband, ]
+  colnames(candidate_table)[1] = 'ensemblID'
+  candidate_table = merge(candidate_table, map, by = 'ensemblID')
+  colnames_candidate_genes = c("sampleID", "geneID", "ensemblID", "pValue", "zScore", "l2fc",
+                               "rawcounts", "meanRawcounts", "normcounts", "meanCorrected")
+  candidate_table = candidate_table[, colnames_candidate_genes]
 
-candidate_table = table_genes[table_genes$ensemblID_sampleID %in% candidates$ensembl_proband, ]
-colnames(candidate_table)[1] = 'ensemblID'
-candidate_table = merge(candidate_table, map, by = 'ensemblID')
+  print(table(significant_table$sampleID))
 
+  print(paste0('Done OUTRIDER per gene --- Time is: ', Sys.time()))
 
-print(table(significant_table$sampleID))
-
-# Output column sets
-colnames_ALL = c("sampleID", "geneID", "ensemblID", "chr", "start", "end", "pos", "width",
-                 "pValue", "padjust", "zScore", "l2fc", "rawcounts", "meanRawcounts",
-                 "normcounts", "meanCorrected", "exon_pValue", "exon_zScore")
-colnames_candidate_genes = c("sampleID", "geneID", "ensemblID", "pValue", "zScore", "l2fc",
-                              "rawcounts", "meanRawcounts", "normcounts", "meanCorrected")
-
-print(paste0('Done OUTRIDER per gene --- Time is: ', Sys.time()))
+  list(significant_table = significant_table, candidate_table = candidate_table)
+  }
 
 # -----------------------------------------------------------------------------
-# 4. OUTRIDER per exon (expensive — cached to table_exons_file; only recomputed
+# 5. OUTRIDER per exon (expensive — cached to table_exons_file; only recomputed
 #    when that cache is absent OR force_outrider is explicitly requested)
 # -----------------------------------------------------------------------------
+outrider_per_exon = function(params, map, hemo_ensembl, candidates, significant_table) {
 if (!file.exists(params$table_exons_file) | params$force_outrider) {
   fc_exons_raw_ALL = read.table(params$fc_perexon, sep = '\t', check.names = FALSE)
   fc_exons_raw_ALL = fc_exons_raw_ALL[, grepl('^bc', colnames(fc_exons_raw_ALL)) == FALSE]
@@ -136,7 +140,7 @@ if (!file.exists(params$table_exons_file) | params$force_outrider) {
 
   # Filter out very low-expression exons and hemo
   genes_counts = fc_exons_raw_ALL[!fc_exons_raw_ALL$ensemblID %in% hemo_ensembl,]
-  genes_counts = fc_exons_raw_ALL[, -c(1:5)]
+  genes_counts = genes_counts[, -c(1:5)]
   genes_counts = genes_counts[rowMeans(genes_counts) > 1, ]
 
   ods = OutriderDataSet(countData = genes_counts)
@@ -202,10 +206,27 @@ significant_table = merge(
   all.x = TRUE
 )
 
-# -----------------------------------------------------------------------------
-# 5. Save results
-# -----------------------------------------------------------------------------
-write.table(significant_table[, colnames_ALL], file.path(params$OUTRIDER, 'gw_genes_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
-write.table(candidate_table[, colnames_candidate_genes], file.path(params$OUTRIDER, 'candidates_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
+colnames_ALL = c("sampleID", "geneID", "ensemblID", "chr", "start", "end", "pos", "width",
+                 "pValue", "padjust", "zScore", "l2fc", "rawcounts", "meanRawcounts",
+                 "normcounts", "meanCorrected", "exon_pValue", "exon_zScore")
+significant_table = significant_table[, colnames_ALL]
 
 print(paste0('Done OUTRIDER per exon --- Time is: ', Sys.time()))
+list(significant_table = significant_table, candidate_table_exon = candidate_table_exon)
+}
+
+# -----------------------------------------------------------------------------
+# 6. Run and save results
+# -----------------------------------------------------------------------------
+#mapping genes
+map = create_map()
+
+# Haemoglobin genes are excluded before running OUTRIDER; also needed by the per-exon section below
+hemo_ensembl = map$ensemblID[map$geneID %in% c('HBB','HBA1','HBA2','HBD','HLA','HBG','HBQ','HBE','HBZ','HBM','SELPLG')]
+
+#outrider
+res_genes = outrider_per_gene(params, map, hemo_ensembl, candidates)
+res_exons = outrider_per_exon(params, map, hemo_ensembl, candidates, res_genes$significant_table)
+
+write.table(res_exons$significant_table, file.path(params$OUTRIDER, 'gw_genes_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
+write.table(res_genes$candidate_table,file.path(params$OUTRIDER, 'candidates_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
