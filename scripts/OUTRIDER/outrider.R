@@ -21,6 +21,8 @@ params$table_genes_file = file.path(params$OUTRIDER, 'table_genes_OUTRIDER.rds')
 params$table_exons_file = file.path(params$OUTRIDER, 'table_exons_OUTRIDER.rds')
 params$gtf = args[5]
 params$reference_cohorte = args[7]
+# Optional fixed encoding dimension q for OUTRIDER per gene (args[8]); NA/absent = search for the best q each run
+params$q_pergene = if (is.na(args[8])) NULL else as.integer(args[8])
 
 dir.create(params$OUTRIDER)
 register(MulticoreParam(params$cpu, params$cpu * 2, progressbar = FALSE))
@@ -65,11 +67,15 @@ create_map = function() {
 # If reference_cohorte is given, OUTRIDER is fitted on the reference cohort + the single proband
 # candidates$proband[i] only, and only that proband's results are kept. The cache file is then
 # specific to that proband. With reference_cohorte = NULL, all probands are fitted together (original behaviour).
-outrider_per_gene = function(params, map, hemo_ensembl, candidates, reference_cohorte = NULL, i = 1) {
+# If q is given, OUTRIDER uses that fixed encoding dimension and skips the (slow) findEncodingDim() search.
+# With q = NULL, the best q is searched for and printed, so it can be reused on later runs.
+outrider_per_gene = function(params, map, hemo_ensembl, candidates, reference_cohorte = NULL, i = 1, q = NULL) {
 use_ref = !is.null(reference_cohorte)
 if (use_ref) {
   proband = candidates$proband[i]
-  params$table_genes_file = file.path(params$OUTRIDER, paste0('table_genes_OUTRIDER_', proband, '.rds'))
+  ref_dir = file.path(params$OUTRIDER, 'reference_cohorte')
+  dir.create(ref_dir, showWarnings = FALSE)
+  params$table_genes_file = file.path(ref_dir, paste0('table_genes_OUTRIDER_', proband, '.rds'))
   print(paste0('OUTRIDER per gene: ', proband, ' vs reference cohorte (', length(reference_cohorte), ' samples)'))
 }
 if (!file.exists(params$table_genes_file) | params$force_outrider) {
@@ -99,11 +105,19 @@ if (!file.exists(params$table_genes_file) | params$force_outrider) {
   ods = OutriderDataSet(countData = genes_counts)
   ods = filterExpression(ods, gtfFile = params$gtf, filterGenes = TRUE, savefpkm = TRUE, fpkmCutoff = 0.5)
   #ods = filterExpression(ods)
-  ods = OUTRIDER(ods)
+  if (is.null(q)) {
+    ods = OUTRIDER(ods)
+    print(paste0('OUTRIDER per gene: optimal encoding dimension q = ', metadata(ods)$optimalEncDim))
+  } else {
+    ods = OUTRIDER(ods, q = q)
+  }
 
   # Result tables
   table_genes = as.data.frame(results(ods, padjCutoff = 1))
   table_genes$pValue = signif(table_genes$pValue, 4)
+
+  # With a reference cohorte, only keep (and cache) the proband's results, not the reference samples
+  if (use_ref) table_genes = table_genes[table_genes$sampleID == proband, ]
 
   saveRDS(table_genes, params$table_genes_file)
   } else {
@@ -115,7 +129,6 @@ if (!file.exists(params$table_genes_file) | params$force_outrider) {
     }
 
   # Keep only the proband's results (reference samples are only there to fit the model)
-  if (use_ref) table_genes = table_genes[table_genes$sampleID == proband, ]
   table_genes_out = table_genes  # as saved in the .rds, before helper columns are added
 
   significant_table = table_genes[table_genes$pValue < 0.05, ]
@@ -251,7 +264,8 @@ res_list = list()
 table_genes_all = NULL
 for (i in probands_idx) {
   res_list[[candidates$proband[i]]] = outrider_per_gene(params, map, hemo_ensembl, candidates,
-                                                        reference_cohorte = reference_cohorte, i = i)
+                                                        reference_cohorte = reference_cohorte, i = i,
+                                                        q = params$q_pergene)
   table_genes_all = rbind(table_genes_all, res_list[[candidates$proband[i]]]$table_genes)
 }
 rownames(table_genes_all) = NULL
