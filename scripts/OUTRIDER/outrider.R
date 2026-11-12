@@ -20,6 +20,7 @@ params$force_outrider = ifelse(is.na(args[6]), FALSE, as.logical(args[6]))
 params$table_genes_file = file.path(params$OUTRIDER, 'table_genes_OUTRIDER.rds')
 params$table_exons_file = file.path(params$OUTRIDER, 'table_exons_OUTRIDER.rds')
 params$gtf = args[5]
+params$reference_cohorte = args[7]
 
 dir.create(params$OUTRIDER)
 register(MulticoreParam(params$cpu, params$cpu * 2, progressbar = FALSE))
@@ -30,7 +31,7 @@ register(MulticoreParam(params$cpu, params$cpu * 2, progressbar = FALSE))
 # -----------------------------------------------------------------------------
 candidates = read.csv(file.path(args[1], 'data/input/candidate_genes_ALL.csv'))
 candidates$ensembl_proband = paste0(candidates$ensembl,'_',candidates$proband)
-
+reference_cohorte = read.table(params$reference_cohorte)[,1]
 # -----------------------------------------------------------------------------
 # 3. gene annotation map
 # -----------------------------------------------------------------------------
@@ -61,7 +62,16 @@ create_map = function() {
 # 4. OUTRIDER per gene (expensive — cached to table_genes_file; only recomputed
 #    when that cache is absent OR force_outrider is explicitly requested)
 # -----------------------------------------------------------------------------
-outrider_per_gene = function(params, map, hemo_ensembl, candidates) {
+# If reference_cohorte is given, OUTRIDER is fitted on the reference cohort + the single proband
+# candidates$proband[i] only, and only that proband's results are kept. The cache file is then
+# specific to that proband. With reference_cohorte = NULL, all probands are fitted together (original behaviour).
+outrider_per_gene = function(params, map, hemo_ensembl, candidates, reference_cohorte = NULL, i = 1) {
+use_ref = !is.null(reference_cohorte)
+if (use_ref) {
+  proband = candidates$proband[i]
+  params$table_genes_file = file.path(params$OUTRIDER, paste0('table_genes_OUTRIDER_', proband, '.rds'))
+  print(paste0('OUTRIDER per gene: ', proband, ' vs reference cohorte (', length(reference_cohorte), ' samples)'))
+}
 if (!file.exists(params$table_genes_file) | params$force_outrider) {
   genes_counts = read.table(params$fc_pergene, sep = '\t', header = TRUE, comment.char = '#', check.names = FALSE)
   rownames(genes_counts) = genes_counts[, 1]
@@ -70,13 +80,19 @@ if (!file.exists(params$table_genes_file) | params$force_outrider) {
   colnames(genes_counts) = sapply(lapply(strsplit(colnames(genes_counts), '/'), '['), tail, 1)
   colnames(genes_counts) = gsub('_sorted.bam', '', colnames(genes_counts))
 
-  # Probands only (includes LC and F0 samples, and _04 twins of _03 probands)
-  probands = colnames(genes_counts)[
-    grepl('_0[34]_', colnames(genes_counts)) |
-    grepl('LC_', colnames(genes_counts)) |
-    grepl('F0', colnames(genes_counts))
-  ]
-  genes_counts = genes_counts[, colnames(genes_counts) %in% c('gene_id', probands)]
+  if (use_ref) {
+    # Reference cohorte + this proband only
+    if (!proband %in% colnames(genes_counts)) stop(proband, ' is not in the gene count matrix.')
+    genes_counts = genes_counts[, colnames(genes_counts) %in% unique(c(reference_cohorte, proband))]
+  } else {
+    # Probands only (includes LC and F0 samples, and _04 twins of _03 probands)
+    probands = colnames(genes_counts)[
+      grepl('_0[34]_', colnames(genes_counts)) |
+      grepl('LC_', colnames(genes_counts)) |
+      grepl('F0', colnames(genes_counts))
+    ]
+    genes_counts = genes_counts[, colnames(genes_counts) %in% c('gene_id', probands)]
+  }
 
   # Remove haemoglobin genes before running OUTRIDER
   genes_counts = genes_counts[!rownames(genes_counts) %in% hemo_ensembl, ]
@@ -97,7 +113,11 @@ if (!file.exists(params$table_genes_file) | params$force_outrider) {
     table_genes = readRDS(params$table_genes_file)
     print(paste0('Loaded cached table_genes from ', params$table_genes_file ))
     }
-  
+
+  # Keep only the proband's results (reference samples are only there to fit the model)
+  if (use_ref) table_genes = table_genes[table_genes$sampleID == proband, ]
+  table_genes_out = table_genes  # as saved in the .rds, before helper columns are added
+
   significant_table = table_genes[table_genes$pValue < 0.05, ]
   significant_table$padjust = signif(significant_table$padjust, 4)
   colnames(significant_table)[1] = 'ensemblID'
@@ -115,7 +135,7 @@ if (!file.exists(params$table_genes_file) | params$force_outrider) {
 
   print(paste0('Done OUTRIDER per gene --- Time is: ', Sys.time()))
 
-  list(significant_table = significant_table, candidate_table = candidate_table)
+  list(significant_table = significant_table, candidate_table = candidate_table, table_genes = table_genes_out)
   }
 
 # -----------------------------------------------------------------------------
@@ -224,8 +244,26 @@ map = create_map()
 # Haemoglobin genes are excluded before running OUTRIDER; also needed by the per-exon section below
 hemo_ensembl = map$ensemblID[map$geneID %in% c('HBB','HBA1','HBA2','HBD','HLA','HBG','HBQ','HBE','HBZ','HBM','SELPLG')]
 
-#outrider
-res_genes = outrider_per_gene(params, map, hemo_ensembl, candidates)
+#outrider per gene: one run per unique proband, each against the reference cohorte only
+probands_idx = which(!duplicated(candidates$proband))
+
+res_list = list()
+table_genes_all = NULL
+for (i in probands_idx) {
+  res_list[[candidates$proband[i]]] = outrider_per_gene(params, map, hemo_ensembl, candidates,
+                                                        reference_cohorte = reference_cohorte, i = i)
+  table_genes_all = rbind(table_genes_all, res_list[[candidates$proband[i]]]$table_genes)
+}
+rownames(table_genes_all) = NULL
+
+res_genes = list(
+  significant_table = do.call(rbind, lapply(res_list, `[[`, 'significant_table')),
+  candidate_table   = do.call(rbind, lapply(res_list, `[[`, 'candidate_table'))
+)
+
+# Save the combined per-proband table (built in the loop above) as the single file read by the Shiny app (and cp_and_cleanup.R)
+saveRDS(table_genes_all, params$table_genes_file)
+
 res_exons = outrider_per_exon(params, map, hemo_ensembl, candidates, res_genes$significant_table)
 
 write.table(res_exons$significant_table, file.path(params$OUTRIDER, 'gw_genes_OUTRIDER.tsv'), sep = '\t', quote = FALSE)

@@ -15,8 +15,8 @@ cpu=16
 force_outrider=TRUE
 
 #read configs.json
-read workdir gtf < <(
-  jq -r '.general | [.workdir, .gtf] | @tsv' ../../data/input/configs.json
+read workdir gtf reference_cohorte< <(
+  jq -r '.general | [.workdir, .gtf, .reference_cohorte] | @tsv' ../../data/input/configs.json
 )
 
 read fc_pergene fc_perexon < <(
@@ -24,5 +24,7 @@ read fc_pergene fc_perexon < <(
 )
 
 #R script launches the bash script to prepare data and continues with analysis.
-Rscript outrider.R $workdir $fc_pergene $fc_perexon $cpu $gtf $force_outrider
+Rscript outrider.R $workdir $fc_pergene $fc_perexon $cpu $gtf $force_outrider $reference_cohorte
 #echo $workdir $fc_pergene $fc_perexon $cpu  $gtf $force_outrider
+
+Rscript outrider_one_vs_ref.R $workdir $fc_pergene $fc_perexon $cpu $gtf $force_outrider
