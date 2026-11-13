@@ -24,7 +24,7 @@ params$reference_cohorte = args[7]
 # Optional fixed encoding dimension q for OUTRIDER per gene (args[8]); NA/absent = search for the best q each run
 params$q_pergene = if (is.na(args[8])) NULL else as.integer(args[8])
 
-dir.create(params$OUTRIDER)
+dir.create(params$OUTRIDER,showWarnings = F)
 register(MulticoreParam(params$cpu, params$cpu * 2, progressbar = FALSE))
 
 
@@ -39,13 +39,16 @@ reference_cohorte = read.table(params$reference_cohorte)[,1]
 # -----------------------------------------------------------------------------
 # Map Entrez IDs to Ensembl IDs and gene symbols, with gene location info
 create_map = function() {
-  map = select(
+  # One Entrez ID can map to several Ensembl IDs (1:many): expected, so the message is silenced
+  map = suppressMessages(select(
     org.Hs.eg.db,
     keys = keys(TxDb.Hsapiens.UCSC.hg38.knownGene, keytype = "GENEID"),
     keytype = "ENTREZID",
     columns = c("ENSEMBL", "SYMBOL")
-  )
+  ))
   map = map[!is.na(map$ENSEMBL), ]
+  # Keep one row per Ensembl ID so merges by ensemblID downstream do not duplicate rows
+  map = map[!duplicated(map$ENSEMBL), ]
   colnames(map)[3] = 'geneID'
 
   # Add gene location info
@@ -76,7 +79,7 @@ if (use_ref) {
   ref_dir = file.path(params$OUTRIDER, 'reference_cohorte')
   dir.create(ref_dir, showWarnings = FALSE)
   params$table_genes_file = file.path(ref_dir, paste0('table_genes_OUTRIDER_', proband, '.rds'))
-  print(paste0('OUTRIDER per gene: ', proband, ' vs reference cohorte (', length(reference_cohorte), ' samples)'))
+  #print(paste0('OUTRIDER per gene: ', proband, ' vs reference cohorte (', length(reference_cohorte), ' samples)'))
 }
 if (!file.exists(params$table_genes_file) | params$force_outrider) {
   genes_counts = read.table(params$fc_pergene, sep = '\t', header = TRUE, comment.char = '#', check.names = FALSE)
@@ -107,8 +110,7 @@ if (!file.exists(params$table_genes_file) | params$force_outrider) {
   #ods = filterExpression(ods)
   if (is.null(q)) {
     ods = OUTRIDER(ods)
-    print(paste0('OUTRIDER per gene: optimal encoding dimension q = ', metadata(ods)$optimalEncDim))
-  } else {
+    } else {
     ods = OUTRIDER(ods, q = q)
   }
 
@@ -125,7 +127,7 @@ if (!file.exists(params$table_genes_file) | params$force_outrider) {
     stop(paste0(params$table_genes_file, ' does not exist yet — rerun with force_outrider = TRUE to compute it.'))
   }
     table_genes = readRDS(params$table_genes_file)
-    print(paste0('Loaded cached table_genes from ', params$table_genes_file ))
+    print(paste0('Sample ',proband,' already exists. ~~~  Loaded cached table_genes ~~~  Time is: ',Sys.time()))
     }
 
   # Keep only the proband's results (reference samples are only there to fit the model)
@@ -144,9 +146,7 @@ if (!file.exists(params$table_genes_file) | params$force_outrider) {
                                "rawcounts", "meanRawcounts", "normcounts", "meanCorrected")
   candidate_table = candidate_table[, colnames_candidate_genes]
 
-  print(table(significant_table$sampleID))
-
-  print(paste0('Done OUTRIDER per gene --- Time is: ', Sys.time()))
+  print(paste0('Done OUTRIDER against reference cohort for ',proband,'~~~ Time is: ', Sys.time()))
 
   list(significant_table = significant_table, candidate_table = candidate_table, table_genes = table_genes_out)
   }
