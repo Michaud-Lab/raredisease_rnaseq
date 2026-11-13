@@ -23,6 +23,8 @@ params$gtf = args[5]
 params$reference_cohorte = args[7]
 # Optional fixed encoding dimension q for OUTRIDER per gene (args[8]); NA/absent = search for the best q each run
 params$q_pergene = if (is.na(args[8])) NULL else as.integer(args[8])
+# Optional fixed encoding dimension q for OUTRIDER per exon (args[9]); NA/absent = search for the best q each run
+params$q_perexon = if (is.na(args[9])) NULL else as.integer(args[9])
 
 dir.create(params$OUTRIDER,showWarnings = F)
 register(MulticoreParam(params$cpu, params$cpu * 2, progressbar = FALSE))
@@ -79,7 +81,6 @@ if (use_ref) {
   ref_dir = file.path(params$OUTRIDER, 'reference_cohorte')
   dir.create(ref_dir, showWarnings = FALSE)
   params$table_genes_file = file.path(ref_dir, paste0('table_genes_OUTRIDER_', proband, '.rds'))
-  #print(paste0('OUTRIDER per gene: ', proband, ' vs reference cohorte (', length(reference_cohorte), ' samples)'))
 }
 if (!file.exists(params$table_genes_file) | params$force_outrider) {
   genes_counts = read.table(params$fc_pergene, sep = '\t', header = TRUE, comment.char = '#', check.names = FALSE)
@@ -144,7 +145,8 @@ if (!file.exists(params$table_genes_file) | params$force_outrider) {
                                "rawcounts", "meanRawcounts", "normcounts", "meanCorrected")
   candidate_table = candidate_table[, colnames_candidate_genes]
 
-  if (file.exists(params$table_genes_file)) {print(paste0('Sample ',proband,' already exists. ~~~  Loaded cached table_genes ~~~  Time is: ',Sys.time()))} else {
+  if (file.exists(params$table_genes_file)) {
+    print(paste0('Sample ',proband,' already exists. ~~~  Loaded cached table_genes ~~~  Time is: ',Sys.time()))} else {
     print(paste0('Done OUTRIDER against reference cohort for ',proband,'~~~ Time is: ', Sys.time()))
   }
 
@@ -155,14 +157,20 @@ if (!file.exists(params$table_genes_file) | params$force_outrider) {
 # 5. OUTRIDER per exon (expensive — cached to table_exons_file; only recomputed
 #    when that cache is absent OR force_outrider is explicitly requested)
 # -----------------------------------------------------------------------------
-outrider_per_exon = function(params, map, hemo_ensembl, candidates, significant_table) {
+# Same logic as outrider_per_gene(): if reference_cohorte is given, OUTRIDER is fitted on the reference cohort +
+# the single proband candidates$proband[i] only, and only that proband's rows are kept and cached (one cache file
+# per proband). With reference_cohorte = NULL, all samples are fitted together (original behaviour).
+# If q is given, a fixed encoding dimension is used and findEncodingDim() is skipped.
+# Returns the (per-proband) table_exons; the summary tables are built by outrider_exon_summary() on the combined table.
+outrider_per_exon = function(params, map, hemo_ensembl, candidates, reference_cohorte = NULL, i = 1, q = NULL) {
+use_ref = !is.null(reference_cohorte)
+if (use_ref) {
+  proband = candidates$proband[i]
+  params$table_exons_file = file.path(params$OUTRIDER, 'reference_cohorte','table_exons_OUTRIDER_', proband, '.rds')
+}
 if (!file.exists(params$table_exons_file) | params$force_outrider) {
   fc_exons_raw_ALL = read.table(params$fc_perexon, sep = '\t', check.names = FALSE)
   fc_exons_raw_ALL = fc_exons_raw_ALL[, grepl('^bc', colnames(fc_exons_raw_ALL)) == FALSE]
-
-  # HSJ samples appear with two naming conventions; add '_PAX' suffix to align them
-#  colnames(fc_exons_raw_ALL)[grep('HSJ', colnames(fc_exons_raw_ALL))] =
- #ù   paste0(colnames(fc_exons_raw_ALL)[grep('HSJ', colnames(fc_exons_raw_ALL))], '_PAX')
 
   rownames(fc_exons_raw_ALL) = paste0(
     fc_exons_raw_ALL$geneID, "_",
@@ -174,10 +182,20 @@ if (!file.exists(params$table_exons_file) | params$force_outrider) {
   # Filter out very low-expression exons and hemo
   genes_counts = fc_exons_raw_ALL[!fc_exons_raw_ALL$ensemblID %in% hemo_ensembl,]
   genes_counts = genes_counts[, -c(1:5)]
+
+  if (use_ref) {
+    # Reference cohorte + this proband only
+    if (!proband %in% colnames(genes_counts)) stop(proband, ' is not in the exon count matrix.')
+    genes_counts = genes_counts[, colnames(genes_counts) %in% unique(c(reference_cohorte, proband))]
+  }
   genes_counts = genes_counts[rowMeans(genes_counts) > 1, ]
 
   ods = OutriderDataSet(countData = genes_counts)
-  ods = OUTRIDER(ods)
+  if (is.null(q)) {
+    ods = OUTRIDER(ods)
+  } else {
+    ods = OUTRIDER(ods, q = q,iterations = 5)
+  }
 
   # Result table
   table_exons = as.data.frame(results(ods, padjCutoff = 1))
@@ -189,63 +207,70 @@ if (!file.exists(params$table_exons_file) | params$force_outrider) {
   table_exons$ensemblID_sampleID = paste0(table_exons$ensemblID, '_', table_exons$sampleID)
   table_exons$pValue = signif(table_exons$pValue, 4)
 
+  # With a reference cohorte, only keep (and cache) the proband's results, not the reference samples
+  if (use_ref) table_exons = table_exons[table_exons$sampleID == proband, ]
+
   saveRDS(table_exons, params$table_exons_file)
-} else {
-  if (!file.exists(params$table_exons_file)) {
-    stop(paste0(params$table_exons_file, ' does not exist yet — rerun with force_outrider = TRUE to compute it.'))
+  
+  if (use_ref) print(paste0('Done outrider_per_exon() against reference cohorte for ', proband, ' ~~~ Time is: ', Sys.time()))
+  } else {
+    table_exons = readRDS(params$table_exons_file)
+    print(paste0('Sample ',proband,' already exists. ~~~  Loaded cached table_exons ~~~  Time is: ',Sys.time()))
   }
-  table_exons = readRDS(params$table_exons_file)
-  print(paste0('Loaded cached table_exons from ', params$table_exons_file))
+table_exons
 }
 
-# Candidate exons
-colnames_candidate_exon = c("sampleID", "geneID", "ensemblID", "transcriptID", "exonID",
+# Summary tables / output files from the (combined) per-exon table
+outrider_exon_summary = function(params, map, candidates, table_exons, significant_table) {
+  # Candidate exons
+  colnames_candidate_exon = c("sampleID", "geneID", "ensemblID", "transcriptID", "exonID",
                              "pValue", "zScore", "l2fc", "rawcounts", "meanRawcounts",
                              "normcounts", "meanCorrected")
-candidate_table_exon = table_exons[table_exons$ensemblID_sampleID %in% candidates$ensembl_proband, ]
-candidate_table_exon = candidate_table_exon[, colnames_candidate_exon]
 
-# All significant exons
-colnames_significant_exon = c("sampleID", "geneID", "ensemblID", "transcriptID", "exonID",
+  candidate_table_exon = table_exons[table_exons$ensemblID_sampleID %in% candidates$ensembl_proband, ]
+  candidate_table_exon = candidate_table_exon[, colnames_candidate_exon]
+
+  # All significant exons
+  colnames_significant_exon = c("sampleID", "geneID", "ensemblID", "transcriptID", "exonID",
                                "chr", "start", "end", "pos", "width", "pValue", "padjust",
                                "zScore", "l2fc", "rawcounts", "meanRawcounts", "normcounts",
                                "meanCorrected")
-table_exons = table_exons[table_exons$pValue < 0.01, ]
-significant_table_exon = merge(table_exons, map[, -3], by = 'ensemblID')
-significant_table_exon = significant_table_exon[, colnames_significant_exon]
-print(table(significant_table_exon$sampleID))
+  
+  table_exons = table_exons[table_exons$pValue < 0.01, ]
+  significant_table_exon = merge(table_exons, map[, -3], by = 'ensemblID')
+  significant_table_exon = significant_table_exon[, colnames_significant_exon]
 
+  write.table(significant_table_exon, file.path(params$OUTRIDER, 'gw_exons_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
+  write.table(candidate_table_exon, file.path(params$OUTRIDER, 'candidates_perexons_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
 
-write.table(significant_table_exon, file.path(params$OUTRIDER, 'gw_exons_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
-write.table(candidate_table_exon, file.path(params$OUTRIDER, 'candidates_perexons_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
+  # Aggregate min p-value and max z-score per gene per sample
+  table_minmax_exons = table_exons %>%
+    group_by(geneID, sampleID) %>%
+    filter(pValue != Inf) %>%
+    summarise(min_pValue = min(pValue), min_zscore = min(zScore), max_zscore = max(zScore))
 
-# Aggregate min p-value and max z-score per gene per sample
-table_minmax_exons = table_exons %>%
-  group_by(geneID, sampleID) %>%
-  filter(pValue != Inf) %>%
-  summarise(min_pValue = min(pValue), min_zscore = min(zScore), max_zscore = max(zScore))
-table_minmax_exons$exon_zScore = '0'
-colnames(table_minmax_exons)[3] = 'exon_pValue'
+  table_minmax_exons$exon_zScore = '0'
+  colnames(table_minmax_exons)[3] = 'exon_pValue'
 
-for (i in 1:nrow(table_minmax_exons)) {
-  table_minmax_exons$exon_zScore[i] =
-    table_minmax_exons[i, 4:5][abs(table_minmax_exons[i, 4:5]) == max(abs(table_minmax_exons[i, 4:5]))][1]
-}
+  for (i in 1:nrow(table_minmax_exons)) {
+    table_minmax_exons$exon_zScore[i] =
+      table_minmax_exons[i, 4:5][abs(table_minmax_exons[i, 4:5]) == max(abs(table_minmax_exons[i, 4:5]))][1]
+  }
 
-table_minmax_exons = table_minmax_exons[, -c(4:5)]
-significant_table = merge(
-  significant_table, table_minmax_exons,
-  by.x = c('geneID', 'sampleID'), by.y = c('geneID', 'sampleID'),
-  all.x = TRUE
-)
+  table_minmax_exons = table_minmax_exons[, -c(4:5)]
+  significant_table = merge(
+    significant_table, table_minmax_exons,
+    by.x = c('geneID', 'sampleID'), by.y = c('geneID', 'sampleID'),
+    all.x = TRUE
+  )
 
-colnames_ALL = c("sampleID", "geneID", "ensemblID", "chr", "start", "end", "pos", "width",
-                 "pValue", "padjust", "zScore", "l2fc", "rawcounts", "meanRawcounts",
-                 "normcounts", "meanCorrected", "exon_pValue", "exon_zScore")
-significant_table = significant_table[, colnames_ALL]
+  colnames_ALL = c("sampleID", "geneID", "ensemblID", "chr", "start", "end", "pos", "width",
+                   "pValue", "padjust", "zScore", "l2fc", "rawcounts", "meanRawcounts",
+                   "normcounts", "meanCorrected", "exon_pValue", "exon_zScore")
+  significant_table = significant_table[, colnames_ALL]
 
-print(paste0('Done OUTRIDER per exon --- Time is: ', Sys.time()))
-list(significant_table = significant_table, candidate_table_exon = candidate_table_exon)
+  print(paste0('Done OUTRIDER per exon --- Time is: ', Sys.time()))
+  list(significant_table = significant_table, candidate_table_exon = candidate_table_exon)
 }
 
 # -----------------------------------------------------------------------------
@@ -278,7 +303,18 @@ res_genes = list(
 # Save the combined per-proband table (built in the loop above) as the single file read by the Shiny app (and cp_and_cleanup.R)
 saveRDS(table_genes_all, params$table_genes_file)
 
-res_exons = outrider_per_exon(params, map, hemo_ensembl, candidates, res_genes$significant_table)
+# outrider per exon: same, one run per unique proband against the reference cohorte only
+table_exons_list = list()
+for (i in probands_idx) {
+  table_exons_list[[candidates$proband[i]]] = outrider_per_exon(params, map, hemo_ensembl, candidates,
+                                                                reference_cohorte = reference_cohorte, i = i,
+                                                                q = params$q_perexon)
+}
+table_exons_all = do.call(rbind, table_exons_list)
+rownames(table_exons_all) = NULL
+saveRDS(table_exons_all, params$table_exons_file)
+
+res_exons = outrider_exon_summary(params, map, candidates, table_exons_all, res_genes$significant_table)
 
 write.table(res_exons$significant_table, file.path(params$OUTRIDER, 'gw_genes_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
 write.table(res_genes$candidate_table,file.path(params$OUTRIDER, 'candidates_OUTRIDER.tsv'), sep = '\t', quote = FALSE)
