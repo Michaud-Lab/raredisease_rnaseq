@@ -166,7 +166,7 @@ outrider_per_exon = function(params, map, hemo_ensembl, candidates, reference_co
 use_ref = !is.null(reference_cohorte)
 if (use_ref) {
   proband = candidates$proband[i]
-  params$table_exons_file = file.path(params$OUTRIDER, 'reference_cohorte','table_exons_OUTRIDER_', proband, '.rds')
+  params$table_exons_file = file.path(params$OUTRIDER, 'reference_cohorte',paste0('table_exons_OUTRIDER_', proband, '.rds'))
 }
 if (!file.exists(params$table_exons_file) | params$force_outrider) {
   fc_exons_raw_ALL = read.table(params$fc_perexon, sep = '\t', check.names = FALSE)
@@ -192,7 +192,7 @@ if (!file.exists(params$table_exons_file) | params$force_outrider) {
 
   ods = OutriderDataSet(countData = genes_counts)
   if (is.null(q)) {
-    ods = OUTRIDER(ods)
+    ods = OUTRIDER(ods,iterations = 5)
   } else {
     ods = OUTRIDER(ods, q = q,iterations = 5)
   }
