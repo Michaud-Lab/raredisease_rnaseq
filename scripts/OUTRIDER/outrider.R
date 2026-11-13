@@ -127,12 +127,10 @@ if (!file.exists(params$table_genes_file) | params$force_outrider) {
     stop(paste0(params$table_genes_file, ' does not exist yet — rerun with force_outrider = TRUE to compute it.'))
   }
     table_genes = readRDS(params$table_genes_file)
-    print(paste0('Sample ',proband,' already exists. ~~~  Loaded cached table_genes ~~~  Time is: ',Sys.time()))
     }
 
   # Keep only the proband's results (reference samples are only there to fit the model)
-  table_genes_out = table_genes  # as saved in the .rds, before helper columns are added
-
+  
   significant_table = table_genes[table_genes$pValue < 0.05, ]
   significant_table$padjust = signif(significant_table$padjust, 4)
   colnames(significant_table)[1] = 'ensemblID'
@@ -146,9 +144,11 @@ if (!file.exists(params$table_genes_file) | params$force_outrider) {
                                "rawcounts", "meanRawcounts", "normcounts", "meanCorrected")
   candidate_table = candidate_table[, colnames_candidate_genes]
 
-  print(paste0('Done OUTRIDER against reference cohort for ',proband,'~~~ Time is: ', Sys.time()))
+  if (file.exists(params$table_genes_file)) {print(paste0('Sample ',proband,' already exists. ~~~  Loaded cached table_genes ~~~  Time is: ',Sys.time()))} else {
+    print(paste0('Done OUTRIDER against reference cohort for ',proband,'~~~ Time is: ', Sys.time()))
+  }
 
-  list(significant_table = significant_table, candidate_table = candidate_table, table_genes = table_genes_out)
+  list(significant_table = significant_table, candidate_table = candidate_table, table_genes = table_genes)
   }
 
 # -----------------------------------------------------------------------------
