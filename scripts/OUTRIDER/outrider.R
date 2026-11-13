@@ -109,9 +109,9 @@ if (!file.exists(params$table_genes_file) | params$force_outrider) {
   ods = filterExpression(ods, gtfFile = params$gtf, filterGenes = TRUE, savefpkm = TRUE, fpkmCutoff = 0.5)
   #ods = filterExpression(ods)
   if (is.null(q)) {
-    ods = OUTRIDER(ods)
+    ods = OUTRIDER(ods, iterations = 5)
     } else {
-    ods = OUTRIDER(ods, q = q)
+    ods = OUTRIDER(ods, q = q, iterations = 5)
   }
 
   # Result tables
