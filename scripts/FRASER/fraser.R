@@ -16,6 +16,10 @@ params$fraser_temp_bamdir = args[3]
 params$fraser_bamdir = args[4]
 params$reference_cohorte = args[5]
 options(scipen = 999)
+# Keep FRASER matrices in memory (plain arrays) instead of HDF5/DelayedArray-backed objects.
+# Avoids "'+' between an array and a DelayedArray object is not supported yet"
+# (a DelayedArray/FRASER version mismatch hit once the reference cohort is added).
+options(FRASER.maxSamplesNoHDF5 = 10000, FRASER.maxJunctionsNoHDF5 = 1e9)
 
 # -----------------------------------------------------------------------------
 # 2. candidate genes to run and reference cohort
@@ -103,7 +107,8 @@ fraser_pipeline = function(candidates = candidates, i = 1,reference_cohorte = NU
         fds
       }, error = function(e) {
         print(paste0('FRASER failed for sample ~~~ ', i, ' ~~~ ', geneID,
-                     ' ~~~ ','likely because there were no splice junctions ~~~ ', conditionMessage(e)))
+                     ' ~~~ ', conditionMessage(e)))
+        print(sys.calls())  # traceback: shows which FRASER step raised the error
         
         # Write an empty CSV (header only) so this sample is not re-run
         system(paste0("echo 'FRASER failed ~ no splice junctions' >",res_dt_outfile))
@@ -153,8 +158,10 @@ fraser_pipeline = function(candidates = candidates, i = 1,reference_cohorte = NU
       plot(0, main = 'Placeholder - rendering failed')
       dev.off()
 
+      print(paste0('Sashimi: gene ', geneID, ', row in res_dt = ', candidate_gene_localisation, ', n control samples = ', sum(!is.na(control_samples))))
+      control_samples = control_samples[!is.na(control_samples)]
       png(sashimi_file, width = 1000 + length(temp[!is.na(temp)]) * 5, height = 1200)
-      try(plotBamCoverageFromResultTable(
+      tryCatch(plotBamCoverageFromResultTable(
         fds,
         result = res_dt[candidate_gene_localisation, ],
         show_full_gene = TRUE,
@@ -163,7 +170,7 @@ fraser_pipeline = function(candidates = candidates, i = 1,reference_cohorte = NU
         control_samples = control_samples,
         splicegraph_labels = "id",
         mar = c(1, 10, 0.1, 1)
-      ), silent = TRUE)
+      ), error = function(e) print(paste0('Sashimi FAILED for ', geneID, ' ~~~ ', conditionMessage(e))))
       dev.off()
 
       print(paste0('Done sample ~~~ ', i, ', gene: ',geneID,' ~~~ Time is: ', Sys.time()))
@@ -180,4 +187,4 @@ fraser_pipeline = function(candidates = candidates, i = 1,reference_cohorte = NU
 # 4. Run the fraser_pipeline() function
 #
 print(paste0('RUNNING fraser_pipeline() ~~~ ', nrow(candidates), ', samples. ~~~ Time is: ', Sys.time()))
-for(i in 1 : nrow(candidates)){fraser_pipeline(candidates,i=i)}
+for(i in 1 : nrow(candidates)){fraser_pipeline(candidates, i = i, reference_cohorte = reference_cohorte)}
