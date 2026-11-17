@@ -11,8 +11,8 @@ module load samtools
 module load r
 
 #read configs.json
-read workdir rnasplice_bamdir < <(
-  jq -r '.general | [.workdir, .rnasplice_bamdir] | @tsv' ../../data/input/configs.json
+read workdir rnasplice_bamdir reference_cohorte < <(
+  jq -r '.general | [.workdir, .rnasplice_bamdir, .reference_cohorte] | @tsv' ../../data/input/configs.json
 )
 
 
@@ -20,7 +20,7 @@ read fraser_temp_bamdir fraser_bamdir fraser_chr_bamdir  < <(
   jq -r '.FRASER | [.fraser_temp_bamdir, .fraser_bamdir, .fraser_chr_bamdir] | @tsv' ../../data/input/configs.json
 )
 
-Rscript fraser.R $workdir "$rnasplice_bamdir" $fraser_temp_bamdir $fraser_bamdir
+Rscript fraser.R $workdir "$rnasplice_bamdir" $fraser_temp_bamdir $fraser_bamdir $reference_cohorte
 
 #fraser genome wide
 #cpu=4

@@ -317,7 +317,8 @@ server = function(input, output, session) {
   logged_user = reactiveVal(if (use_password) NA_character_ else "local")
 
   if (use_password) {
-    auth = secure_server(check_credentials = check_credentials(credentials_db))
+    # timeout = minutes of inactivity before shinymanager logs the user out (shinymanager default is 15; 0 = never)
+    auth = secure_server(check_credentials = check_credentials(credentials_db), timeout = 240)
 
     ### Log which user logged in (once per session)
     user_logged = reactiveVal(FALSE)

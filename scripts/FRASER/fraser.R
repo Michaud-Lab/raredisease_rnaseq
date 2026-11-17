@@ -69,7 +69,7 @@ fraser_pipeline = function(candidates = candidates, i = 1,reference_cohorte = NU
 
      load_install_library(c('patchwork', 'FRASER', 'tidyr', 'GenomeInfoDb'))
 
-      load_install_library(c('TxDb.Hsapiens.UCSC.hg38.knownGene', 'org.Hs.eg.db'))
+      load_install_library(c('TxDb.Hsapiens.UCSC.hg38.knownGene', 'org.Hs.eg.db','SGSeq'))
       txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
       orgDb <- org.Hs.eg.db
 
@@ -122,7 +122,7 @@ fraser_pipeline = function(candidates = candidates, i = 1,reference_cohorte = NU
      }
 
 
-      res = results(fds, all = TRUE, padjCutoff = NA, deltaPsiCutoff = NA)
+      res = suppressMessages(results(fds, all = TRUE, padjCutoff = NA, deltaPsiCutoff = NA))
 
       print(paste0('Dimensions of res: ', paste(dim(as.data.table(res)), collapse = ' x ')))
 

@@ -8,14 +8,14 @@ load_install_library(c('dplyr', 'tidyr', 'DESeq2', 'vcfR', 'ggplot2',
 # -----------------------------------------------------------------------------
 # 1. Arguments and parameters
 # -----------------------------------------------------------------------------
-#args = commandArgs(trailingOnly = TRUE)
+args = commandArgs(trailingOnly = TRUE)
 params = list(overlap = args[1])
 params$vcf = args[2]
 params$imprinting = args[3]
 params$workdir = dirname(params$overlap)
 ase = read.table(params$overlap,header=FALSE)
 
-colnames(ase) = c("CHROM","SNPstart","POS","sampleID",'ref','alt','chr','START','STOP','ensemblID')
+colnames(ase) = c("chr","SNPstart","pos","sampleID",'ref','alt','chr','START','STOP','ensemblID')
 
 # get rid of HSJ_045_04 because it should not be there...
 ase = ase[ase$sampleID != 'HSJ_042_04_PAX', ]
@@ -27,11 +27,11 @@ ase = ase %>%
 
 #pivot
 pase = ase[,c(1,3,4,14)] %>% 
-  distinct(CHROM,POS,sampleID, .keep_all = TRUE) %>%
+  distinct(chr,pos,sampleID, .keep_all = TRUE) %>%
   pivot_wider(names_from = sampleID, values_from = RNA_DP,values_fill = ".")
 
 #to filter
-key_target <- paste(pase$CHROM, pase$POS, sep = ":")
+key_target <- paste(pase$chr, pase$pos, sep = ":")
 
 
 # -----------------------------------------------------------------------------
@@ -57,8 +57,8 @@ vcf_extract = list(gt,ad_ref,ad_alt,dp,gq,ratio,ratio)
 
 for(i in 1:7){
   gt_df <- data.frame(
-    CHROM = vcf@fix[, "CHROM"],
-    POS   = as.integer(vcf@fix[, "POS"]),
+    chr = vcf@fix[, "CHROM"],
+    pos   = as.integer(vcf@fix[, "POS"]),
     REF   = vcf@fix[, "REF"],
     ALT   = vcf@fix[, "ALT"],
     gt <- vcf_extract[[i]],
@@ -67,17 +67,18 @@ for(i in 1:7){
   )
   
   #
-  if(i==1) WGS_GT = left_join(pase[,c(1,2)], gt_df, by = c("CHROM", "POS"))
-  if(i==2) WGS_REF = left_join(pase[,c(1,2)], gt_df, by = c("CHROM", "POS"))
-  if(i==3) WGS_ALT = left_join(pase[,c(1,2)], gt_df, by = c("CHROM", "POS"))
-  if(i==4) WGS_DP = left_join(pase[,c(1,2)], gt_df, by = c("CHROM", "POS"))
-  if(i==5) WGS_GQ = left_join(pase[,c(1,2)], gt_df, by = c("CHROM", "POS"))
-  if(i==6) WGS_ratio = left_join(pase[,c(1,2)], gt_df, by = c("CHROM", "POS"))
-  if(i==7) WGS_pvalue = left_join(pase[,c(1,2)], gt_df, by = c("CHROM", "POS"))
+  if(i==1) WGS_GT = left_join(pase[,c(1,2)], gt_df, by = c("chr", "pos"))
+  if(i==2) WGS_REF = left_join(pase[,c(1,2)], gt_df, by = c("chr", "pos"))
+  if(i==3) WGS_ALT = left_join(pase[,c(1,2)], gt_df, by = c("chr", "pos"))
+  if(i==4) WGS_DP = left_join(pase[,c(1,2)], gt_df, by = c("chr", "pos"))
+  if(i==5) WGS_GQ = left_join(pase[,c(1,2)], gt_df, by = c("chr", "pos"))
+  if(i==6) WGS_ratio = left_join(pase[,c(1,2)], gt_df, by = c("chr", "pos"))
+  if(i==7) WGS_pvalue = left_join(pase[,c(1,2)], gt_df, by = c("chr", "pos"))
 }
 
 WGS_pvalue[,-c(1:4)] = NA
 
+#
 for(i in 1:nrow(WGS_GT))
   #  for(i in 1:10000)
 {
@@ -100,7 +101,7 @@ WGS_ref_pivoted = pivot_longer(WGS_REF,cols = 5:ncol(WGS_pvalue),values_to = 'RE
 WGS_alt_pivoted = pivot_longer(WGS_ALT,cols = 5:ncol(WGS_pvalue),values_to = 'ALT_DP')
 WGS_gq_pivoted = pivot_longer(WGS_GQ,cols = 5:ncol(WGS_pvalue),values_to = 'GQ')
 WGS_pvalue_pivoted = pivot_longer(WGS_pvalue,cols = 5:ncol(WGS_pvalue),values_to = 'pvalue')
-pase_pivoted = pivot_longer(pase,cols = 3:ncol(pase),values_to = 'RNA_DP')
+pase_pivoted = pivot_longer(pase,cols = 3:ncol(pase),values_to = 'RNA_DP',names_to= 'sampleID')
 
 parts = strsplit(as.character(pase_pivoted$RNA_DP), ",", fixed = TRUE)
 before = as.numeric(sapply(parts, `[`, 1))
@@ -110,11 +111,12 @@ pase_pivoted$RNA_ratio <- after / before
 WGS_ref_pivoted = WGS_ref_pivoted[!is.na(WGS_pvalue_pivoted$pvalue),]
 WGS_alt_pivoted = WGS_alt_pivoted[!is.na(WGS_pvalue_pivoted$pvalue),]
 WGS_gq_pivoted = WGS_gq_pivoted[!is.na(WGS_pvalue_pivoted$pvalue),]
-WGS_GT_pivoted = WGS_GT_pivoted[!is.na(WGS_GT_pivoted$pvalue),]
+WGS_GT_pivoted = WGS_GT_pivoted[!is.na(WGS_pvalue_pivoted$pvalue),]
 pase_pivoted = pase_pivoted[!is.na(WGS_pvalue_pivoted$pvalue),]
 WGS_pvalue_pivoted = WGS_pvalue_pivoted[!is.na(WGS_pvalue_pivoted$pvalue),]
 
-WGS = data.frame(WGS_pvalue_pivoted,
+WGS = data.frame(WGS_pvalue_pivoted[,-c(5)],
+                 sampleID = pase_pivoted$sampleID,
                  WGS_DP = paste(WGS_ref_pivoted$REF_DP,WGS_alt_pivoted$ALT_DP,sep = ','),
                  WGS_GQ = WGS_gq_pivoted$GQ,
                  RNA_DP = pase_pivoted$RNA_DP,
@@ -137,8 +139,8 @@ gene_locations = genes(TxDb.Hsapiens.UCSC.hg38.knownGene,single.strand.genes.onl
 gene_locations = as.data.frame(gene_locations)
 gene_locations = gene_locations[nchar(as.character(gene_locations$seqnames))<6,]
 map = merge(map, gene_locations, by.y = 'group_name', by.x = 'ENTREZID')
-colnames(map)[c(2,3,5)] = c('ensemblID','geneID','CHROM')
-map$CHROM = gsub('chr','',map$CHROM)
+colnames(map)[c(2,3,5)] = c('ensemblID','geneID','chr')
+map$chr = gsub('chr','',map$chr)
 map = map[,c(2,3,5:9)]
 
 # -----------------------------------------------------------------------------
@@ -146,8 +148,10 @@ map = map[,c(2,3,5:9)]
 # -----------------------------------------------------------------------------
 high_confidence_imprinted_genes = read.csv(params$imprinting, header =TRUE)
 
-WGS_map = inner_join(WGS,map, by = join_by(CHROM, between(POS, start, end)))
-WGS_X = WGS_map[WGS_map$CHROM == 'X',]
+WGS_map = inner_join(WGS,map, by = join_by(chr, between(pos, start, end)))
+WGS_map = WGS_map[,!(colnames(WGS_map) %in% c('start','end','width'))]
+
+WGS_X = WGS_map[WGS_map$chr == 'X',]
 
 if(nrow(WGS_X)==0) WGS_X = WGS_map[1:10,]
 WGS_X$Type = 'X'
@@ -162,8 +166,8 @@ write.table(ase_map_imprinted, file.path(params$workdir,"gwImprinted.tsv"),sep =
 # -----------------------------------------------------------------------------
 # 6. Save results
 # -----------------------------------------------------------------------------
-signif_map = inner_join(WGS_signif,map, by = join_by(CHROM, between(POS, start, end)))
+signif_map = inner_join(WGS_signif,map, by = join_by(chr, between(pos, start, end)))
 signif_map = signif_map[!is.na(signif_map$geneID),]
-
+signif_map = signif_map[,!(colnames(signif_map) %in% c('start','end','width'))]
 
 write.table(signif_map, file.path(params$workdir,"gwASE.tsv"),sep = '\t',quote = FALSE)

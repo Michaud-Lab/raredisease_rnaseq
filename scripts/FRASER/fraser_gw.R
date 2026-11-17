@@ -71,7 +71,7 @@ if (file.exists(file.path(params$bams_subset, 'res_dt_min.csv')) == TRUE) {
   fds = FRASER(fds, q = c(jaccard = 2))
 
   # Filter to significant results and save
-  res = results(fds, all = TRUE, padjCutoff = NA, deltaPsiCutoff = NA)
+  res = suppressMessages(results(fds, all = TRUE, padjCutoff = NA, deltaPsiCutoff = NA))
   res_dt = as.data.table(res)
   res_dt_001 = res_dt[res_dt$pValue < 0.01, ]
   res_dt_001$mean = (res_dt_001$start + res_dt_001$end) / 2
