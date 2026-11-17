@@ -53,7 +53,8 @@ plot_total_reads = function(fc_genes_raw_ALL) {
 }
 
 # plot_expression_cohort: per-exon TPM box plots for the cohort (children / adults)
-#   overlaid with the proband's individual data points.
+#   with a small jittered point for every cohort observation (hover shows PatientID), overlaid with the
+#   proband's individual data points.
 # Arguments:
 #   data_child   - data.frame: cohort rows for patients < 18 yrs
 #   data_adults  - data.frame: cohort rows for patients >= 18 yrs
@@ -66,22 +67,30 @@ plot_expression_cohort = function(data_child, data_adults, data_patient) {
       x = ~exonID,
       y = ~expression,
       type = "box",
-      boxpoints = FALSE,
+      boxpoints = 'all',
+      jitter = 0.5,
+      pointpos = 0,
       name = 'Average (<18yrs)',
       color = I('darkblue'),
-      hoverinfo = 'none',
-      marker = list(size = 12)
+      hoveron = 'points',
+      hoverinfo = 'text',
+      text = ~paste0('<b>Sample</b>: ', PatientID, '<br><b>TPM</b>: ', round(expression, 1)),
+      marker = list(size = 4, opacity = 0.5)
     ) %>%
     add_trace(
       data = data_adults,
       x = ~exonID,
       y = ~expression,
       type = "box",
-      boxpoints = FALSE,
+      boxpoints = 'all',
+      jitter = 0.5,
+      pointpos = 0,
       name = 'Average (>18yrs)',
       color = I('darkgreen'),
-      hoverinfo = 'none',
-      marker = list(size = 12)
+      hoveron = 'points',
+      hoverinfo = 'text',
+      text = ~paste0('<b>Sample</b>: ', PatientID, '<br><b>TPM</b>: ', round(expression, 1)),
+      marker = list(size = 4, opacity = 0.5)
     ) %>%
     add_trace(
       data = data_patient,
