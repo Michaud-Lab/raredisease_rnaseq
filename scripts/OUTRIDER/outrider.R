@@ -283,6 +283,7 @@ map = create_map()
 hemo_ensembl = map$ensemblID[map$geneID %in% c('HBB','HBA1','HBA2','HBD','HLA','HBG','HBQ','HBE','HBZ','HBM','SELPLG')]
 
 #outrider per gene: one run per unique proband, each against the reference cohorte only
+candidates = candidates[candidates$proband != 'HSJ_110_01_PAX',] # exception fix for now...
 probands_idx = which(!duplicated(candidates$proband))
 
 res_list = list()

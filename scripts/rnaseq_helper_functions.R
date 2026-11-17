@@ -26,7 +26,7 @@ candidate_genes_automated2 = function(gwfiles = gwfiles,
       gw_top = gw_l[[g]] %>%
         filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ|^HBM|^SELPLG", hgncSymbol), !is.na(hgncSymbol)) %>%
         group_by(sampleID) %>%
-        filter(padjust < 0.0001) %>%
+        filter(padjust < 0.001) %>%
         slice_min(padjust, n = 5) %>%
         distinct(hgncSymbol, sampleID,.keep_all = T)
     
@@ -40,8 +40,8 @@ candidate_genes_automated2 = function(gwfiles = gwfiles,
       gw_top = gw_l[[g]] %>%
         filter(!grepl("^HBA|^HBB|^HLA|^HBG|^HBD|^HBB|^HBQ|^HBE|^HBZ|^HBM|^SELPLG", geneID), !is.na(geneID)) %>%
         group_by(sampleID) %>%
-        filter(pValue < 0.000001) %>%
-        slice_min(pValue, n = 2) %>%
+        filter(pValue < 0.0001) %>%
+        slice_min(pValue, n = 5) %>%
         distinct(geneID, sampleID,.keep_all = T)
     
       gw_top$geneID = sapply(strsplit(gw_top$geneID,';'),'[[',1)
@@ -76,7 +76,7 @@ candidate_genes_automated2 = function(gwfiles = gwfiles,
       for(c in 1:length(probands_unique)){
         temp = gene_prioritization(
           sample      = probands_unique[c],
-          pcutoff     = 0.01,
+          pcutoff     = 0.05,
           hpo_sample  = clinical,
           hpo_all     = file.path(tmpdir,'genes_to_phenotype.txt'),
           fraser      = gwFRASER,

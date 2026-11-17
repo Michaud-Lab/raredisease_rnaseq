@@ -19,7 +19,7 @@ dir.create(paste0(params$datadir, 'bams_subset'), showWarnings = FALSE)
 # 2. Copy ASE results
 # -----------------------------------------------------------------------------
 cp_ASE = paste0('cp ', params$workdir, '/ASE/gw* ', params$datadir, '/.')
-if(file.exists(paste0(params$workdir,'/ASE/gw*'))) system(cp_ASE)
+if(file.exists(paste0(params$workdir,'/ASE/gwASE.tsv'))) system(cp_ASE)
 
 # -----------------------------------------------------------------------------
 # 3. Compile genome-wide FRASER results
@@ -122,10 +122,11 @@ for (i in 1:nrow(candidates)) {
 html_files = paste0(list.dirs(params$resultdir,recursive = F), '/multiqc/multiqc_report.html')
 
 for(i in 1:length(html_files)){
-  lines = readLines(html_files[i])
-  problematic_line = grep("this.renderTo.parentNode.insertBefore", lines, fixed = TRUE)
-  lines = lines[-problematic_line]
-  writeLines(lines, file.path(params$datadir, paste0('multiqc_report_', i, '.html')))
+  if(file.exists(html_files[i])) {
+    lines = readLines(html_files[i])
+    problematic_line = grep("this.renderTo.parentNode.insertBefore", lines, fixed = TRUE)
+    lines = lines[-problematic_line]
+    writeLines(lines, file.path(params$datadir, paste0('multiqc_report_', i, '.html')))}
 }
 
 # -----------------------------------------------------------------------------
