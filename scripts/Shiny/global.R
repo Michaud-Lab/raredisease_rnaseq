@@ -62,6 +62,10 @@ load_rnaseq_dataset = function(datadir) {
 
   if (file.exists(file.path(datadir, 'gwImprinted.tsv'))) {
     ds$gwASE_IMX = read.table(file.path(datadir, 'gwImprinted.tsv'), row.names = 1, sep = '\t', header = TRUE)
+    # older ASE.R outputs used CHROM/POS/name; the app expects chr/pos/sampleID
+    colnames(ds$gwASE_IMX)[colnames(ds$gwASE_IMX) == 'CHROM'] = 'chr'
+    colnames(ds$gwASE_IMX)[colnames(ds$gwASE_IMX) == 'POS'] = 'pos'
+    colnames(ds$gwASE_IMX)[colnames(ds$gwASE_IMX) == 'name'] = 'sampleID'
   } else {
     ds$gwASE_IMX = NULL
     logger::log_warn(paste0("gwImprinted.tsv not found in ", datadir, " — imprinted/X-linked ASE results will not be available."))

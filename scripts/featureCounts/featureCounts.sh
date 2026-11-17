@@ -10,6 +10,7 @@ ens_gene=$7
 masterlog=$8
 fc_exons=$9
 fc_genes="${10}"
+candidate_genes="${11}"   # e.g. data/input/candidate_genes.csv (column "proband" lists the probands to keep)
 
 mkdir -p $workdir/featureCounts
 
@@ -40,10 +41,24 @@ else
   echo "~~~ File $workdir/featureCounts/MANE.tsv already exists. No action taken ~~~"
 fi
 
-#list all the bams SR
-ls -1 $bamdir*bam >bamlist
-bams_SR=$(tr '\n' ' ' < "bamlist")
-rm bamlist
+#list all the bams SR: restrict to the probands listed in the "proband" column of candidate_genes.csv
+if [ ! -f "$candidate_genes" ]; then
+   echo "ERROR: candidate genes file $candidate_genes not found" >&2
+   exit 1
+fi
+
+probands=$(mktemp)
+awk -F',' 'NR==1{for(i=1;i<=NF;i++){gsub(/"|\r/,"",$i); if($i=="proband") c=i}; if(!c){print "ERROR: no proband column" > "/dev/stderr"; exit 1}; next}
+           {gsub(/"|\r/,"",$c); if($c!="") print $c}' "$candidate_genes" | sort -u >$probands
+[ -s "$probands" ] || { echo "ERROR: no probands read from $candidate_genes" >&2; exit 1; }
+
+# keep a bam only if its name (minus directory and "_sorted*.bam"/".bam") is a listed proband
+bams_SR=$(ls -1 $bamdir*bam | awk 'NR==FNR{p[$1]; next} {n=$0; sub(/.*\//,"",n); sub(/_sorted.*$/,"",n); sub(/\.bam$/,"",n); if(n in p) print}' $probands - | tr '\n' ' ')
+if [ -z "${bams_SR// /}" ]; then echo "ERROR: no bams match the probands" >&2; rm $probands; exit 1; fi
+
+echo "~~~ $(wc -w <<< "$bams_SR") bams kept for $(wc -l < $probands) probands ~~~"
+
+rm $probands
 
 #per gene and exon (or called feature_counts_pergene_SR.txt)
 if [ ! -f "$workdir/featureCounts/feature_counts_pergene.txt" ]; then

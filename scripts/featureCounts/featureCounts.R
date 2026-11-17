@@ -144,7 +144,10 @@ fc_exons_tpm_ggplot$PatientID = fc_exons_tpm_ggplot$`Patient ID`
 
 # Filter: probands only, then candidate genes only
 #proband_ids = gsub('_PAX', '', clinical$`Patient ID`[clinical$type == 'Proband'])
-proband_ids = clinical$`Patient ID`[clinical$type == 'Proband']
+#proband_ids = clinical$`Patient ID`[clinical$type == 'Proband']
+proband_ids = unique(candidates$proband)
+
+
 id_cols = c('geneID', 'ensemblID', 'transcriptID', 'exonID', 'Length')
 fc_exons_tpm = fc_exons_tpm[, colnames(fc_exons_tpm) %in% c(id_cols, proband_ids)]
 fc_exons_raw_ALL = fc_exons_raw_ALL[, colnames(fc_exons_raw_ALL) %in% c(id_cols, proband_ids)]
