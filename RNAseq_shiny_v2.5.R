@@ -163,7 +163,14 @@ app_ui = page_fluid(
                  width = '100%'
                )
              ),
-             card(plotlyOutput("Figure_genemodel_plotly", width = '1500px', height = "960px")),
+             card(
+               # message shown while the figure is (re)computed; hidden as soon as the plot arrives
+               div(id = "genemodel_progress", style = "display:none; padding: 20px; font-size: 20px; color: #6c757d;", "Plotting in progress..."),
+               tags$script(HTML("
+                 $(document).on('shiny:recalculating', function(e) { if (e.target.id === 'Figure_genemodel_plotly') $('#genemodel_progress').show(); });
+                 $(document).on('shiny:value shiny:error', function(e) { if (e.target.id === 'Figure_genemodel_plotly') $('#genemodel_progress').hide(); });
+               ")),
+               plotlyOutput("Figure_genemodel_plotly", width = '1500px', height = "960px")),
              card(
                htmlOutput('Figure_genemodel_legend'))
     ),
