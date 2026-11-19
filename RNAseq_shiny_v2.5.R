@@ -150,7 +150,7 @@ app_ui = page_fluid(
     ),
 
     ### Gene model (interactive plotly version)
-    tabPanel("Gene model (plotly)",
+    tabPanel("Gene model",
              card(
                card_header(strong('Gene model and splicing significance values from FRASER (interactive)')),
                sliderInput(
