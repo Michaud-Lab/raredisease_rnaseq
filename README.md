@@ -221,7 +221,7 @@ To require a username and password before accessing the dashboard, pass `use_pas
 
 ## Testing
 
-Unit tests are located in `scripts/tests/testthat/test_helper_functions.R` and cover `gwFRASER_table()`, `manhattan_plot()`, `gene_prioritization()`, `plot_expression_cohort()`, and `plot_expression_family()`.
+Unit tests are located in `scripts/tests/testthat/test_helper_functions.R` and cover `gwFRASER_table()`, `manhattan_plot()`, `gene_prioritization()`, and `plot_expression_cohort()`.
 
 Run from the project root:
 ```r

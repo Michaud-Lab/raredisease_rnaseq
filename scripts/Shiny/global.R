@@ -103,10 +103,22 @@ load_rnaseq_dataset = function(datadir) {
   ds$candidates_OUTRIDER = read.table(file.path(datadir, 'candidates_OUTRIDER.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
   ds$candidates_perexons_OUTRIDER = read.table(file.path(datadir, 'candidates_perexons_OUTRIDER.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
 
-  ds$fc_exons_tpm_ggplot = read.table(file.path(datadir, 'fc_exons_tpm_ggplot.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
   ds$candidates = read.csv(file.path(datadir, 'input/candidate_genes_ALL.csv'), check.names = FALSE)
 
   ds$clinical = read.table(file.path(datadir, 'clinical.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
+
+  # Per-exon cohort expression for the cohort plot: OUTRIDER normcounts if available, else fall back to TPM
+  nc_file = file.path(datadir, 'exons_normcounts_ggplot_OUTRIDER.tsv')
+  if (file.exists(nc_file)) {
+    ds$fc_exons_tpm_ggplot = read.table(nc_file, sep = '\t', check.names = FALSE, header = TRUE)
+    ds$fc_exons_tpm_ggplot = merge(ds$fc_exons_tpm_ggplot,
+                                   unique(ds$clinical[, c('PatientID', 'Sexe', 'age')]), by = 'PatientID')
+    ds$expression_unit = 'OUTRIDER normcounts'
+  } else {
+    logger::log_warn(paste0("exons_normcounts_ggplot_OUTRIDER.tsv not found in ", datadir, " — cohort plot falls back to TPM."))
+    ds$fc_exons_tpm_ggplot = read.table(file.path(datadir, 'fc_exons_tpm_ggplot.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
+    ds$expression_unit = 'TPM'
+  }
   ds$html_files = list.files(datadir, pattern = 'multiqc_report', full.names = TRUE)
   ds$gwFRASER = read.table(file.path(datadir, 'gwFRASER.tsv'), row.names = 1, sep = '\t', header = TRUE)
 

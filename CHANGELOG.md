@@ -4,6 +4,27 @@ All notable changes to this project are documented here.
 
 ---
 
+## 2026-11-19 — genemodel-plotly-and-normcounts
+
+**Added**
+- `scripts/Shiny/rnaseq_shinyhelper_functions.R`: new `genemodel_plotly()`, a fully native-plotly version of `genemodel_plot()` (the original ggplot function is unchanged and kept for later use). Three panels combined with `plotly::subplot` (linked x-axes, each with its own labels, thousands-separated ticks):
+  - Gene model: exons as hoverable rectangles (hover shows the exon label), mutation marked by a dashed line, y-axis -0.6 to 0.6.
+  - `fraser_plot`: junctions with -log10(p) > 0 drawn as segments (start to end), zero-valued junctions as black markers; black-to-red colour scale up to the maximum value; y-axis from -0.2 to 1.05 x max; hover shows junction, p-value, deltaPSI, counts / totalCounts and meanCounts / meanTotalCounts.
+  - `coverage_plot`: proband line over the reference percentile band, computed directly with `matrixStats::rowQuantiles` instead of `ggplot` + `ggplotly`, which cut a full-gene render from ~13 s to ~2 s.
+  - Window is the whole gene with a 5 Kb buffer on each side (no window slider); same axis title / tick label sizes on all panels; panel titles aligned from the real axis domains.
+- `plotly_message()` helper: empty plotly figure with a message, used when no gene, FRASER p-values or coverage data are available.
+- `RNAseq_shiny_v2.5.R`: new "Gene model (plotly)" tab with its own coverage-interval slider, replacing the previous "Gene model" tab.
+- `scripts/OUTRIDER/outrider.R`: `outrider_per_exon()` now saves per-exon normcounts for the candidate gene (`cohort_normcounts_exons_<proband>.rds`); combined into `exons_normcounts_ggplot_OUTRIDER.tsv`.
+
+**Changed**
+- `plot_expression_cohort()` now plots OUTRIDER normcounts instead of TPM (`unit` argument for hover and y-axis label). `scripts/Shiny/global.R` loads `exons_normcounts_ggplot_OUTRIDER.tsv` when present and falls back to TPM (with a warning); `reactive_module.R` passes `expression_unit` through. Requires re-running per-exon OUTRIDER with `force_outrider = TRUE` to produce the new file.
+
+**Removed**
+- `plot_expression_family()` and its UI/server code, its tests (`scripts/tests/testthat/test_helper_functions.R`) and its README mention.
+- The original "Gene model" tab (and its window slider, reference-interval slider and `Figure_genemodel` output) from `RNAseq_shiny_v2.5.R`; `genemodel_plot()` is kept in the helper file but no longer called.
+
+---
+
 ## 2026-09-23 — data-minimal-refresh
 
 **Added**

@@ -52,14 +52,15 @@ plot_total_reads = function(fc_genes_raw_ALL) {
     )
 }
 
-# plot_expression_cohort: per-exon TPM box plots for the cohort (children / adults)
+# plot_expression_cohort: per-exon normcounts (OUTRIDER) box plots for the cohort (children / adults)
 #   with a small jittered point for every cohort observation (hover shows PatientID), overlaid with the
 #   proband's individual data points.
 # Arguments:
 #   data_child   - data.frame: cohort rows for patients < 18 yrs
 #   data_adults  - data.frame: cohort rows for patients >= 18 yrs
 #   data_patient - data.frame: rows for the selected proband
-plot_expression_cohort = function(data_child, data_adults, data_patient) {
+#   unit         - label for the expression unit (default 'normcounts'; 'TPM' when falling back to TPM data)
+plot_expression_cohort = function(data_child, data_adults, data_patient, unit = 'normcounts') {
   n_exons = max(data_patient$exonID, 1)
   plot_ly() %>%
     add_trace(
@@ -74,7 +75,7 @@ plot_expression_cohort = function(data_child, data_adults, data_patient) {
       color = I('darkblue'),
       hoveron = 'points',
       hoverinfo = 'text',
-      text = ~paste0('<b>Sample</b>: ', PatientID, '<br><b>TPM</b>: ', round(expression, 1)),
+      text = ~paste0('<b>Sample</b>: ', PatientID, '<br><b>', unit, '</b>: ', round(expression, 1)),
       marker = list(size = 4, opacity = 0.5)
     ) %>%
     add_trace(
@@ -89,7 +90,7 @@ plot_expression_cohort = function(data_child, data_adults, data_patient) {
       color = I('darkgreen'),
       hoveron = 'points',
       hoverinfo = 'text',
-      text = ~paste0('<b>Sample</b>: ', PatientID, '<br><b>TPM</b>: ', round(expression, 1)),
+      text = ~paste0('<b>Sample</b>: ', PatientID, '<br><b>', unit, '</b>: ', round(expression, 1)),
       marker = list(size = 4, opacity = 0.5)
     ) %>%
     add_trace(
@@ -118,50 +119,17 @@ plot_expression_cohort = function(data_child, data_adults, data_patient) {
         tickvals = as.list(1:n_exons),
         tickmode = "array"
       ),
-      yaxis = list(title = "Normalised Expression (TPM)"),
+      yaxis = list(title = paste0("Normalised Expression (", unit, ")")),
       title = paste0('Cohort expression (per exon) for ', data_patient$geneID[1])
     )
 }
 
 
-# plot_expression_family: per-exon TPM scatter plot for all members of the proband's family.
-# Arguments:
-#   data_family  - data.frame: rows for all family members (proband + parents)
-#   data_patient - data.frame: rows for the selected proband (used for gene name in title)
-plot_expression_family = function(data_family, data_patient) {
-  n_exons = max(data_family$exonID, 1)
-  n_members = length(unique(data_family$PatientID))
-  plot_ly() %>%
-    add_trace(
-      data = data_family,
-      x = ~exonID,
-      y = ~expression,
-      type = 'scatter',
-      mode = 'markers',
-      hoverinfo = 'text',
-      marker = list(opacity = 1),
-      color = ~PatientID,
-      colors = c('darkorange', 'black', 'blue')[n_members:1],
-      size = 22,
-      name = ~PatientID,
-      customdata = ~Sexe,
-      text = ~as.factor(age),
-      hovertemplate = paste(
-        '<b>Exon number</b>: %{x}',
-        '<br><b>Age</b>: %{text}',
-        '<br><b>Sex</b>: %{customdata}<br>'
-      )
-    ) %>%
-    layout(
-      xaxis = list(
-        title = "Exon Number",
-        ticktext = 1:n_exons,
-        tickvals = as.list(1:n_exons),
-        tickmode = "array"
-      ),
-      yaxis = list(title = "Normalised Expression (TPM)"),
-      title = paste0('Family expression (per exon) for ', data_patient$geneID[1])
-    )
+# plotly_message: empty plotly figure showing a single message (used when a plot cannot be drawn).
+plotly_message = function(msg) {
+  plot_ly() %>% layout(
+    xaxis = list(visible = FALSE), yaxis = list(visible = FALSE),
+    annotations = list(list(text = msg, x = 0.5, y = 0.5, xref = 'paper', yref = 'paper', showarrow = FALSE, font = list(size = 18))))
 }
 
 
@@ -327,6 +295,232 @@ wh = wh[wh$gene_id == candidate$ensembl,]
   plot(0, main = 'no gene available');print('No gene available for gene model plot')
   }
 }
+
+
+# genemodel_plotly: plotly version of genemodel_plot() (gene model, FRASER significance, coverage for a candidate gene).
+# Returns ONE plotly figure (three stacked panels, shared x axis in Kb). The significance panel is a native plotly plot;
+# the gene model is drawn natively, and the coverage panel is a ggplot converted with ggplotly().
+# Arguments:
+#   candidate                  - data.frame row: the candidate gene/proband row (geneID, ensembl, start, stop, position, mutation, proband)
+#   res_dt_candidate_gene_file - character: path to the FRASER per-candidate-gene results CSV
+#   depth_file                 - character: path to the per-base coverage depth file
+#   bam_file                   - character: path to the proband's BAM file (kept for interface consistency)
+#   colmean_genes_counts_file  - character: path to the column-mean gene counts file (used to normalise coverage)
+#   xlims                      - numeric vector length 2: zoom window in Kb (default: c(10, 100))
+#   gene_annotations           - list: gene annotation object; [[1]] exons GRanges, [[2]] gene GRanges ("wh")
+#   conf.int                   - numeric in (0,1): width of the reference coverage interval passed to
+#                                 median_hilow() in the coverage ribbon (default: 0.5, i.e. 25th-75th percentiles)
+genemodel_plotly = function(candidate = candidates,
+                             res_dt_candidate_gene_file = "resdet",
+                             depth_file = "depth",
+                             bam_file = "bam",
+                             colmean_genes_counts_file = 'colmean_genes_counts.tsv',
+                             xlims = c(10,100),
+                             gene_annotations='gene_annotations',
+                             conf.int = 0.5) {
+
+if(candidate$geneID != "" & file.exists(res_dt_candidate_gene_file)){
+
+# colmean
+colmean_genes_counts = read.table(colmean_genes_counts_file)
+
+# filter proper Chr and transcript
+gr_exons = gene_annotations[[1]]
+gr_exons = gr_exons[gr_exons$gene_id == candidate$ensembl,]
+
+# no exon annotation for this gene (e.g. a manually-added candidate not yet included in gene_annotations.rda, or a wrong/outdated ensembl id) 
+# -- bail out instead of crashing on 1:length(gr_exons@strand) below when it's 0.
+if(length(gr_exons) == 0) {
+  print(paste0('No exon annotation found in gene_annotations.rda for ', candidate$geneID, ' (ensembl id: ', candidate$ensembl, '). Regenerate gene_annotations.rda to include this gene.'))
+  return(plotly_message('no gene annotation available'))
+}
+
+gr_exons = gr_exons[order(gr_exons$exon_rank),]
+gr_exons$exonsnb = paste0('exon ',1:length(gr_exons@strand))
+
+# wh object for autoplot coverage further down
+wh = gene_annotations[[2]]
+wh = wh[wh$gene_id == candidate$ensembl,]
+
+
+  # full-gene view includes a 5 Kb buffer on each side (the bams_subset data are extracted with the same +/- 5000 bp)
+  candidate_limit = c(floor(candidate$start/1000) - 5, ceiling(candidate$stop/1000) + 5)
+
+  # write the gene model
+  merged_exons_df = as.data.frame(gr_exons)[, c("seqnames", "start", "end", "strand","exonsnb")]
+  colnames(merged_exons_df) = c("chromosome", "start", "end", "strand","exonsnb")
+  merged_exons_df$start = merged_exons_df$start/1000
+  merged_exons_df$end = merged_exons_df$end/1000
+  merged_exons_df$exon_hover = merged_exons_df$exonsnb   # full exon labels (exonsnb below may be thinned out for the on-plot text)
+
+  if(all.equal(xlims,candidate_limit) ==TRUE) merged_exons_df$exonsnb[!(1:nrow(merged_exons_df) %in% seq(1,nrow(merged_exons_df),by = 5))] = ""
+
+  mut_pos = as.numeric(strsplit(as.character(candidate$position), '___')[[1]])
+  mut_pos = mut_pos[!is.na(mut_pos)]
+  xintercept = mut_pos/1000
+  if(length(mut_pos) == 0) {xintercept = (min(merged_exons_df$start)+max(merged_exons_df$end))/2}
+  if(length(mut_pos) == 0) mut_pos = xintercept
+  mutation = strsplit(as.character(candidate$mutation), '___')[[1]]
+  if(length(mutation) > 0) {annotate_label = paste0(mutation,' (Position: ',mut_pos,')')}else annotate_label = ''
+  
+    # gene model (native plotly: intron line + one filled rectangle per exon)
+    gene_model_plot = plot_ly() %>%
+      add_lines(x = c(min(merged_exons_df$start), max(merged_exons_df$end)), y = c(0, 0),
+                line = list(color = 'black', width = 1), hoverinfo = 'none', showlegend = FALSE)
+    for(r in seq_len(nrow(merged_exons_df))) {
+      gene_model_plot = gene_model_plot %>% add_trace(
+        x = with(merged_exons_df[r, ], c(start, end, end, start, start)), y = c(-0.3, -0.3, 0.3, 0.3, -0.3),
+        type = 'scatter', mode = 'lines', fill = 'toself', fillcolor = 'grey', line = list(color = 'black', width = 1),
+        hoveron = 'fills', hoverinfo = I('text'), name = merged_exons_df$exon_hover[r],
+        text = I(paste0('<b>', merged_exons_df$exon_hover[r], '</b><br>', round(merged_exons_df$start[r], 2), '-', round(merged_exons_df$end[r], 2), ' Kb')),
+        showlegend = FALSE)
+    }
+
+    if(length(mutation) > 0) {
+      gene_model_plot = gene_model_plot %>%
+        add_lines(x = rep(xintercept[1], 2), y = c(-0.8, 0.8), line = list(color = 'darkblue', dash = 'dash', width = 2),
+                  hoverinfo = 'none', showlegend = FALSE) %>%
+        add_text(x = xintercept[1], y = 0.6, text = annotate_label, textposition = 'bottom left',
+                 textfont = list(size = 14, color = 'darkblue'), hoverinfo = 'none', showlegend = FALSE)
+    }
+    gene_model_plot = gene_model_plot %>% layout(
+      xaxis = list(title = paste0('Chromosome ',merged_exons_df[1,1],' (Kb)'), range = xlims),
+      yaxis = list(title = candidate$geneID, range = c(-0.8, 0.8), showticklabels = FALSE, zeroline = FALSE, showgrid = FALSE),
+      hoverlabel = list(bgcolor = "white"))
+
+    # plots
+    if(file.exists(res_dt_candidate_gene_file) && R.utils::countLines(res_dt_candidate_gene_file)>1) {
+    res_dt_candidate_gene = read.csv(res_dt_candidate_gene_file,row.names = 1)
+    res_dt_candidate_gene$mean = res_dt_candidate_gene$mean/1000
+    res_dt_candidate_gene$start = res_dt_candidate_gene$start/1000
+    res_dt_candidate_gene$end = res_dt_candidate_gene$end/1000
+
+    # min pvalue and max deltaPSI in region of interest.
+    temp = res_dt_candidate_gene[res_dt_candidate_gene$mean >= xlims[1] & res_dt_candidate_gene$mean <= xlims[2], ]
+    pval = min(temp$pValue)
+    deltaPSI = temp$deltaPsi[temp$pValue == pval]
+    pval = signif(pval,2)
+    
+    signif_title = paste0('Aberrant splicing (min. p-value = ',pval,', max. deltaPSI = ',deltaPSI,')')
+    ymax = max(res_dt_candidate_gene$minuslogpval, na.rm = TRUE)
+    col_pal = colorRampPalette(c('black','red'))(100)
+    col_idx = function(x) pmin(100, pmax(1, ceiling(100 * x / ymax)))   # clamp: x/ymax can round just above 1 (index 101 = NA colour)
+    hover = function(d) paste0('<b>Junction</b>: ', round(d$start, 2), '-', round(d$end, 2), ' Kb',
+                               '<br><b>p-value</b>: ', signif(d$pValue, 3),
+                               '<br><b>deltaPSI</b>: ', d$deltaPsi,
+                               '<br><b>Reads spanning/flanking junction (Proband)</b>: ', d$counts,' / ',d$totalCounts, 
+                               '<br><b>Reads spanning/flanking junction (Cohort mean)</b>: ', round(d$meanCounts, 1),' / ',round(d$meanTotalCounts,1))
+    res_plot = res_dt_candidate_gene[!is.na(res_dt_candidate_gene$minuslogpval), ]   # NA p-values have no colour (plotly would draw them in its default blue)
+    fraser_plot = plot_ly()
+
+    # junctions with -log10(p) > 0: a segment from the junction start to its end (any window size)
+    d_pos = res_plot[res_plot$minuslogpval > 0, ]
+    for(r in seq_len(nrow(d_pos))) {
+      fraser_plot = fraser_plot %>% add_segments(
+        x = d_pos$start[r], xend = d_pos$end[r], y = d_pos$minuslogpval[r], yend = d_pos$minuslogpval[r],
+        line = list(color = col_pal[col_idx(d_pos$minuslogpval[r])], width = 3),
+        hoverinfo = 'text', text = hover(d_pos[r, ]), showlegend = FALSE)
+    }
+    # junctions with -log10(p) = 0: markers at the junction midpoint
+    d_zero = res_plot[res_plot$minuslogpval <= 0, ]
+    if(nrow(d_zero) > 0) {
+      fraser_plot = fraser_plot %>% add_markers(
+        data = d_zero, x = ~mean, y = ~minuslogpval,
+        marker = list(color = col_pal[1], size = 7),
+        hoverinfo = 'text', text = hover(d_zero), showlegend = FALSE)
+    }
+    if(length(mutation) > 0) {
+      fraser_plot = fraser_plot %>% add_lines(x = rep(xintercept[1], 2), y = c(-0.2, ymax),
+        line = list(color = 'darkblue', dash = 'dash', width = 2), hoverinfo = 'none', showlegend = FALSE)
+    }
+    fraser_plot = fraser_plot %>% layout(
+      xaxis = list(title = paste0('Chromosome ',merged_exons_df[1,1],' (Kb)'), range = xlims),
+      yaxis = list(title = '-log10(p-value)', range = c(-0.2, ymax * 1.1), zeroline = FALSE),
+      hoverlabel = list(bgcolor = "white"))   # no default line at y = 0
+    } else {
+      signif_title = 'Aberrant splicing'
+      fraser_plot = plotly_message('No FRASER pvalues available (likely because expression is too low)')
+      print('No FRASER pvalues available. Likely because expression is too low')
+    }
+
+    # depth
+    if(file.exists(depth_file) && R.utils::countLines(depth_file)>1) {
+    depth = read.table(depth_file, header = TRUE, check.names = FALSE,comment.char= '')
+    depth$POS = depth$POS / 1000
+    colnames(depth) = gsub("^.*/", "",colnames(depth))
+    colnames(depth) = gsub('_sorted_chrN.bam','',colnames(depth))
+
+    for(d in 3:ncol(depth)){
+       depth[,d] = depth[,d] / colmean_genes_counts[rownames(colmean_genes_counts) == colnames(depth)[d],1]
+     }
+
+    depth_filtered = depth %>% filter(POS >= min(xlims),POS < max(xlims))
+    if(nrow(depth_filtered) == 0) depth_filtered = head(depth,100)
+
+    ylims = c(0,max(c(rowMedians(as.matrix(depth_filtered[,-c(1:2)])),depth_filtered[,colnames(depth_filtered) %in% candidate$proband])))
+
+    # reference band computed directly on the wide matrix (no pivot_longer / ggplot / ggplotly: ~3 million rows for a full gene)
+    is_proband = colnames(depth_filtered) == candidate$proband
+    ref_mat = as.matrix(depth_filtered[, -c(1:2)][, !is_proband[-c(1:2)], drop = FALSE])
+    ref_q = matrixStats::rowQuantiles(ref_mat, probs = c(0.5 - conf.int/2, 0.5 + conf.int/2), na.rm = TRUE)
+    proband_cov = depth_filtered[, is_proband][1:nrow(depth_filtered)]
+    orange = 'rgba(255,140,0,0.7)'   # darkorange1, alpha 0.7
+    coverage_plot = plot_ly() %>%
+      add_trace(x = depth_filtered$POS, y = ref_q[, 2], type = 'scatter', mode = 'lines', line = list(color = orange, width = 1),
+                hoverinfo = 'none', showlegend = FALSE) %>%
+      add_trace(x = depth_filtered$POS, y = ref_q[, 1], type = 'scatter', mode = 'lines', line = list(color = orange, width = 1),
+                fill = 'tonexty', fillcolor = orange, hoverinfo = 'none', showlegend = FALSE) %>%
+      add_trace(x = depth_filtered$POS, y = proband_cov, type = 'scatter', mode = 'lines', line = list(color = 'black', width = 1),
+                hoverinfo = 'none', showlegend = FALSE)
+    if(length(mutation) > 0) {
+      coverage_plot = coverage_plot %>% add_lines(x = rep(xintercept[1], 2), y = c(0, max(ref_q[, 2], proband_cov, na.rm = TRUE)),
+        line = list(color = 'darkblue', dash = 'dash', width = 1), hoverinfo = 'none', showlegend = FALSE)
+    }
+    coverage_plot = coverage_plot %>% layout(xaxis = list(range = xlims), yaxis = list(title = 'Normalised coverage'))
+    } else {
+      coverage_plot = plotly_message('No coverage data available')
+    }
+
+  # Combine the three panels into one interactive figure with a shared x axis (Kb)
+  cov_title = if(file.exists(depth_file) && R.utils::countLines(depth_file)>1) {
+    paste0('Coverage (proband in black, ',100*(1-conf.int)/2,'-',100*(1-(1-conf.int)/2),'th reference percentiles in orange)')
+  } else 'Coverage'
+  panel_titles = c('Gene Model', signif_title, cov_title)
+  heights = c(2, 3, 5); margin = 0.05   # signif panel twice as tall as before (was 1:1:3)
+  hs = heights / sum(heights) * (1 - 2 * margin)
+
+  
+  fig = plotly::subplot(gene_model_plot, fraser_plot, coverage_plot, nrows = 3, shareX = FALSE, titleY = TRUE, margin = margin, heights = hs) %>%
+    layout(
+      showlegend = FALSE,
+      xaxis = list(range = xlims), xaxis2 = list(range = xlims, matches = 'x'), xaxis3 = list(range = xlims, matches = 'x')   # own x labels on every panel, zoom/pan still linked
+    ) %>% plotly_build()
+
+  # Panel titles: placed from the real axis domains so each title sits at the same offset above the top-left corner
+  # of its own panel (the left edge of the plotting area), identically for the three panels.
+  x_left = min(unlist(lapply(grep('^xaxis', names(fig$x$layout), value = TRUE), function(a) fig$x$layout[[a]]$domain[1])), 0, na.rm = TRUE)
+  fig$x$layout$annotations = c(fig$x$layout$annotations, lapply(1:3, function(k) {
+    ax = c('yaxis', 'yaxis2', 'yaxis3')[k]
+    list(text = paste0('<b>', panel_titles[k], '</b>'), x = x_left, y = fig$x$layout[[ax]]$domain[2], xref = 'paper', yref = 'paper',
+         xanchor = 'left', yanchor = 'bottom', yshift = 4, showarrow = FALSE, font = list(size = 16))
+  }))
+
+  # Same axis title and tick label size on all axes (x and y) of all three panels (ggplotly sets its own sizes for the coverage panel)
+  for(ax in grep('^(x|y)axis', names(fig$x$layout), value = TRUE)) {
+    title_text = fig$x$layout[[ax]]$title
+    if(is.list(title_text)) title_text = title_text$text
+    if(grepl('^xaxis', ax)) title_text = paste0('Chromosome ', merged_exons_df[1,1], ' (Kb)')   # subplot drops the x titles when axes are not shared
+    if(is.null(title_text)) title_text = ''
+    fig$x$layout[[ax]]$title = list(text = title_text, font = list(size = 14))
+    fig$x$layout[[ax]]$tickfont = list(size = 12)
+    if(grepl('^xaxis', ax)) { fig$x$layout[[ax]]$tickformat = ',.3~f'; fig$x$layout[[ax]]$exponentformat = 'none' }   # 48,500 instead of 48.5k
+  }
+  fig
+  } else {
+  print('No gene available for gene model plot')
+    }
+}
+
 
 
 # gwFRASER_table: table of the top significant splicing events (FRASER) for one sample.
