@@ -210,8 +210,28 @@ if (!file.exists(params$table_exons_file) | params$force_outrider) {
   # With a reference cohorte, only keep (and cache) the proband's results, not the reference samples
   if (use_ref) table_exons = table_exons[table_exons$sampleID == proband, ]
 
+  # Cohort normcounts (all samples of this fit: reference cohorte + proband) for the exons of this proband's
+  # candidate genes. Used by the Shiny cohort plot; same model as the proband's own normcounts.
+  nc = counts(ods, normalized = TRUE)
+  cand_ensembl = unique(candidates$ensembl[candidates$proband == candidates$proband[i]])
+  nc = nc[sapply(strsplit(rownames(nc), '_'), '[', 2) %in% cand_ensembl, , drop = FALSE]
+  if (nrow(nc) > 0) {
+    nc_long = data.frame(
+      proband      = candidates$proband[i],
+      geneID       = sapply(strsplit(rownames(nc)[row(nc)], '_'), '[', 1),
+      ensemblID    = sapply(strsplit(rownames(nc)[row(nc)], '_'), '[', 2),
+      transcriptID = sapply(strsplit(rownames(nc)[row(nc)], '_'), '[', 3),
+      exonID       = as.integer(sapply(strsplit(rownames(nc)[row(nc)], '_'), '[', 4)),
+      PatientID    = colnames(nc)[col(nc)],
+      expression   = round(as.vector(nc), 2),
+      stringsAsFactors = FALSE
+    )
+    saveRDS(nc_long, file.path(dirname(params$table_exons_file),
+                               paste0('cohort_normcounts_exons_', candidates$proband[i], '.rds')))
+  }
+
   saveRDS(table_exons, params$table_exons_file)
-  
+
   if (use_ref) print(paste0('Done outrider_per_exon() against reference cohorte for ', proband, ' ~~~ Time is: ', Sys.time()))
   } else {
     table_exons = readRDS(params$table_exons_file)
@@ -314,6 +334,17 @@ for (i in probands_idx) {
 table_exons_all = do.call(rbind, table_exons_list)
 rownames(table_exons_all) = NULL
 saveRDS(table_exons_all, params$table_exons_file)
+
+# Cohort per-exon normcounts of the candidate genes (one block per proband fit), read by the Shiny cohort plot.
+# Written by outrider_per_exon() only when the per-exon OUTRIDER is (re)computed: rerun with force_outrider = TRUE
+# if a proband's cohort_normcounts_exons_<proband>.rds is missing.
+nc_files = file.path(params$OUTRIDER, 'reference_cohorte', paste0('cohort_normcounts_exons_', candidates$proband[probands_idx], '.rds'))
+if (!any(file.exists(nc_files))) nc_files = file.path(params$OUTRIDER, paste0('cohort_normcounts_exons_', candidates$proband[probands_idx], '.rds'))
+nc_missing = !file.exists(nc_files)
+if (any(nc_missing)) warning('No cohort normcounts for: ', paste(candidates$proband[probands_idx][nc_missing], collapse = ', '),
+                            ' (rerun with force_outrider = TRUE)')
+exons_normcounts = do.call(rbind, lapply(nc_files[!nc_missing], readRDS))
+write.table(exons_normcounts, file.path(params$OUTRIDER, 'exons_normcounts_ggplot_OUTRIDER.tsv'), sep = '\t', quote = FALSE, row.names = FALSE)
 
 res_exons = outrider_exon_summary(params, map, candidates, table_exons_all, res_genes$significant_table)
 

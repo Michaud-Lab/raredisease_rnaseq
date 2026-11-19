@@ -118,8 +118,7 @@ app_ui = page_fluid(
 
     ### Plot of Expression
     tabPanel("Plot",
-             card(plotlyOutput("Expression",width = "1500px")),
-             uiOutput("Expression_perfamily_ui")
+             card(plotlyOutput("Expression",width = "1500px"))
     ),
 
     ### Data table
@@ -150,22 +149,21 @@ app_ui = page_fluid(
              )
     ),
 
-    ### Plot of Expression
-    tabPanel("Gene model",
+    ### Gene model (interactive plotly version)
+    tabPanel("Gene model (plotly)",
              card(
-               card_header(strong('Gene model and splicing significance values from FRASER')),
-               uiOutput("genemodel_slider"),
+               card_header(strong('Gene model and splicing significance values from FRASER (interactive)')),
                sliderInput(
-                 inputId = "sliderConfInt",
+                 inputId = "sliderConfInt_plotly",
                  label = "Reference coverage interval width (e.g. 0.5 = 25th-75th percentile)",
                  min = 0.5,
                  max = 0.99,
                  value = 0.5,
                  step = 0.01,
                  width = '100%'
-               ),
-               plotOutput("Figure_genemodel", width = '1500px', height = "800px")
+               )
              ),
+             card(plotlyOutput("Figure_genemodel_plotly", width = '1500px', height = "960px")),
              card(
                htmlOutput('Figure_genemodel_legend'))
     ),
@@ -446,22 +444,8 @@ server = function(input, output, session) {
     plot_expression_cohort(
       data_child   = rd$reactive_inputs()$fc_exons_ggplot_reactive_child,
       data_adults  = rd$reactive_inputs()$fc_exons_ggplot_reactive_adults,
-      data_patient = rd$reactive_inputs()$fc_exons_ggplot_reactive_patient
-    )
-  })
-
-  ### Plotly expression per family (only when n_members > 1)
-  output$Expression_perfamily_ui = renderUI({
-    data_family = rd$reactive_inputs()$fc_exons_ggplot_reactive_family
-    n_members = length(unique(data_family$PatientID))
-    req(n_members > 1)
-    card(plotlyOutput("Expression_perfamily", width = "1500px"))
-  })
-
-  output$Expression_perfamily = renderPlotly({
-    plot_expression_family(
-      data_family  = rd$reactive_inputs()$fc_exons_ggplot_reactive_family,
-      data_patient = rd$reactive_inputs()$fc_exons_ggplot_reactive_patient
+      data_patient = rd$reactive_inputs()$fc_exons_ggplot_reactive_patient,
+      unit         = rd$reactive_inputs()$expression_unit
     )
   })
 
@@ -518,48 +502,6 @@ server = function(input, output, session) {
       width = 900,
       alt = "My Figure"
     )}, deleteFile = FALSE)
-
-  ### Reactive slider
-  output$genemodel_slider = renderUI({
-    candidates = active_ds()$candidates
-    req(length(rd$i()) == 1)
-    cmin = floor(candidates$start[rd$i()]/1000)
-    cmax = ceiling(candidates$stop[rd$i()]/1000)
-    sliderInput(
-      inputId = "sliderxlims",
-      label = "Select genomic window (Kb)",
-      min = cmin,
-      max = cmax,
-      value = c(cmin, cmax),
-      width = '100%'
-    )
-  })
-
-  ### Reset the reference coverage interval slider whenever a new gene is loaded
-  observeEvent(rd$i(), {
-    updateSliderInput(session, "sliderConfInt", value = 0.5)
-  })
-
-  ### Coverage ggplots
-  output$Figure_genemodel = renderPlot({
-    ds = active_ds()
-    candidates = ds$candidates
-    req(candidates$geneID[rd$i()]!="")
-    if(is.null(input$sliderxlims)) {genemodel = ggplot() +  theme_void() + geom_text(aes(0,0,label='Plotting in ¨Progress')) + xlab(NULL)} else {
-      gene_dir = paste0(ds$datadir,'/bams_subset/gene',candidates$geneID[rd$i()],'_chr',candidates$chromosome[rd$i()],'_',candidates$start[rd$i()]-5000,'_',candidates$stop[rd$i()]+5000,'/')
-
-      genemodel = genemodel_plot(
-        candidate = candidates[rd$i(),],
-        depth_file = paste0(gene_dir,"gene_",candidates$geneID[rd$i()],"_",candidates$proband[rd$i()],"_depth5.csv"),
-        res_dt_candidate_gene_file = paste0(gene_dir,"gene_",candidates$geneID[rd$i()],"_",candidates$proband[rd$i()],"_res_dt_candidate_gene.csv"),
-        bam_file = paste0(gene_dir,candidates$proband[rd$i()],"_sorted_chrN.bam"),
-        colmean_genes_counts_file = paste0(ds$datadir,'/colmean_genes_counts.tsv'),
-        gene_annotations=ds$gene_annotations,
-        xlims = input$sliderxlims,
-        conf.int = input$sliderConfInt)}
-
-    genemodel
-  })
 
   ### gene prioritization Table
   output$gp = renderDT({
@@ -686,6 +628,32 @@ server = function(input, output, session) {
              "<br><br><b>Gene .bam location: </b>",selected_bam,
              "<br><br><b>Complete .bam location (Fir): </b>",system('echo ${HOME}',intern = TRUE),"/project/def-rallard/COMMUN/raredisease_rnaseq/results_nextflow_rnasplice_09_05_2026/star_salmon/",selected_patient,".sorted.bam<span>")
     )
+  })
+
+  observeEvent(rd$i(), {
+    updateSliderInput(session, "sliderConfInt_plotly", value = 0.5)
+  })
+
+  output$Figure_genemodel_plotly = renderPlotly({
+    ds = active_ds()
+    candidates = ds$candidates
+    req(candidates$geneID[rd$i()]!="")
+    {
+      # no window slider: always show the whole gene with a 5 Kb buffer on each side
+      xlims_plotly = c(floor(candidates$start[rd$i()]/1000) - 5, ceiling(candidates$stop[rd$i()]/1000) + 5)
+      gene_dir = paste0(ds$datadir,'/bams_subset/gene',candidates$geneID[rd$i()],'_chr',candidates$chromosome[rd$i()],'_',candidates$start[rd$i()]-5000,'_',candidates$stop[rd$i()]+5000,'/')
+
+      genemodel = genemodel_plotly(
+        candidate = candidates[rd$i(),],
+        depth_file = paste0(gene_dir,"gene_",candidates$geneID[rd$i()],"_",candidates$proband[rd$i()],"_depth5.csv"),
+        res_dt_candidate_gene_file = paste0(gene_dir,"gene_",candidates$geneID[rd$i()],"_",candidates$proband[rd$i()],"_res_dt_candidate_gene.csv"),
+        bam_file = paste0(gene_dir,candidates$proband[rd$i()],"_sorted_chrN.bam"),
+        colmean_genes_counts_file = paste0(ds$datadir,'/colmean_genes_counts.tsv'),
+        gene_annotations=ds$gene_annotations,
+        xlims = xlims_plotly,
+        conf.int = input$sliderConfInt_plotly)}
+
+    genemodel
   })
 
   ### Figure legends

@@ -134,11 +134,6 @@ reactive_data_server = function(id, proband, pvalue, geneprior_rm, active_ds) {
       fc_exons_ggplot_reactive = fc_exons_ggplot_reactive[
         fc_exons_ggplot_reactive$geneID == candidates$geneID[i()], ]
 
-      # Family grouping: drop the family-member index ("_01"/"_02"/"_03")
-      fc_exons_ggplot_reactive_family = fc_exons_ggplot_reactive[
-        gsub('_0[123]', '', fc_exons_ggplot_reactive$PatientID) ==
-          gsub('_03', '', proband()), ]
-
       fc_exons_ggplot_reactive_patient = fc_exons_ggplot_reactive[
         fc_exons_ggplot_reactive$PatientID == proband(), ]
       fc_exons_ggplot_reactive = fc_exons_ggplot_reactive[
@@ -162,11 +157,11 @@ reactive_data_server = function(id, proband, pvalue, geneprior_rm, active_ds) {
         fc_exons_raw_reactive               = fc_exons_raw_reactive,
         fc_exons_ggplot_reactive            = fc_exons_ggplot_reactive,
         fc_exons_ggplot_reactive_patient    = fc_exons_ggplot_reactive_patient,
-        fc_exons_ggplot_reactive_family     = fc_exons_ggplot_reactive_family,
         table_perexons_OUTRIDER_candidate   = table_perexons_OUTRIDER_candidate,
         table_perexons_OUTRIDER_significant = table_perexons_OUTRIDER_significant,
         gwASE_table                         = gwASE_table,
-        gwIMX_table                         = gwIMX_table
+        gwIMX_table                         = gwIMX_table,
+        expression_unit                     = ds$expression_unit
       )
     })
 
