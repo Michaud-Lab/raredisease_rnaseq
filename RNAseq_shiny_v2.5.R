@@ -170,11 +170,10 @@ app_ui = page_fluid(
                  $(document).on('shiny:recalculating', function(e) { if (e.target.id === 'Figure_splicing_statistics_plotly') $('#genemodel_progress').show(); });
                  $(document).on('shiny:value shiny:error', function(e) { if (e.target.id === 'Figure_splicing_statistics_plotly') $('#genemodel_progress').hide(); });
                ")),
-               plotlyOutput("Figure_splicing_statistics_plotly", width = '1500px', height = "960px")),
+               plotlyOutput("Figure_splicing_statistics_plotly", width = '1500px', height = "1250px")),
              card(
                htmlOutput('Figure_genemodel_legend'))
     ),
-
 
     ### Plot of Structural variation
     tabPanel("IGV",

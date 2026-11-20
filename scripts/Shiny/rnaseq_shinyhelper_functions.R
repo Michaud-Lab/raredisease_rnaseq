@@ -511,8 +511,8 @@ coverage_plotly = function(depth_file, colmean_genes_counts_file, proband, xlims
 
 
 # splicing_statistics_plotly: plotly version of genemodel_plot() (gene model, FRASER significance and coverage for a
-# candidate gene). Combines the panels built by gene_model_plotly(), fraser_plotly() and coverage_plotly() into ONE
-# plotly figure (three stacked panels, linked x axes in Kb).
+# candidate gene). Combines the panels built by gene_model_plotly(), fraser_plotly(), coverage_plotly() and
+# junctions_plotly() into ONE plotly figure (four stacked panels, linked x axes in Kb).
 # Arguments:
 #   candidate                  - data.frame row: the candidate gene/proband row (geneID, ensembl, start, stop, position, mutation, proband)
 #   res_dt_candidate_gene_file - character: path to the FRASER per-candidate-gene results CSV
@@ -539,83 +539,94 @@ splicing_statistics_plotly = function(candidate = candidates,
   gene = genemodel_prepare(candidate, gene_annotations, xlims)
   if(is.null(gene)) return(plotly_message('no gene annotation available'))
 
-  # the three panels
+  # the four panels
   gene_model_plot = gene_model_plotly(gene, candidate$geneID, xlims)
   fraser_plot = fraser_plotly(res_dt_candidate_gene_file, xlims, gene)
   coverage_plot = coverage_plotly(depth_file, colmean_genes_counts_file, candidate$proband, xlims, gene, conf.int)
+  junctions_plot = junctions_plotly(res_dt_candidate_gene_file, xlims = xlims, xintercept = if(length(gene$mutation) > 0) gene$xintercept[1] else NULL)
 
-  # Combine the three panels into one interactive figure (own x axis labels on each panel, ranges linked).
-  heights = c(2, 3, 5); margin = 0.05
-  hs = heights / sum(heights) * (1 - 2 * margin)
+  # Combine the four panels into one interactive figure (own x axis labels on each panel, ranges linked).
+  heights = c(2, 3, 5, 3); margin = 0.04
+  hs = heights / sum(heights) * (1 - 3 * margin)
 
-  fig = plotly::subplot(gene_model_plot, fraser_plot, coverage_plot,
-                        nrows = 3, shareX = FALSE, titleX = TRUE, titleY = TRUE, margin = margin, heights = hs) %>%
+  fig = plotly::subplot(gene_model_plot, fraser_plot, coverage_plot, junctions_plot,
+                        nrows = 4, shareX = FALSE, titleX = TRUE, titleY = TRUE, margin = margin, heights = hs) %>%
     layout(
-      showlegend = FALSE,
-      xaxis = list(range = xlims), xaxis2 = list(range = xlims, matches = 'x'), xaxis3 = list(range = xlims, matches = 'x')   # zoom/pan still linked
+      showlegend = TRUE,   # only the junction panel's two traces ('Proband', 'Cohort mean') have a legend entry
+      xaxis = list(range = xlims), xaxis2 = list(range = xlims, matches = 'x'), xaxis3 = list(range = xlims, matches = 'x'), xaxis4 = list(range = xlims, matches = 'x')   # zoom/pan still linked
     ) %>% plotly_build()
+
+  # legend of the junction panel: just above that panel, right-aligned
+  fig$x$layout$legend = list(orientation = 'h', x = 1, xanchor = 'right', y = fig$x$layout$yaxis4$domain[2] + 0.005, yanchor = 'bottom')
 
   fig
 }
 
 
 
-# junctions_plotly: sashimi-style plot of the splice junctions found in a BAM file (native plotly).
-# Each junction (CIGAR 'N' gap) is drawn as an arc from its start to its end; the arc height and line width
-# scale with the number of supporting fragments (a read pair spanning the same junction is counted once).
+# junctions_plotly: sashimi-style plot of the splice junctions quantified by FRASER (native plotly).
+# Each junction is drawn as an arc from its start to its end; the arc height and line width scale with the number of
+# split reads supporting it: the proband's `counts` (blue) and the cohort `meanCounts` (orange), both from the FRASER
+# results saved by fraser_pipeline() in gene_<gene>_<proband>_res_dt_candidate_gene.csv (all junctions of the gene,
+# with p-value and deltaPSI).
 # Arguments:
-#   bam_file    - character: path to the (indexed) BAM file
+#   fraser_file - character: FRASER per-candidate-gene results CSV
 #   xlims       - numeric(2): window to show, in Kb
-#   chromosome  - character: chromosome name as in the BAM (default: the BAM's first non-chrM sequence)
-#   min_count   - integer: only show junctions supported by at least this many fragments (default 1)
+#   min_count   - numeric: only draw arcs supported by at least this many reads (default 1)
 #   xintercept  - numeric (Kb): optional position of a variant, drawn as a dashed vertical line
-# Returns a plotly object (or a message figure if the BAM is missing or has no junction in the window).
-junctions_plotly = function(bam_file,
+# Returns a titled plotly object (or a message figure if there are no FRASER results or no junction in the window).
+junctions_plotly = function(fraser_file,
                             xlims = c(0, 100),
-                            chromosome = NULL,
                             min_count = 1,
                             xintercept = NULL) {
 
-  if(!file.exists(bam_file)) return(plotly_message('BAM file not found'))
+  if(!(file.exists(fraser_file) && R.utils::countLines(fraser_file) > 1)) {
+    return(plotly_message('No FRASER junctions available') %>% panel_title('Splice junctions'))
+  }
+  fr = read.csv(fraser_file, row.names = 1)
+  jt = data.frame(start = fr$start / 1000, end = fr$end / 1000, count = fr$counts, meanCount = fr$meanCounts,
+                  pValue = fr$pValue, deltaPsi = fr$deltaPsi)   # Kb, like the other panels
+  jt = jt[jt$end > xlims[1] & jt$start < xlims[2], ]
+  d_prob = jt[!is.na(jt$count) & jt$count >= min_count, ]
+  d_mean = jt[!is.na(jt$meanCount) & jt$meanCount >= min_count, ]
+  if(nrow(d_prob) + nrow(d_mean) == 0) return(plotly_message('No splice junctions in this window') %>% panel_title('Splice junctions'))
 
-  ga = GenomicAlignments::readGAlignments(bam_file, use.names = TRUE,
-         param = Rsamtools::ScanBamParam(flag = Rsamtools::scanBamFlag(isSecondaryAlignment = FALSE)))
-  ga = ga[as.character(GenomeInfoDb::seqnames(ga)) != 'chrM']
-  if(!is.null(chromosome)) ga = ga[as.character(GenomeInfoDb::seqnames(ga)) == chromosome]
-  if(length(ga) == 0) return(plotly_message('No reads in BAM file'))
-
-  # one count per fragment (QNAME) and junction
-  gaj = GenomicAlignments::junctions(ga, use.mcols = FALSE)
-  nj = lengths(gaj)
-  jr = unlist(gaj)
-  if(length(jr) == 0) return(plotly_message('No splice junctions in BAM file'))
-  jdf = unique(data.frame(qname = rep(names(ga), nj), start = BiocGenerics::start(jr), end = BiocGenerics::end(jr)))
-  jt = aggregate(qname ~ start + end, jdf, length)
-  colnames(jt)[3] = 'count'
-  jt$start = jt$start / 1000; jt$end = jt$end / 1000   # Kb, like the other panels
-  jt = jt[jt$count >= min_count & jt$end > xlims[1] & jt$start < xlims[2], ]
-  if(nrow(jt) == 0) return(plotly_message('No splice junctions in this window'))
-
-  # arc = half ellipse, peak height = fragment count; line width scaled to count (1 - 6 px)
+  # arc = half ellipse, peak height = read count; line width scaled to count (1 - 6 px), same scale for both series
   t = seq(0, 1, length.out = 40)
-  lwd = 1 + 5 * (log(jt$count) - log(min(jt$count))) / max(log(max(jt$count)) - log(min(jt$count)), 1e-9)
+  all_counts = c(d_prob$count, d_mean$meanCount)
+  lwd = function(x) 1 + 5 * (log(x) - log(min(all_counts))) / max(log(max(all_counts)) - log(min(all_counts)), 1e-9)
+  col_prob = 'steelblue'; col_mean = 'darkorange'
+  jhover = function(d) paste0('<b>Junction</b>: ', round(d$start, 3), '-', round(d$end, 3), ' Kb')
   p = plot_ly()
-  for(r in seq_len(nrow(jt))) {
+
+  # cohort mean first (drawn behind the proband)
+  for(r in seq_len(nrow(d_mean))) {
     p = p %>% add_trace(
-      x = jt$start[r] + t * (jt$end[r] - jt$start[r]), y = jt$count[r] * sin(pi * t),
-      type = 'scatter', mode = 'lines', line = list(color = 'steelblue', width = lwd[r]),
-      hoverinfo = 'text', showlegend = FALSE,
-      text = paste0('<b>Junction</b>: ', round(jt$start[r], 3), '-', round(jt$end[r], 3), ' Kb',
-                    '<br><b>Supporting fragments</b>: ', jt$count[r]))
+      x = d_mean$start[r] + t * (d_mean$end[r] - d_mean$start[r]), y = d_mean$meanCount[r] * sin(pi * t),
+      type = 'scatter', mode = 'lines', line = list(color = col_mean, width = lwd(d_mean$meanCount[r])),
+      name = 'Cohort mean', legendgroup = 'mean', showlegend = (r == 1), hoverinfo = 'text',
+      text = paste0(jhover(d_mean[r, ]), '<br><b>Cohort mean reads</b>: ', round(d_mean$meanCount[r], 1)))
+  }
+  for(r in seq_len(nrow(d_prob))) {
+    p = p %>% add_trace(
+      x = d_prob$start[r] + t * (d_prob$end[r] - d_prob$start[r]), y = d_prob$count[r] * sin(pi * t),
+      type = 'scatter', mode = 'lines', line = list(color = col_prob, width = lwd(d_prob$count[r])),
+      name = 'Proband', legendgroup = 'proband', showlegend = (r == 1), hoverinfo = 'text',
+      text = paste0(jhover(d_prob[r, ]), '<br><b>Proband reads</b>: ', d_prob$count[r],
+                    '<br><b>Cohort mean reads</b>: ', round(d_prob$meanCount[r], 1),
+                    '<br><b>p-value</b>: ', signif(d_prob$pValue[r], 3),
+                    '<br><b>deltaPSI</b>: ', d_prob$deltaPsi[r]))
   }
   if(length(xintercept) > 0) {
-    p = p %>% add_lines(x = rep(xintercept[1], 2), y = c(0, max(jt$count)),
+    p = p %>% add_lines(x = rep(xintercept[1], 2), y = c(0, max(all_counts)),
       line = list(color = 'darkblue', dash = 'dash', width = 1), hoverinfo = 'none', showlegend = FALSE)
   }
   p %>% layout(
-    xaxis = list(title = 'Position (Kb)', range = xlims, tickformat = ',.3~f', exponentformat = 'none'),
-    yaxis = list(title = 'Supporting fragments', rangemode = 'tozero', zeroline = FALSE),
-    hoverlabel = list(bgcolor = 'white'))
+    xaxis = list(title = paste0(sub('chr', 'Chromosome ', fr$seqnames[1]), ' (Kb)'), range = xlims, tickformat = ',.3~f', exponentformat = 'none'),   # same label as the other panels
+    yaxis = list(title = 'Supporting split reads (FRASER)', rangemode = 'tozero', zeroline = FALSE),
+    legend = list(orientation = 'h', x = 0, y = 1.08),
+    hoverlabel = list(bgcolor = 'white')) %>%
+    panel_title('Splice junctions quantified by FRASER (arc height = supporting split reads)')
 }
 
 
