@@ -7,7 +7,7 @@ All notable changes to this project are documented here.
 ## 2026-11-19 — genemodel-plotly-and-normcounts
 
 **Added**
-- `scripts/Shiny/rnaseq_shinyhelper_functions.R`: new `genemodel_plotly()`, a fully native-plotly version of `genemodel_plot()` (the original ggplot function is unchanged and kept for later use). Three panels combined with `plotly::subplot` (linked x-axes, each with its own labels, thousands-separated ticks):
+- `scripts/Shiny/rnaseq_shinyhelper_functions.R`: new `splicing_statistics_plotly()`, a fully native-plotly version of `genemodel_plot()` (the original ggplot function is unchanged and kept for later use). Three panels combined with `plotly::subplot` (linked x-axes, each with its own labels, thousands-separated ticks):
   - Gene model: exons as hoverable rectangles (hover shows the exon label), mutation marked by a dashed line, y-axis -0.6 to 0.6.
   - `fraser_plot`: junctions with -log10(p) > 0 drawn as segments (start to end), zero-valued junctions as black markers; black-to-red colour scale up to the maximum value; y-axis from -0.2 to 1.05 x max; hover shows junction, p-value, deltaPSI, counts / totalCounts and meanCounts / meanTotalCounts.
   - `coverage_plot`: proband line over the reference percentile band, computed directly with `matrixStats::rowQuantiles` instead of `ggplot` + `ggplotly`, which cut a full-gene render from ~13 s to ~2 s.

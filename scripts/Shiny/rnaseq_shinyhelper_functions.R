@@ -297,56 +297,31 @@ wh = wh[wh$gene_id == candidate$ensembl,]
 }
 
 
-# genemodel_plotly: plotly version of genemodel_plot() (gene model, FRASER significance, coverage for a candidate gene).
-# Returns ONE plotly figure (three stacked panels, shared x axis in Kb). The significance panel is a native plotly plot;
-# the gene model is drawn natively, and the coverage panel is a ggplot converted with ggplotly().
+# genemodel_prepare: exon table and mutation position shared by the splicing_statistics_plotly() panels.
 # Arguments:
-#   candidate                  - data.frame row: the candidate gene/proband row (geneID, ensembl, start, stop, position, mutation, proband)
-#   res_dt_candidate_gene_file - character: path to the FRASER per-candidate-gene results CSV
-#   depth_file                 - character: path to the per-base coverage depth file
-#   bam_file                   - character: path to the proband's BAM file (kept for interface consistency)
-#   colmean_genes_counts_file  - character: path to the column-mean gene counts file (used to normalise coverage)
-#   xlims                      - numeric vector length 2: zoom window in Kb (default: c(10, 100))
-#   gene_annotations           - list: gene annotation object; [[1]] exons GRanges, [[2]] gene GRanges ("wh")
-#   conf.int                   - numeric in (0,1): width of the reference coverage interval passed to
-#                                 median_hilow() in the coverage ribbon (default: 0.5, i.e. 25th-75th percentiles)
-genemodel_plotly = function(candidate = candidates,
-                             res_dt_candidate_gene_file = "resdet",
-                             depth_file = "depth",
-                             bam_file = "bam",
-                             colmean_genes_counts_file = 'colmean_genes_counts.tsv',
-                             xlims = c(10,100),
-                             gene_annotations='gene_annotations',
-                             conf.int = 0.5) {
+#   candidate        - data.frame row: the candidate gene/proband row (geneID, ensembl, start, stop, position, mutation)
+#   gene_annotations - list: gene annotation object; [[1]] exons GRanges
+#   xlims            - numeric(2): zoom window in Kb (exon numbers are thinned out when it is the full gene + buffer)
+# Returns a list(merged_exons_df, xintercept, mutation, annotate_label), or NULL if the gene has no exon annotation.
+genemodel_prepare = function(candidate, gene_annotations, xlims) {
 
-if(candidate$geneID != "" & file.exists(res_dt_candidate_gene_file)){
+  # filter proper Chr and transcript
+  gr_exons = gene_annotations[[1]]
+  gr_exons = gr_exons[gr_exons$gene_id == candidate$ensembl,]
 
-# colmean
-colmean_genes_counts = read.table(colmean_genes_counts_file)
+  # no exon annotation for this gene (e.g. a manually-added candidate not yet included in gene_annotations.rda, or a wrong/outdated ensembl id)
+  # -- bail out instead of crashing on 1:length(gr_exons@strand) below when it's 0.
+  if(length(gr_exons) == 0) {
+    print(paste0('No exon annotation found in gene_annotations.rda for ', candidate$geneID, ' (ensembl id: ', candidate$ensembl, '). Regenerate gene_annotations.rda to include this gene.'))
+    return(NULL)
+  }
 
-# filter proper Chr and transcript
-gr_exons = gene_annotations[[1]]
-gr_exons = gr_exons[gr_exons$gene_id == candidate$ensembl,]
-
-# no exon annotation for this gene (e.g. a manually-added candidate not yet included in gene_annotations.rda, or a wrong/outdated ensembl id) 
-# -- bail out instead of crashing on 1:length(gr_exons@strand) below when it's 0.
-if(length(gr_exons) == 0) {
-  print(paste0('No exon annotation found in gene_annotations.rda for ', candidate$geneID, ' (ensembl id: ', candidate$ensembl, '). Regenerate gene_annotations.rda to include this gene.'))
-  return(plotly_message('no gene annotation available'))
-}
-
-gr_exons = gr_exons[order(gr_exons$exon_rank),]
-gr_exons$exonsnb = paste0('exon ',1:length(gr_exons@strand))
-
-# wh object for autoplot coverage further down
-wh = gene_annotations[[2]]
-wh = wh[wh$gene_id == candidate$ensembl,]
-
+  gr_exons = gr_exons[order(gr_exons$exon_rank),]
+  gr_exons$exonsnb = paste0('exon ',1:length(gr_exons@strand))
 
   # full-gene view includes a 5 Kb buffer on each side (the bams_subset data are extracted with the same +/- 5000 bp)
   candidate_limit = c(floor(candidate$start/1000) - 5, ceiling(candidate$stop/1000) + 5)
 
-  # write the gene model
   merged_exons_df = as.data.frame(gr_exons)[, c("seqnames", "start", "end", "strand","exonsnb")]
   colnames(merged_exons_df) = c("chromosome", "start", "end", "strand","exonsnb")
   merged_exons_df$start = merged_exons_df$start/1000
@@ -362,163 +337,285 @@ wh = wh[wh$gene_id == candidate$ensembl,]
   if(length(mut_pos) == 0) mut_pos = xintercept
   mutation = strsplit(as.character(candidate$mutation), '___')[[1]]
   if(length(mutation) > 0) {annotate_label = paste0(mutation,' (Position: ',mut_pos,')')}else annotate_label = ''
-  
-    # gene model (native plotly: intron line + one filled rectangle per exon)
-    gene_model_plot = plot_ly() %>%
-      add_lines(x = c(min(merged_exons_df$start), max(merged_exons_df$end)), y = c(0, 0),
-                line = list(color = 'black', width = 1), hoverinfo = 'none', showlegend = FALSE)
-    for(r in seq_len(nrow(merged_exons_df))) {
-      gene_model_plot = gene_model_plot %>% add_trace(
-        x = with(merged_exons_df[r, ], c(start, end, end, start, start)), y = c(-0.3, -0.3, 0.3, 0.3, -0.3),
-        type = 'scatter', mode = 'lines', fill = 'toself', fillcolor = 'grey', line = list(color = 'black', width = 1),
-        hoveron = 'fills', hoverinfo = I('text'), name = merged_exons_df$exon_hover[r],
-        text = I(paste0('<b>', merged_exons_df$exon_hover[r], '</b><br>', round(merged_exons_df$start[r], 2), '-', round(merged_exons_df$end[r], 2), ' Kb')),
-        showlegend = FALSE)
-    }
 
-    if(length(mutation) > 0) {
-      gene_model_plot = gene_model_plot %>%
-        add_lines(x = rep(xintercept[1], 2), y = c(-0.8, 0.8), line = list(color = 'darkblue', dash = 'dash', width = 2),
-                  hoverinfo = 'none', showlegend = FALSE) %>%
-        add_text(x = xintercept[1], y = 0.6, text = annotate_label, textposition = 'bottom left',
-                 textfont = list(size = 14, color = 'darkblue'), hoverinfo = 'none', showlegend = FALSE)
-    }
-    gene_model_plot = gene_model_plot %>% layout(
-      xaxis = list(title = paste0('Chromosome ',merged_exons_df[1,1],' (Kb)'), range = xlims),
-      yaxis = list(title = candidate$geneID, range = c(-0.8, 0.8), showticklabels = FALSE, zeroline = FALSE, showgrid = FALSE),
-      hoverlabel = list(bgcolor = "white"))
+  list(merged_exons_df = merged_exons_df, xintercept = xintercept, mutation = mutation, annotate_label = annotate_label)
+}
 
-    # plots
-    if(file.exists(res_dt_candidate_gene_file) && R.utils::countLines(res_dt_candidate_gene_file)>1) {
-    res_dt_candidate_gene = read.csv(res_dt_candidate_gene_file,row.names = 1)
-    res_dt_candidate_gene$mean = res_dt_candidate_gene$mean/1000
-    res_dt_candidate_gene$start = res_dt_candidate_gene$start/1000
-    res_dt_candidate_gene$end = res_dt_candidate_gene$end/1000
 
-    # min pvalue and max deltaPSI in region of interest.
-    temp = res_dt_candidate_gene[res_dt_candidate_gene$mean >= xlims[1] & res_dt_candidate_gene$mean <= xlims[2], ]
-    pval = min(temp$pValue)
-    deltaPSI = temp$deltaPsi[temp$pValue == pval]
-    pval = signif(pval,2)
-    
-    signif_title = paste0('Aberrant splicing (min. p-value = ',pval,', max. deltaPSI = ',deltaPSI,')')
-    ymax = max(res_dt_candidate_gene$minuslogpval, na.rm = TRUE)
-    col_pal = colorRampPalette(c('black','red'))(100)
-    col_idx = function(x) pmin(100, pmax(1, ceiling(100 * x / ymax)))   # clamp: x/ymax can round just above 1 (index 101 = NA colour)
-    hover = function(d) paste0('<b>Junction</b>: ', round(d$start, 2), '-', round(d$end, 2), ' Kb',
-                               '<br><b>p-value</b>: ', signif(d$pValue, 3),
-                               '<br><b>deltaPSI</b>: ', d$deltaPsi,
-                               '<br><b>Reads spanning/flanking junction (Proband)</b>: ', d$counts,' / ',d$totalCounts, 
-                               '<br><b>Reads spanning/flanking junction (Cohort mean)</b>: ', round(d$meanCounts, 1),' / ',round(d$meanTotalCounts,1))
-    res_plot = res_dt_candidate_gene[!is.na(res_dt_candidate_gene$minuslogpval), ]   # NA p-values have no colour (plotly would draw them in its default blue)
-    fraser_plot = plot_ly()
+# panel_title: add a bold title at the top-left corner of a plotly panel's plotting area (paper-referenced annotation).
+# plotly::subplot() maps it into the panel's domain, so panels titled this way line up identically when combined.
+panel_title = function(p, text) {
+  p %>% layout(annotations = list(
+    text = paste0('<b>', text, '</b>'), x = 0, y = 1, xref = 'paper', yref = 'paper',
+    xanchor = 'left', yanchor = 'bottom', yshift = 4, showarrow = FALSE, font = list(size = 16)))
+}
 
-    # junctions with -log10(p) > 0: a segment from the junction start to its end (any window size)
-    d_pos = res_plot[res_plot$minuslogpval > 0, ]
-    for(r in seq_len(nrow(d_pos))) {
-      fraser_plot = fraser_plot %>% add_segments(
-        x = d_pos$start[r], xend = d_pos$end[r], y = d_pos$minuslogpval[r], yend = d_pos$minuslogpval[r],
-        line = list(color = col_pal[col_idx(d_pos$minuslogpval[r])], width = 3),
-        hoverinfo = 'text', text = hover(d_pos[r, ]), showlegend = FALSE)
-    }
-    # junctions with -log10(p) = 0: markers at the junction midpoint
-    d_zero = res_plot[res_plot$minuslogpval <= 0, ]
-    if(nrow(d_zero) > 0) {
-      fraser_plot = fraser_plot %>% add_markers(
-        data = d_zero, x = ~mean, y = ~minuslogpval,
-        marker = list(color = col_pal[1], size = 7),
-        hoverinfo = 'text', text = hover(d_zero), showlegend = FALSE)
-    }
-    if(length(mutation) > 0) {
-      fraser_plot = fraser_plot %>% add_lines(x = rep(xintercept[1], 2), y = c(-0.2, ymax),
-        line = list(color = 'darkblue', dash = 'dash', width = 2), hoverinfo = 'none', showlegend = FALSE)
-    }
-    fraser_plot = fraser_plot %>% layout(
-      xaxis = list(title = paste0('Chromosome ',merged_exons_df[1,1],' (Kb)'), range = xlims),
-      yaxis = list(title = '-log10(p-value)', range = c(-0.2, ymax * 1.1), zeroline = FALSE),
-      hoverlabel = list(bgcolor = "white"))   # no default line at y = 0
-    } else {
-      signif_title = 'Aberrant splicing'
-      fraser_plot = plotly_message('No FRASER pvalues available (likely because expression is too low)')
-      print('No FRASER pvalues available. Likely because expression is too low')
-    }
 
-    # depth
-    if(file.exists(depth_file) && R.utils::countLines(depth_file)>1) {
-    depth = read.table(depth_file, header = TRUE, check.names = FALSE,comment.char= '')
-    depth$POS = depth$POS / 1000
-    colnames(depth) = gsub("^.*/", "",colnames(depth))
-    colnames(depth) = gsub('_sorted_chrN.bam','',colnames(depth))
+# gene_model_plotly: native plotly gene model (intron line + one filled rectangle per exon, hover = exon label), titled 'Gene Model'.
+# Arguments:
+#   gene         - list returned by genemodel_prepare()
+#   gene_name    - character: y-axis title (gene symbol)
+#   xlims        - numeric(2): zoom window in Kb
+gene_model_plotly = function(gene, gene_name, xlims) {
+  merged_exons_df = gene$merged_exons_df
+  xintercept = gene$xintercept; mutation = gene$mutation
 
-    for(d in 3:ncol(depth)){
-       depth[,d] = depth[,d] / colmean_genes_counts[rownames(colmean_genes_counts) == colnames(depth)[d],1]
-     }
+  gene_model_plot = plot_ly() %>%
+    add_lines(x = c(min(merged_exons_df$start), max(merged_exons_df$end)), y = c(0, 0),
+              line = list(color = 'black', width = 1), hoverinfo = 'none', showlegend = FALSE)
+  for(r in seq_len(nrow(merged_exons_df))) {
+    gene_model_plot = gene_model_plot %>% add_trace(
+      x = with(merged_exons_df[r, ], c(start, end, end, start, start)), y = c(-0.3, -0.3, 0.3, 0.3, -0.3),
+      type = 'scatter', mode = 'lines', fill = 'toself', fillcolor = 'grey', line = list(color = 'black', width = 1),
+      hoveron = 'fills', hoverinfo = I('text'), name = merged_exons_df$exon_hover[r],
+      text = I(paste0('<b>', merged_exons_df$exon_hover[r], '</b><br>', round(merged_exons_df$start[r], 2), '-', round(merged_exons_df$end[r], 2), ' Kb')),
+      showlegend = FALSE)
+  }
 
-    depth_filtered = depth %>% filter(POS >= min(xlims),POS < max(xlims))
-    if(nrow(depth_filtered) == 0) depth_filtered = head(depth,100)
-
-    ylims = c(0,max(c(rowMedians(as.matrix(depth_filtered[,-c(1:2)])),depth_filtered[,colnames(depth_filtered) %in% candidate$proband])))
-
-    # reference band computed directly on the wide matrix (no pivot_longer / ggplot / ggplotly: ~3 million rows for a full gene)
-    is_proband = colnames(depth_filtered) == candidate$proband
-    ref_mat = as.matrix(depth_filtered[, -c(1:2)][, !is_proband[-c(1:2)], drop = FALSE])
-    ref_q = matrixStats::rowQuantiles(ref_mat, probs = c(0.5 - conf.int/2, 0.5 + conf.int/2), na.rm = TRUE)
-    proband_cov = depth_filtered[, is_proband][1:nrow(depth_filtered)]
-    orange = 'rgba(255,140,0,0.7)'   # darkorange1, alpha 0.7
-    coverage_plot = plot_ly() %>%
-      add_trace(x = depth_filtered$POS, y = ref_q[, 2], type = 'scatter', mode = 'lines', line = list(color = orange, width = 1),
+  if(length(mutation) > 0) {
+    gene_model_plot = gene_model_plot %>%
+      add_lines(x = rep(xintercept[1], 2), y = c(-0.8, 0.8), line = list(color = 'darkblue', dash = 'dash', width = 2),
                 hoverinfo = 'none', showlegend = FALSE) %>%
-      add_trace(x = depth_filtered$POS, y = ref_q[, 1], type = 'scatter', mode = 'lines', line = list(color = orange, width = 1),
-                fill = 'tonexty', fillcolor = orange, hoverinfo = 'none', showlegend = FALSE) %>%
-      add_trace(x = depth_filtered$POS, y = proband_cov, type = 'scatter', mode = 'lines', line = list(color = 'black', width = 1),
-                hoverinfo = 'none', showlegend = FALSE)
-    if(length(mutation) > 0) {
-      coverage_plot = coverage_plot %>% add_lines(x = rep(xintercept[1], 2), y = c(0, max(ref_q[, 2], proband_cov, na.rm = TRUE)),
-        line = list(color = 'darkblue', dash = 'dash', width = 1), hoverinfo = 'none', showlegend = FALSE)
-    }
-    coverage_plot = coverage_plot %>% layout(xaxis = list(range = xlims), yaxis = list(title = 'Normalised coverage'))
-    } else {
-      coverage_plot = plotly_message('No coverage data available')
-    }
+      add_text(x = xintercept[1], y = 0.6, text = gene$annotate_label, textposition = 'bottom left',
+               textfont = list(size = 14, color = 'darkblue'), hoverinfo = 'none', showlegend = FALSE)
+  }
+  gene_model_plot %>% layout(
+    xaxis = list(title = paste0('Chromosome ',merged_exons_df[1,1],' (Kb)'), range = xlims),
+    yaxis = list(title = gene_name, range = c(-0.8, 0.8), showticklabels = FALSE, zeroline = FALSE, showgrid = FALSE),
+    hoverlabel = list(bgcolor = "white")) %>%
+    panel_title('Gene Model')
+}
 
-  # Combine the three panels into one interactive figure with a shared x axis (Kb)
-  cov_title = if(file.exists(depth_file) && R.utils::countLines(depth_file)>1) {
-    paste0('Coverage (proband in black, ',100*(1-conf.int)/2,'-',100*(1-(1-conf.int)/2),'th reference percentiles in orange)')
-  } else 'Coverage'
-  panel_titles = c('Gene Model', signif_title, cov_title)
-  heights = c(2, 3, 5); margin = 0.05   # signif panel twice as tall as before (was 1:1:3)
+
+# fraser_plotly: native plotly FRASER panel (-log10 p-value of each splice junction, black-to-red colour scale).
+# Junctions with -log10(p) > 0 are drawn as segments (start to end), zero-valued ones as black markers.
+# Arguments:
+#   res_dt_candidate_gene_file - character: path to the FRASER per-candidate-gene results CSV
+#   xlims                      - numeric(2): zoom window in Kb
+#   gene                       - list returned by genemodel_prepare() (chromosome label, mutation line)
+# Returns the plotly object, titled with the min. p-value and max. deltaPSI in the window.
+fraser_plotly = function(res_dt_candidate_gene_file, xlims, gene) {
+  xintercept = gene$xintercept; mutation = gene$mutation
+
+  if(!(file.exists(res_dt_candidate_gene_file) && R.utils::countLines(res_dt_candidate_gene_file)>1)) {
+    print('No FRASER pvalues available. Likely because expression is too low')
+    return(plotly_message('No FRASER pvalues available (likely because expression is too low)') %>% panel_title('Aberrant splicing'))
+  }
+
+  res_dt_candidate_gene = read.csv(res_dt_candidate_gene_file,row.names = 1)
+  res_dt_candidate_gene$mean = res_dt_candidate_gene$mean/1000
+  res_dt_candidate_gene$start = res_dt_candidate_gene$start/1000
+  res_dt_candidate_gene$end = res_dt_candidate_gene$end/1000
+
+  # min pvalue and max deltaPSI in region of interest.
+  temp = res_dt_candidate_gene[res_dt_candidate_gene$mean >= xlims[1] & res_dt_candidate_gene$mean <= xlims[2], ]
+  pval = min(temp$pValue)
+  deltaPSI = temp$deltaPsi[temp$pValue == pval]
+  pval = signif(pval,2)
+
+  title = paste0('Aberrant splicing (min. p-value = ',pval,', max. deltaPSI = ',deltaPSI,')')
+  ymax = max(res_dt_candidate_gene$minuslogpval, na.rm = TRUE)
+  col_pal = colorRampPalette(c('black','red'))(100)
+  col_idx = function(x) pmin(100, pmax(1, ceiling(100 * x / ymax)))   # clamp: x/ymax can round just above 1 (index 101 = NA colour)
+  hover = function(d) paste0('<b>Junction</b>: ', round(d$start, 2), '-', round(d$end, 2), ' Kb',
+                             '<br><b>p-value</b>: ', signif(d$pValue, 3),
+                             '<br><b>deltaPSI</b>: ', d$deltaPsi,
+                             '<br><b>Reads spanning/flanking junction (Proband)</b>: ', d$counts,' / ',d$totalCounts,
+                             '<br><b>Reads spanning/flanking junction (Cohort mean)</b>: ', round(d$meanCounts, 1),' / ',round(d$meanTotalCounts,1))
+  res_plot = res_dt_candidate_gene[!is.na(res_dt_candidate_gene$minuslogpval), ]   # NA p-values have no colour (plotly would draw them in its default blue)
+  fraser_plot = plot_ly()
+
+  # junctions with -log10(p) > 0: a segment from the junction start to its end (any window size)
+  d_pos = res_plot[res_plot$minuslogpval > 0, ]
+  for(r in seq_len(nrow(d_pos))) {
+    fraser_plot = fraser_plot %>% add_segments(
+      x = d_pos$start[r], xend = d_pos$end[r], y = d_pos$minuslogpval[r], yend = d_pos$minuslogpval[r],
+      line = list(color = col_pal[col_idx(d_pos$minuslogpval[r])], width = 3),
+      hoverinfo = 'text', text = hover(d_pos[r, ]), showlegend = FALSE)
+  }
+  # junctions with -log10(p) = 0: markers at the junction midpoint
+  d_zero = res_plot[res_plot$minuslogpval <= 0, ]
+  if(nrow(d_zero) > 0) {
+    fraser_plot = fraser_plot %>% add_markers(
+      data = d_zero, x = ~mean, y = ~minuslogpval,
+      marker = list(color = col_pal[1], size = 7),
+      hoverinfo = 'text', text = hover(d_zero), showlegend = FALSE)
+  }
+  if(length(mutation) > 0) {
+    fraser_plot = fraser_plot %>% add_lines(x = rep(xintercept[1], 2), y = c(-0.2, ymax),
+      line = list(color = 'darkblue', dash = 'dash', width = 2), hoverinfo = 'none', showlegend = FALSE)
+  }
+  fraser_plot = fraser_plot %>% layout(
+    xaxis = list(title = paste0('Chromosome ',gene$merged_exons_df[1,1],' (Kb)'), range = xlims),
+    yaxis = list(title = '-log10(p-value)', range = c(-0.2, ymax * 1.1), zeroline = FALSE),
+    hoverlabel = list(bgcolor = "white")) %>%   # no default line at y = 0
+    panel_title(title)
+}
+
+
+# coverage_plotly: native plotly coverage panel. The reference band (percentiles of the cohort, proband excluded) is computed
+# directly on the wide per-sample matrix, the proband is drawn as a black line.
+# Arguments:
+#   depth_file                - character: path to the per-base coverage depth file
+#   colmean_genes_counts_file - character: path to the column-mean gene counts file (used to normalise coverage)
+#   proband                   - character: sampleID of the proband (column of the depth file)
+#   xlims                     - numeric(2): zoom window in Kb
+#   gene                      - list returned by genemodel_prepare() (mutation line)
+#   conf.int                  - numeric in (0,1): width of the reference interval (0.5 = 25th-75th percentiles)
+# Returns the plotly object, titled with the reference percentiles shown.
+coverage_plotly = function(depth_file, colmean_genes_counts_file, proband, xlims, gene, conf.int = 0.5) {
+  xintercept = gene$xintercept; mutation = gene$mutation
+
+  if(!(file.exists(depth_file) && R.utils::countLines(depth_file)>1)) {
+    return(plotly_message('No coverage data available') %>% panel_title('Coverage'))
+  }
+
+  colmean_genes_counts = read.table(colmean_genes_counts_file)
+  depth = read.table(depth_file, header = TRUE, check.names = FALSE,comment.char= '')
+  depth$POS = depth$POS / 1000
+  colnames(depth) = gsub("^.*/", "",colnames(depth))
+  colnames(depth) = gsub('_sorted_chrN.bam','',colnames(depth))
+
+  for(d in 3:ncol(depth)){
+    depth[,d] = depth[,d] / colmean_genes_counts[rownames(colmean_genes_counts) == colnames(depth)[d],1]
+  }
+
+  depth_filtered = depth %>% filter(POS >= min(xlims),POS < max(xlims))
+  if(nrow(depth_filtered) == 0) depth_filtered = head(depth,100)
+
+  # reference band computed directly on the wide matrix (no pivot_longer / ggplot / ggplotly: ~3 million rows for a full gene)
+  is_proband = colnames(depth_filtered) == proband
+  ref_mat = as.matrix(depth_filtered[, -c(1:2)][, !is_proband[-c(1:2)], drop = FALSE])
+  ref_q = matrixStats::rowQuantiles(ref_mat, probs = c(0.5 - conf.int/2, 0.5 + conf.int/2), na.rm = TRUE)
+  proband_cov = depth_filtered[, is_proband][1:nrow(depth_filtered)]
+  orange = 'rgba(255,140,0,0.7)'   # darkorange1, alpha 0.7
+  coverage_plot = plot_ly() %>%
+    add_trace(x = depth_filtered$POS, y = ref_q[, 2], type = 'scatter', mode = 'lines', line = list(color = orange, width = 1),
+              hoverinfo = 'none', showlegend = FALSE) %>%
+    add_trace(x = depth_filtered$POS, y = ref_q[, 1], type = 'scatter', mode = 'lines', line = list(color = orange, width = 1),
+              fill = 'tonexty', fillcolor = orange, hoverinfo = 'none', showlegend = FALSE) %>%
+    add_trace(x = depth_filtered$POS, y = proband_cov, type = 'scatter', mode = 'lines', line = list(color = 'black', width = 1),
+              hoverinfo = 'text', showlegend = FALSE,   # hover on the proband line also reports the reference band at that position
+              text = paste0('<b>Position</b>: ', round(depth_filtered$POS, 3), ' Kb',
+                            '<br><b>Proband</b>: ', round(proband_cov, 2),
+                            '<br><b>Reference ', 100*(0.5 - conf.int/2), '-', 100*(0.5 + conf.int/2), 'th percentiles</b>: ',
+                            round(ref_q[, 1], 2), ' - ', round(ref_q[, 2], 2)))
+  if(length(mutation) > 0) {
+    coverage_plot = coverage_plot %>% add_lines(x = rep(xintercept[1], 2), y = c(0, max(ref_q[, 2], proband_cov, na.rm = TRUE)),
+      line = list(color = 'darkblue', dash = 'dash', width = 1), hoverinfo = 'none', showlegend = FALSE)
+  }
+  title = paste0('Coverage (proband in black, ',100*(1-conf.int)/2,'-',100*(1-(1-conf.int)/2),'th reference percentiles in orange)')
+  coverage_plot %>% layout(xaxis = list(title = paste0(sub('chr','Chromosome ',depth[1,1]), ' (Kb)'), range = xlims), yaxis = list(title = 'Normalised coverage')) %>%
+    panel_title(title)
+}
+
+
+# splicing_statistics_plotly: plotly version of genemodel_plot() (gene model, FRASER significance and coverage for a
+# candidate gene). Combines the panels built by gene_model_plotly(), fraser_plotly() and coverage_plotly() into ONE
+# plotly figure (three stacked panels, linked x axes in Kb).
+# Arguments:
+#   candidate                  - data.frame row: the candidate gene/proband row (geneID, ensembl, start, stop, position, mutation, proband)
+#   res_dt_candidate_gene_file - character: path to the FRASER per-candidate-gene results CSV
+#   depth_file                 - character: path to the per-base coverage depth file
+#   bam_file                   - character: path to the proband's BAM file (kept for interface consistency)
+#   colmean_genes_counts_file  - character: path to the column-mean gene counts file (used to normalise coverage)
+#   xlims                      - numeric vector length 2: zoom window in Kb (default: c(10, 100))
+#   gene_annotations           - list: gene annotation object; [[1]] exons GRanges
+#   conf.int                   - numeric in (0,1): width of the reference coverage interval (default: 0.5, i.e. 25th-75th percentiles)
+splicing_statistics_plotly = function(candidate = candidates,
+                             res_dt_candidate_gene_file = "resdet",
+                             depth_file = "depth",
+                             bam_file = "bam",
+                             colmean_genes_counts_file = 'colmean_genes_counts.tsv',
+                             xlims = c(10,100),
+                             gene_annotations='gene_annotations',
+                             conf.int = 0.5) {
+
+  if(!(candidate$geneID != "" & file.exists(res_dt_candidate_gene_file))) {
+    print('No gene available for gene model plot')
+    return(plotly_message('No gene available for gene model plot'))
+  }
+
+  gene = genemodel_prepare(candidate, gene_annotations, xlims)
+  if(is.null(gene)) return(plotly_message('no gene annotation available'))
+
+  # the three panels
+  gene_model_plot = gene_model_plotly(gene, candidate$geneID, xlims)
+  fraser_plot = fraser_plotly(res_dt_candidate_gene_file, xlims, gene)
+  coverage_plot = coverage_plotly(depth_file, colmean_genes_counts_file, candidate$proband, xlims, gene, conf.int)
+
+  # Combine the three panels into one interactive figure (own x axis labels on each panel, ranges linked).
+  heights = c(2, 3, 5); margin = 0.05
   hs = heights / sum(heights) * (1 - 2 * margin)
 
-  
-  fig = plotly::subplot(gene_model_plot, fraser_plot, coverage_plot, nrows = 3, shareX = FALSE, titleY = TRUE, margin = margin, heights = hs) %>%
+  fig = plotly::subplot(gene_model_plot, fraser_plot, coverage_plot,
+                        nrows = 3, shareX = FALSE, titleX = TRUE, titleY = TRUE, margin = margin, heights = hs) %>%
     layout(
       showlegend = FALSE,
-      xaxis = list(range = xlims), xaxis2 = list(range = xlims, matches = 'x'), xaxis3 = list(range = xlims, matches = 'x')   # own x labels on every panel, zoom/pan still linked
+      xaxis = list(range = xlims), xaxis2 = list(range = xlims, matches = 'x'), xaxis3 = list(range = xlims, matches = 'x')   # zoom/pan still linked
     ) %>% plotly_build()
 
-  # Panel titles: placed from the real axis domains so each title sits at the same offset above the top-left corner
-  # of its own panel (the left edge of the plotting area), identically for the three panels.
-  x_left = min(unlist(lapply(grep('^xaxis', names(fig$x$layout), value = TRUE), function(a) fig$x$layout[[a]]$domain[1])), 0, na.rm = TRUE)
-  fig$x$layout$annotations = c(fig$x$layout$annotations, lapply(1:3, function(k) {
-    ax = c('yaxis', 'yaxis2', 'yaxis3')[k]
-    list(text = paste0('<b>', panel_titles[k], '</b>'), x = x_left, y = fig$x$layout[[ax]]$domain[2], xref = 'paper', yref = 'paper',
-         xanchor = 'left', yanchor = 'bottom', yshift = 4, showarrow = FALSE, font = list(size = 16))
-  }))
-
-  # Same axis title and tick label size on all axes (x and y) of all three panels (ggplotly sets its own sizes for the coverage panel)
-  for(ax in grep('^(x|y)axis', names(fig$x$layout), value = TRUE)) {
-    title_text = fig$x$layout[[ax]]$title
-    if(is.list(title_text)) title_text = title_text$text
-    if(grepl('^xaxis', ax)) title_text = paste0('Chromosome ', merged_exons_df[1,1], ' (Kb)')   # subplot drops the x titles when axes are not shared
-    if(is.null(title_text)) title_text = ''
-    fig$x$layout[[ax]]$title = list(text = title_text, font = list(size = 14))
-    fig$x$layout[[ax]]$tickfont = list(size = 12)
-    if(grepl('^xaxis', ax)) { fig$x$layout[[ax]]$tickformat = ',.3~f'; fig$x$layout[[ax]]$exponentformat = 'none' }   # 48,500 instead of 48.5k
-  }
   fig
-  } else {
-  print('No gene available for gene model plot')
-    }
+}
+
+
+
+# junctions_plotly: sashimi-style plot of the splice junctions found in a BAM file (native plotly).
+# Each junction (CIGAR 'N' gap) is drawn as an arc from its start to its end; the arc height and line width
+# scale with the number of supporting fragments (a read pair spanning the same junction is counted once).
+# Arguments:
+#   bam_file    - character: path to the (indexed) BAM file
+#   xlims       - numeric(2): window to show, in Kb
+#   chromosome  - character: chromosome name as in the BAM (default: the BAM's first non-chrM sequence)
+#   min_count   - integer: only show junctions supported by at least this many fragments (default 1)
+#   xintercept  - numeric (Kb): optional position of a variant, drawn as a dashed vertical line
+# Returns a plotly object (or a message figure if the BAM is missing or has no junction in the window).
+junctions_plotly = function(bam_file,
+                            xlims = c(0, 100),
+                            chromosome = NULL,
+                            min_count = 1,
+                            xintercept = NULL) {
+
+  if(!file.exists(bam_file)) return(plotly_message('BAM file not found'))
+
+  ga = GenomicAlignments::readGAlignments(bam_file, use.names = TRUE,
+         param = Rsamtools::ScanBamParam(flag = Rsamtools::scanBamFlag(isSecondaryAlignment = FALSE)))
+  ga = ga[as.character(GenomeInfoDb::seqnames(ga)) != 'chrM']
+  if(!is.null(chromosome)) ga = ga[as.character(GenomeInfoDb::seqnames(ga)) == chromosome]
+  if(length(ga) == 0) return(plotly_message('No reads in BAM file'))
+
+  # one count per fragment (QNAME) and junction
+  gaj = GenomicAlignments::junctions(ga, use.mcols = FALSE)
+  nj = lengths(gaj)
+  jr = unlist(gaj)
+  if(length(jr) == 0) return(plotly_message('No splice junctions in BAM file'))
+  jdf = unique(data.frame(qname = rep(names(ga), nj), start = BiocGenerics::start(jr), end = BiocGenerics::end(jr)))
+  jt = aggregate(qname ~ start + end, jdf, length)
+  colnames(jt)[3] = 'count'
+  jt$start = jt$start / 1000; jt$end = jt$end / 1000   # Kb, like the other panels
+  jt = jt[jt$count >= min_count & jt$end > xlims[1] & jt$start < xlims[2], ]
+  if(nrow(jt) == 0) return(plotly_message('No splice junctions in this window'))
+
+  # arc = half ellipse, peak height = fragment count; line width scaled to count (1 - 6 px)
+  t = seq(0, 1, length.out = 40)
+  lwd = 1 + 5 * (log(jt$count) - log(min(jt$count))) / max(log(max(jt$count)) - log(min(jt$count)), 1e-9)
+  p = plot_ly()
+  for(r in seq_len(nrow(jt))) {
+    p = p %>% add_trace(
+      x = jt$start[r] + t * (jt$end[r] - jt$start[r]), y = jt$count[r] * sin(pi * t),
+      type = 'scatter', mode = 'lines', line = list(color = 'steelblue', width = lwd[r]),
+      hoverinfo = 'text', showlegend = FALSE,
+      text = paste0('<b>Junction</b>: ', round(jt$start[r], 3), '-', round(jt$end[r], 3), ' Kb',
+                    '<br><b>Supporting fragments</b>: ', jt$count[r]))
+  }
+  if(length(xintercept) > 0) {
+    p = p %>% add_lines(x = rep(xintercept[1], 2), y = c(0, max(jt$count)),
+      line = list(color = 'darkblue', dash = 'dash', width = 1), hoverinfo = 'none', showlegend = FALSE)
+  }
+  p %>% layout(
+    xaxis = list(title = 'Position (Kb)', range = xlims, tickformat = ',.3~f', exponentformat = 'none'),
+    yaxis = list(title = 'Supporting fragments', rangemode = 'tozero', zeroline = FALSE),
+    hoverlabel = list(bgcolor = 'white'))
 }
 
 

@@ -167,10 +167,10 @@ app_ui = page_fluid(
                # message shown while the figure is (re)computed; hidden as soon as the plot arrives
                div(id = "genemodel_progress", style = "display:none; padding: 20px; font-size: 20px; color: #6c757d;", "Plotting in progress..."),
                tags$script(HTML("
-                 $(document).on('shiny:recalculating', function(e) { if (e.target.id === 'Figure_genemodel_plotly') $('#genemodel_progress').show(); });
-                 $(document).on('shiny:value shiny:error', function(e) { if (e.target.id === 'Figure_genemodel_plotly') $('#genemodel_progress').hide(); });
+                 $(document).on('shiny:recalculating', function(e) { if (e.target.id === 'Figure_splicing_statistics_plotly') $('#genemodel_progress').show(); });
+                 $(document).on('shiny:value shiny:error', function(e) { if (e.target.id === 'Figure_splicing_statistics_plotly') $('#genemodel_progress').hide(); });
                ")),
-               plotlyOutput("Figure_genemodel_plotly", width = '1500px', height = "960px")),
+               plotlyOutput("Figure_splicing_statistics_plotly", width = '1500px', height = "960px")),
              card(
                htmlOutput('Figure_genemodel_legend'))
     ),
@@ -641,7 +641,7 @@ server = function(input, output, session) {
     updateSliderInput(session, "sliderConfInt_plotly", value = 0.5)
   })
 
-  output$Figure_genemodel_plotly = renderPlotly({
+  output$Figure_splicing_statistics_plotly = renderPlotly({
     ds = active_ds()
     candidates = ds$candidates
     req(candidates$geneID[rd$i()]!="")
@@ -650,7 +650,7 @@ server = function(input, output, session) {
       xlims_plotly = c(floor(candidates$start[rd$i()]/1000) - 5, ceiling(candidates$stop[rd$i()]/1000) + 5)
       gene_dir = paste0(ds$datadir,'/bams_subset/gene',candidates$geneID[rd$i()],'_chr',candidates$chromosome[rd$i()],'_',candidates$start[rd$i()]-5000,'_',candidates$stop[rd$i()]+5000,'/')
 
-      genemodel = genemodel_plotly(
+      genemodel = splicing_statistics_plotly(
         candidate = candidates[rd$i(),],
         depth_file = paste0(gene_dir,"gene_",candidates$geneID[rd$i()],"_",candidates$proband[rd$i()],"_depth5.csv"),
         res_dt_candidate_gene_file = paste0(gene_dir,"gene_",candidates$geneID[rd$i()],"_",candidates$proband[rd$i()],"_res_dt_candidate_gene.csv"),
