@@ -109,6 +109,10 @@ load_rnaseq_dataset = function(datadir) {
 
   # Per-exon cohort expression for the cohort plots: TPM (always) and OUTRIDER normcounts (if available)
   ds$fc_exons_tpm_ggplot = read.table(file.path(datadir, 'fc_exons_tpm_ggplot.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
+
+  # Reference cohort
+  ds$reference_cohort = read.table(file.path(datadir, 'input/reference_cohorte.txt'), header = FALSE, sep = '\t', quote = '"', stringsAsFactors = FALSE)
+
   ds$fc_exons_normcounts_ggplot = NULL
   nc_file = file.path(datadir, 'exons_normcounts_ggplot_OUTRIDER.tsv')
   if (file.exists(nc_file)) {

@@ -129,11 +129,12 @@ reactive_data_server = function(id, proband, pvalue, geneprior_rm, active_ds) {
       }
 
       # Plotly – patient / child / adult subsets, for TPM and (if available) normcounts
-      split_expression = function(df) {
+      split_expression = function(df, reference = NULL) {
         if (is.null(df)) return(NULL)
         df = df[df$proband == proband() & df$geneID == candidates$geneID[i()], ]
         patient = df[df$PatientID == proband(), ]
         others  = df[df$PatientID != proband(), ]
+        if (!is.null(reference)) others = others[others$PatientID %in% reference, ]  # restrict cohort to the reference samples
         child   = others[which(others$age <  18), ]  # which(): rows with unknown (NA) age are left out
         adults  = others[which(others$age >= 18), ]
         # Stagger x-axis positions slightly for readability
@@ -141,8 +142,8 @@ reactive_data_server = function(id, proband, pvalue, geneprior_rm, active_ds) {
         adults$exonID = adults$exonID + 0.1
         list(child = child, adults = adults, patient = patient, all = others)
       }
-      tpm_split = split_expression(ds$fc_exons_tpm_ggplot)
-      nc_split  = split_expression(ds$fc_exons_normcounts_ggplot)
+      tpm_split = split_expression(ds$fc_exons_tpm_ggplot, reference = ds$reference_cohort)
+      nc_split  = split_expression(ds$fc_exons_normcounts_ggplot, reference = ds$reference_cohort)
 
       list(
         table_OUTRIDER                      = table_OUTRIDER,
