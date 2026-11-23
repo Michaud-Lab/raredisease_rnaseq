@@ -111,7 +111,7 @@ load_rnaseq_dataset = function(datadir) {
   ds$fc_exons_tpm_ggplot = read.table(file.path(datadir, 'fc_exons_tpm_ggplot.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
 
   # Reference cohort
-  ds$reference_cohort = read.table(file.path(datadir, 'input/reference_cohorte.txt'), header = FALSE, sep = '\t', quote = '"', stringsAsFactors = FALSE)
+  ds$reference_cohort = trimws(read.table(file.path(datadir, 'input/reference_cohorte.txt'), header = FALSE, sep = '\t', quote = '"', stringsAsFactors = FALSE)[[1]])
 
   ds$fc_exons_normcounts_ggplot = NULL
   nc_file = file.path(datadir, 'exons_normcounts_ggplot_OUTRIDER.tsv')
