@@ -15,7 +15,7 @@ params$imprinting = args[3]
 params$workdir = dirname(params$overlap)
 ase = read.table(params$overlap,header=FALSE)
 
-colnames(ase) = c("chr","SNPstart","pos","sampleID",'ref','alt','chr','START','STOP','ensemblID')
+colnames(ase) = c("chr","SNPstart","pos","sampleID",'ref','alt','gene_chr','START','STOP','ensemblID')
 
 # get rid of HSJ_045_04 because it should not be there...
 ase = ase[ase$sampleID != 'HSJ_042_04_PAX', ]
