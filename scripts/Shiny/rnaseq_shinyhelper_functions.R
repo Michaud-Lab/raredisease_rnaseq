@@ -120,7 +120,7 @@ plot_expression_cohort = function(data_child, data_adults, data_patient, unit = 
         tickmode = "array"
       ),
       yaxis = list(title = paste0("Normalised Expression (", unit, ")")),
-      title = paste0('Cohort expression (per exon) for ', data_patient$geneID[1])
+      title = paste0('Cohort expression (per exon, ', unit, ') for ', data_patient$geneID[1])
     )
 }
 

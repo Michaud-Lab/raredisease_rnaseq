@@ -118,7 +118,8 @@ app_ui = page_fluid(
 
     ### Plot of Expression
     tabPanel("Plot",
-             card(plotlyOutput("Expression",width = "1500px"))
+             card(plotlyOutput("Expression_tpm",width = "1500px")),
+             card(plotlyOutput("Expression_normcounts",width = "1500px"))
     ),
 
     ### Data table
@@ -445,14 +446,15 @@ server = function(input, output, session) {
     }
   })
 
-  ### Plotly expression
-  output$Expression = renderPlotly({
-    plot_expression_cohort(
-      data_child   = rd$reactive_inputs()$fc_exons_ggplot_reactive_child,
-      data_adults  = rd$reactive_inputs()$fc_exons_ggplot_reactive_adults,
-      data_patient = rd$reactive_inputs()$fc_exons_ggplot_reactive_patient,
-      unit         = rd$reactive_inputs()$expression_unit
-    )
+  ### Plotly expression: TPM and OUTRIDER normcounts
+  output$Expression_tpm = renderPlotly({
+    sp = rd$reactive_inputs()$tpm_split
+    plot_expression_cohort(sp$child, sp$adults, sp$patient, unit = 'TPM')
+  })
+  output$Expression_normcounts = renderPlotly({
+    sp = rd$reactive_inputs()$nc_split
+    if (is.null(sp)) return(plotly_message('OUTRIDER normcounts not available for this dataset'))
+    plot_expression_cohort(sp$child, sp$adults, sp$patient, unit = 'OUTRIDER normcounts')
   })
 
   ### OUTRIDER table

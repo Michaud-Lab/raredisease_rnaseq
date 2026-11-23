@@ -128,40 +128,33 @@ reactive_data_server = function(id, proband, pvalue, geneprior_rm, active_ds) {
         gwIMX_table = data.frame()
       }
 
-      # Plotly – family and per-age subsets
-      fc_exons_ggplot_reactive = fc_exons_tpm_ggplot[
-        fc_exons_tpm_ggplot$proband == proband(), ]
-      fc_exons_ggplot_reactive = fc_exons_ggplot_reactive[
-        fc_exons_ggplot_reactive$geneID == candidates$geneID[i()], ]
-
-      fc_exons_ggplot_reactive_patient = fc_exons_ggplot_reactive[
-        fc_exons_ggplot_reactive$PatientID == proband(), ]
-      fc_exons_ggplot_reactive = fc_exons_ggplot_reactive[
-        fc_exons_ggplot_reactive$PatientID != proband(), ]
-
-      fc_exons_ggplot_reactive_child = fc_exons_ggplot_reactive[
-        fc_exons_ggplot_reactive$age <  18, ]
-      fc_exons_ggplot_reactive_adults = fc_exons_ggplot_reactive[
-        fc_exons_ggplot_reactive$age >= 18, ]
-
-      # Stagger x-axis positions slightly for readability
-      fc_exons_ggplot_reactive_child$exonID = fc_exons_ggplot_reactive_child$exonID  - 0.1
-      fc_exons_ggplot_reactive_adults$exonID = fc_exons_ggplot_reactive_adults$exonID + 0.1
+      # Plotly – patient / child / adult subsets, for TPM and (if available) normcounts
+      split_expression = function(df) {
+        if (is.null(df)) return(NULL)
+        df = df[df$proband == proband() & df$geneID == candidates$geneID[i()], ]
+        patient = df[df$PatientID == proband(), ]
+        others  = df[df$PatientID != proband(), ]
+        child   = others[which(others$age <  18), ]  # which(): rows with unknown (NA) age are left out
+        adults  = others[which(others$age >= 18), ]
+        # Stagger x-axis positions slightly for readability
+        child$exonID  = child$exonID  - 0.1
+        adults$exonID = adults$exonID + 0.1
+        list(child = child, adults = adults, patient = patient, all = others)
+      }
+      tpm_split = split_expression(ds$fc_exons_tpm_ggplot)
+      nc_split  = split_expression(ds$fc_exons_normcounts_ggplot)
 
       list(
         table_OUTRIDER                      = table_OUTRIDER,
         table_OUTRIDER_candidate            = table_OUTRIDER_candidate,
-        fc_exons_ggplot_reactive_child      = fc_exons_ggplot_reactive_child,
-        fc_exons_ggplot_reactive_adults     = fc_exons_ggplot_reactive_adults,
+        tpm_split                           = tpm_split,
+        nc_split                            = nc_split,
         fc_exons_tpm_reactive               = fc_exons_tpm_reactive,
         fc_exons_raw_reactive               = fc_exons_raw_reactive,
-        fc_exons_ggplot_reactive            = fc_exons_ggplot_reactive,
-        fc_exons_ggplot_reactive_patient    = fc_exons_ggplot_reactive_patient,
         table_perexons_OUTRIDER_candidate   = table_perexons_OUTRIDER_candidate,
         table_perexons_OUTRIDER_significant = table_perexons_OUTRIDER_significant,
         gwASE_table                         = gwASE_table,
-        gwIMX_table                         = gwIMX_table,
-        expression_unit                     = ds$expression_unit
+        gwIMX_table                         = gwIMX_table
       )
     })
 

@@ -107,17 +107,18 @@ load_rnaseq_dataset = function(datadir) {
 
   ds$clinical = read.table(file.path(datadir, 'clinical.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
 
-  # Per-exon cohort expression for the cohort plot: OUTRIDER normcounts if available, else fall back to TPM
+  # Per-exon cohort expression for the cohort plots: TPM (always) and OUTRIDER normcounts (if available)
+  ds$fc_exons_tpm_ggplot = read.table(file.path(datadir, 'fc_exons_tpm_ggplot.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
+  ds$fc_exons_normcounts_ggplot = NULL
   nc_file = file.path(datadir, 'exons_normcounts_ggplot_OUTRIDER.tsv')
   if (file.exists(nc_file)) {
-    ds$fc_exons_tpm_ggplot = read.table(nc_file, sep = '\t', check.names = FALSE, header = TRUE)
-    ds$fc_exons_tpm_ggplot = merge(ds$fc_exons_tpm_ggplot,
-                                   unique(ds$clinical[, c('PatientID', 'Sexe', 'age')]), by = 'PatientID')
-    ds$expression_unit = 'OUTRIDER normcounts'
+    # clinical$PatientID lacks the "_PAX" suffix (e.g. HSJ_001_03), whereas the sample IDs here (e.g.
+    # HSJ_001_03_PAX) match clinical$`Patient ID`, so merge on that column or every row is dropped.
+    ds$fc_exons_normcounts_ggplot = merge(read.table(nc_file, sep = '\t', check.names = FALSE, header = TRUE),
+                                          unique(ds$clinical[, c('Patient ID', 'Sexe', 'age')]),
+                                          by.x = 'PatientID', by.y = 'Patient ID')
   } else {
-    logger::log_warn(paste0("exons_normcounts_ggplot_OUTRIDER.tsv not found in ", datadir, " — cohort plot falls back to TPM."))
-    ds$fc_exons_tpm_ggplot = read.table(file.path(datadir, 'fc_exons_tpm_ggplot.tsv'), sep = '\t', check.names = FALSE, header = TRUE)
-    ds$expression_unit = 'TPM'
+    logger::log_warn(paste0("exons_normcounts_ggplot_OUTRIDER.tsv not found in ", datadir, " — normcounts plot will be unavailable."))
   }
   ds$html_files = list.files(datadir, pattern = 'multiqc_report', full.names = TRUE)
   ds$gwFRASER = read.table(file.path(datadir, 'gwFRASER.tsv'), row.names = 1, sep = '\t', header = TRUE)
