@@ -633,6 +633,7 @@ server = function(input, output, session) {
              "<br><br><b>Candidate Gene hypothesis: </b>",selected_clinical$Hypothèse,
              "<br><br><b>HPO terms: </b>",selected_clinical$`HPO terms`,
              "<br><br><b>Sex: </b>",selected_clinical$Sexe,
+             "<br><br><b>Age: </b>",ifelse(is.na(selected_clinical$age),"unknown",paste0(selected_clinical$age," years")),
              "<br><br><b>Gene .bam location: </b>",selected_bam,
              "<br><br><b>Complete .bam location (Fir): </b>",system('echo ${HOME}',intern = TRUE),"/project/def-rallard/COMMUN/raredisease_rnaseq/results_nextflow_rnasplice_09_05_2026/star_salmon/",selected_patient,".sorted.bam<span>")
     )

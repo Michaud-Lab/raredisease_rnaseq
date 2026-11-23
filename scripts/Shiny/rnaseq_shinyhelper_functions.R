@@ -104,13 +104,8 @@ plot_expression_cohort = function(data_child, data_adults, data_patient, unit = 
       color = I('darkorange'),
       size = 22,
       name = ~PatientID,
-      customdata = ~Sexe,
-      text = ~as.factor(age),
-      hovertemplate = paste(
-        '<b>Exon number</b>: %{x}',
-        '<br><b>Proband Age</b>: %{text}',
-        '<br><b>Sex</b>: %{customdata}<br>'
-      )
+      hoverinfo = 'text',
+      text = ~paste0('<b>Sample</b>: ', PatientID, '<br><b>', unit, '</b>: ', round(expression, 1))
     ) %>%
     layout(
       xaxis = list(
