@@ -4,6 +4,23 @@ All notable changes to this project are documented here.
 
 ---
 
+## 2026-11-25 — fraser-gw-count-pipeline-split
+
+**Changed**
+- `scripts/FRASER/fraser_gw.R`: refactored into two functions, both taking the chromosome as an argument (`params$chromosome` removed):
+  - `fraser_gw_count(chromosome)`: subsets all BAMs to the chromosome (`fraser_gw.sh`) and runs `countRNAData()` on all of them, once (skipped if the BAMs/counts already exist).
+  - `fraser_gw_pipeline(chromosome, proband)`: runs FRASER on the reference cohort (`data/input/reference_cohorte.txt`) + one sample, re-using the cached counts; `res_dt_<sampleID>.csv` and `res_dt_min_<sampleID>.csv` keep that sample's rows only.
+  - The script now loops over all chromosomes (`params$chromosomes`, 1-22, X, Y, MT) and over every `sampleID` of `make_sample_table()`, then merges the per-sample results into one `res_dt.csv` and one `res_dt_min.csv` per chromosome. The chromosome and `probands` command-line arguments are gone (usage: `fraser_chr_bamdir ncores rnasplice_bamdir [reference_cohorte]`).
+- `scripts/FRASER/fraser.slurm`: the `for i in ...` chromosome loop is removed; a single `Rscript fraser_gw.R` call, with `cpu=4` set.
+
+**Fixed**
+- `scripts/FRASER/fraser_gw.sh`: the chr21 `if` overwrote the chr16 downsampling fraction (separate `if` blocks); now a single `if / elif / else`.
+
+**Removed**
+- `scripts/FRASER/fraser_refcohorte.R` and `data_old/.gitignore`.
+
+---
+
 ## 2026-11-19 — genemodel-plotly-and-normcounts
 
 **Added**
