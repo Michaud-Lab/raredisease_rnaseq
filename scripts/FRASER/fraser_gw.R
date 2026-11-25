@@ -63,7 +63,8 @@ fraser_gw_count = function(chromosome) {
   }
 
   # 3b. countRNAData() on all .bam (skip if the counts already exist)
-  counts_dir = file.path(bams_subset, 'savedObjects', paste0('raw-', fds_name))
+  # (FRASER writes the merged counts to <workingDir>/savedObjects/<name>/{splitCounts,nonSplitCounts})
+  counts_dir = file.path(bams_subset, 'savedObjects', fds_name, 'nonSplitCounts')
   if (dir.exists(counts_dir)) {
     print(paste0('Chromosome ', chromosome, ' already counted'))
     return(invisible(NULL))
@@ -79,8 +80,10 @@ fraser_gw_count = function(chromosome) {
 
 # -----------------------------------------------------------------------------
 # 4. fraser_gw_pipeline(): FRASER on reference cohort + one proband
-#    countRNAData() is called on that subset only; per-sample counts cached by
-#    fraser_gw_count() (same workingDir) are re-used since recount = FALSE.
+#    countRNAData() is called on that subset only. It uses the SAME dataset name as
+#    fraser_gw_count() ('chr<N>_ALL') so that, with recount = FALSE, the merged split /
+#    non-split counts cached there are re-used (and subset to these samples) instead of
+#    recounting the BAMs.
 # -----------------------------------------------------------------------------
 fraser_gw_pipeline = function(chromosome, proband) {
   bams_subset = file.path(params$fraser_chr_bamdir, chromosome)
@@ -103,7 +106,7 @@ fraser_gw_pipeline = function(chromosome, proband) {
   orgDb = org.Hs.eg.db
 
   settings = FraserDataSet(colData = sampleTable, workingDir = bams_subset,
-                           name = paste0('chr', chromosome, '_', proband))
+                           name = paste0('chr', chromosome, '_ALL'))
 
   fds = countRNAData(settings, recount = FALSE, keepNonStandardChromosomes = FALSE,
                      minExpressionInOneSample = 50, filter = TRUE)
