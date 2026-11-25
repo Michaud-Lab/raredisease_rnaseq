@@ -20,18 +20,13 @@ read fraser_temp_bamdir fraser_bamdir fraser_chr_bamdir  < <(
   jq -r '.FRASER | [.fraser_temp_bamdir, .fraser_bamdir, .fraser_chr_bamdir] | @tsv' ../../data/input/configs.json
 )
 
-Rscript fraser.R $workdir "$rnasplice_bamdir" $fraser_temp_bamdir $fraser_bamdir $reference_cohorte
+#Rscript fraser.R $workdir "$rnasplice_bamdir" $fraser_temp_bamdir $fraser_bamdir $reference_cohorte
 
 #fraser genome wide
-#cpu=4
+cpu=4
 
-#for i in $(seq 19 22) X Y MT; do
-#for i in $(seq 4 9); do
-#i=16
-#Rscript fraser_gw.R $fraser_chr_bamdir $i $cpu "$rnasplice_bamdir"
-  #echo  $fraser_chr_bamdir $i $cpu "$rnasplice_bamdir"
-  echo 'Done chr:'$i
-#done
+#all chromosomes are defined and looped over in fraser_gw.R
+Rscript fraser_gw.R $fraser_chr_bamdir $cpu "$rnasplice_bamdir" $reference_cohorte
 
 echo 'All done FRASER'
 

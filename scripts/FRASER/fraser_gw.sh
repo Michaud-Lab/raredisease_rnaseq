@@ -6,14 +6,10 @@ rnasplice_bamdir=$2
 fraser_chr_bamdir=$3
 
 #chr 16 is problematic because of hemoglobin gene (HBA), so let's downsample it. 
-if [ $chromosome = "16" ]; then
-    fraction=" -s 0.25 "
-else
-    fraction=""
-fi
-
-if [ $chromosome = "21" ]; then
-    fraction=" -s 0.05 "
+if [ "$chromosome" = "16" ]; then
+    fraction=" -s 0.10 "
+elif [ "$chromosome" = "21" ]; then
+    fraction=" -s 0.10 "
 else
     fraction=""
 fi
