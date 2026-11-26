@@ -22,10 +22,14 @@ for bam_in in $rnasplice_bamdir/*sorted.bam
     bam_chr_out=$(basename "$bam_chr_out")
     bam_chr_out=$fraser_chr_bamdir$bam_chr_out
     #bam_chr_out=${bam_chr_out//$rnasplice_bamdir/$fraser_chr_bamdir}
-    samtools view $fraction --threads 16 -b "$bam_in" $chromosome > "$bam_chr_out"
+    if [ ! -f "$bam_chr_out" ]; then
+      samtools view $fraction --threads 10 -b "$bam_in" $chromosome > "$bam_chr_out"
+    else
+      echo "~~~ File $bam_chr_out already exists. No action taken ~~~"
+    fi
 
-    #5. Index the sorted BAM
-    samtools index $bam_chr_out
+    #5. Index the sorted BAM (only if there is no index yet)
+    if [ ! -f "$bam_chr_out.bai" ]; then
+      samtools index "$bam_chr_out"
+    fi
   done
-
-echo "Done chromosome:" $chromosome

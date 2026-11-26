@@ -2,7 +2,8 @@
 # fraser_gw.R - Genome-wide splicing analysis with FRASER (per chromosome)
 #
 # Usage: Rscript fraser_gw.R <fraser_chr_bamdir> <ncores> <rnasplice_bamdir> [reference_cohorte]
-#   - fraser_gw_count():    subsets ALL .bam to the chromosome and runs countRNAData() on all of them (once)
+#   - fraser_gw_subset_bams(): runs fraser_gw.sh to subset ALL .bam to the chromosome (once)
+#   - fraser_gw_count():    runs countRNAData() on all of them (once)
 #   - fraser_gw_pipeline(): runs FRASER on the reference cohort + one proband (every sampleID of make_sample_table()), re-using the counts above
 #   [reference_cohorte]  file with one sample ID per line (default: data/input/reference_cohorte.txt)
 # =============================================================================
@@ -44,13 +45,10 @@ make_sample_table = function(chromosome, sample_ids = NULL) {
 }
 
 # -----------------------------------------------------------------------------
-# 3. fraser_gw_count(): subset ALL .bam to the chromosome and count them (once)
+# 3. fraser_gw_subset_bams(): subset ALL .bam to the chromosome and count them (once)
 # -----------------------------------------------------------------------------
-fraser_gw_count = function(chromosome) {
+fraser_gw_subset_bams = function(chromosome) {
   bams_subset = file.path(params$fraser_chr_bamdir, chromosome)
-  fds_name = paste0('chr', chromosome, '_ALL')
-
-  # 3a. Subset BAMs to chromosome (skip if already done)
   dir.create(bams_subset, showWarnings = FALSE, recursive = TRUE)
   command = paste("./fraser_gw.sh", chromosome,
                   paste0("'", params$rnasplice_bamdir, "' ",
@@ -58,9 +56,20 @@ fraser_gw_count = function(chromosome) {
 
   if (is.na(list.files(bams_subset)[1])) {
     system(command)
+    print(paste0('Done subsetting chr ', chromosome, ': Sys.time is: ', Sys.time()))
   } else {
     print(paste0('Chromosome ', chromosome, ' already subsetted'))
   }
+  invisible(NULL)
+}
+
+
+# -----------------------------------------------------------------------------
+# 3. fraser_gw_count(): count them (once)
+# -----------------------------------------------------------------------------
+fraser_gw_count = function(chromosome) {
+  bams_subset = file.path(params$fraser_chr_bamdir, chromosome)
+  fds_name = paste0('chr', chromosome, '_ALL')
 
   # 3b. countRNAData(), PSI/theta/jaccard and annotation on all .bam, saved once
   # (skip if the saved dataset exists; countRNAData() itself re-uses cached counts if any)
@@ -76,8 +85,8 @@ fraser_gw_count = function(chromosome) {
 
   settings = FraserDataSet(colData = make_sample_table(chromosome), workingDir = bams_subset,
                            name = fds_name)
-  fds = countRNAData(settings, recount = FALSE, keepNonStandardChromosomes = FALSE,
-                     minExpressionInOneSample = 50, filter = TRUE)
+  fds = suppressMessages(countRNAData(settings, recount = FALSE, keepNonStandardChromosomes = FALSE,
+                                      minExpressionInOneSample = 50, filter = TRUE))
   fds = calculatePSIValues(fds)   # psi5, psi3, theta, jaccard: per sample, independent of the cohort
   fds = annotateRangesWithTxDb(fds, txdb = txdb, orgDb = orgDb)
   saveFraserDataSet(fds)
@@ -138,9 +147,16 @@ fraser_gw_pipeline = function(chromosome, proband) {
 # -----------------------------------------------------------------------------
 # 5. Run
 # -----------------------------------------------------------------------------
+# 5a. Subset the BAMs and count, for all chromosomes
+for (chromosome in params$chromosomes) {
+  print(paste0('SUBSETTING AND COUNTING chromosome ', chromosome, ': Sys.time is: ', Sys.time()))
+  fraser_gw_subset_bams(chromosome)
+  fraser_gw_count(chromosome)
+}
+
+# 5b. Rest of the pipeline (per proband), for all chromosomes
 for (chromosome in params$chromosomes) {
   print(paste0('RUNNING chromosome ', chromosome, ': Sys.time is: ', Sys.time()))
-  fraser_gw_count(chromosome)
   probands = make_sample_table(chromosome)$sampleID
   for (proband in probands) fraser_gw_pipeline(chromosome, proband)
 
