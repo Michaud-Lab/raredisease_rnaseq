@@ -938,7 +938,9 @@ gene_prioritization = function(sample = 'HSJ_001_03_PAX',pcutoff=0.5,hpo_sample=
 
   # generate a big table stating which gene is listed where.
   all_genes = unique(unlist(hpo_genes))
-  table = sapply(hpo_genes, function(x) all_genes %in% x)
+  if(length(hpo_genes) == 0 || length(all_genes) == 0) {return(data.frame(empty = as.character()))} # no HPO term of this sample matched the HPO annotation file
+  table = vapply(hpo_genes, function(x) all_genes %in% x, logical(length(all_genes))) # vapply + fixed length keeps a matrix, even with a single gene or single term
+  table = matrix(table, nrow = length(all_genes), dimnames = list(NULL, names(hpo_genes)))
   table = data.frame('gene score' = rowSums(table),table*1, check.names = FALSE)
   table$geneID = all_genes
   table = merge(table,outlier_temp,by= 'geneID',all.x= TRUE, sort=FALSE)
