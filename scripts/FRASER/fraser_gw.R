@@ -62,28 +62,34 @@ fraser_gw_count = function(chromosome) {
     print(paste0('Chromosome ', chromosome, ' already subsetted'))
   }
 
-  # 3b. countRNAData() on all .bam (skip if the counts already exist)
-  # (FRASER writes the merged counts to <workingDir>/savedObjects/<name>/{splitCounts,nonSplitCounts})
-  counts_dir = file.path(bams_subset, 'savedObjects', fds_name, 'nonSplitCounts')
-  if (dir.exists(counts_dir)) {
+  # 3b. countRNAData(), PSI/theta/jaccard and annotation on all .bam, saved once
+  # (skip if the saved dataset exists; countRNAData() itself re-uses cached counts if any)
+  fds_file = file.path(bams_subset, 'savedObjects', fds_name, 'fds-object.RDS')
+  if (file.exists(fds_file)) {
     print(paste0('Chromosome ', chromosome, ' already counted'))
     return(invisible(NULL))
   }
+
+  txdb = TxDb.Hsapiens.UCSC.hg38.knownGene
+  GenomeInfoDb::seqlevelsStyle(txdb) = "NCBI"
+  orgDb = org.Hs.eg.db
 
   settings = FraserDataSet(colData = make_sample_table(chromosome), workingDir = bams_subset,
                            name = fds_name)
   fds = countRNAData(settings, recount = FALSE, keepNonStandardChromosomes = FALSE,
                      minExpressionInOneSample = 50, filter = TRUE)
+  fds = calculatePSIValues(fds)   # psi5, psi3, theta, jaccard: per sample, independent of the cohort
+  fds = annotateRangesWithTxDb(fds, txdb = txdb, orgDb = orgDb)
+  saveFraserDataSet(fds)
   print(paste0('Done counting chr ', chromosome, ' (', ncol(fds), ' samples): Sys.time is: ', Sys.time()))
   invisible(NULL)
 }
 
 # -----------------------------------------------------------------------------
 # 4. fraser_gw_pipeline(): FRASER on reference cohort + one proband
-#    countRNAData() is called on that subset only. It uses the SAME dataset name as
-#    fraser_gw_count() ('chr<N>_ALL') so that, with recount = FALSE, the merged split /
-#    non-split counts cached there are re-used (and subset to these samples) instead of
-#    recounting the BAMs.
+#    Loads the dataset saved by fraser_gw_count() (counts, PSI/theta/jaccard, annotation),
+#    keeps the reference cohort + the sample, then runs the cohort-dependent part (FRASER fit,
+#    p-values, Z-scores).
 # -----------------------------------------------------------------------------
 fraser_gw_pipeline = function(chromosome, proband) {
   bams_subset = file.path(params$fraser_chr_bamdir, chromosome)
@@ -95,24 +101,16 @@ fraser_gw_pipeline = function(chromosome, proband) {
   }
 
   reference_cohorte = read.table(params$reference_cohorte)[, 1]
+  fds = loadFraserDataSet(dir = bams_subset, name = paste0('chr', chromosome, '_ALL'))
+
   # proband = a full sampleID of make_sample_table(); reference cohort IDs are matched on '<id>_'
-  sampleTable = unique(rbind(make_sample_table(chromosome, reference_cohorte),
-                             make_sample_table(chromosome)[sampleID == proband, ]),
-                             by = 'sampleID')
-  sampleTable$group = seq_len(nrow(sampleTable))
+  all_ids = samples(fds)
+  keep = (all_ids == proband) |
+    Reduce(`|`, lapply(reference_cohorte, function(id) startsWith(all_ids, paste0(id, '_'))))
+  fds = fds[, all_ids[keep]]
+  # own name, so FRASER's fit results are not written over the shared 'chr<N>_ALL' files
+  name(fds) = paste0('chr', chromosome, '_', proband)
 
-  txdb = TxDb.Hsapiens.UCSC.hg38.knownGene
-  GenomeInfoDb::seqlevelsStyle(txdb) = "NCBI"
-  orgDb = org.Hs.eg.db
-
-  settings = FraserDataSet(colData = sampleTable, workingDir = bams_subset,
-                           name = paste0('chr', chromosome, '_ALL'))
-
-  fds = countRNAData(settings, recount = FALSE, keepNonStandardChromosomes = FALSE,
-                     minExpressionInOneSample = 50, filter = TRUE)
-
-  fds = calculatePSIValues(fds)
-  fds = annotateRangesWithTxDb(fds, txdb = txdb, orgDb = orgDb)
   fds = FRASER(fds, q = c(jaccard = 2))
 
   # Keep the proband's results only, filter to significant results and save
