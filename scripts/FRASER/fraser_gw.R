@@ -4,8 +4,8 @@
 # Usage: Rscript fraser_gw.R <fraser_chr_bamdir> <ncores> <rnasplice_bamdir> [reference_cohorte]
 #   - fraser_gw_subset_bams(): runs fraser_gw.sh to subset the .bam to the chromosome (new .bam only)
 #   - fraser_gw_count():    runs countRNAData() on all of them (again if new .bam)
-#   - fraser_gw_pipeline(): runs FRASER on the reference cohort + one proband (every sampleID of make_sample_table()), re-using the counts above
-#   [reference_cohorte]  file with one sample ID per line (default: data/input/reference_cohorte.txt)
+#   - fraser_gw_pipeline(): runs FRASER once per chromosome on ALL the samples, re-using the counts above
+#   [reference_cohorte]  no longer used (all the samples are fitted together); kept so the call signature does not change
 # =============================================================================
 source("../rnaseq_helper_functions.R")
 
@@ -99,43 +99,40 @@ fraser_gw_count = function(chromosome) {
 }
 
 # -----------------------------------------------------------------------------
-# 4. fraser_gw_pipeline(): FRASER on reference cohort + one proband
+# 4. fraser_gw_pipeline(): FRASER on ALL the samples of the chromosome, in one fit
 #    Loads the dataset saved by fraser_gw_count() (counts, PSI/theta/jaccard, annotation),
-#    keeps the reference cohort + the sample, then runs the cohort-dependent part (FRASER fit,
-#    p-values, Z-scores).
+#    runs the cohort-dependent part (FRASER fit, p-values, Z-scores) once with every sample
+#    as the cohort, and writes res_dt.csv and res_dt_min.csv for all the samples.
 # -----------------------------------------------------------------------------
-fraser_gw_pipeline = function(chromosome, proband) {
+fraser_gw_pipeline = function(chromosome) {
   bams_subset = file.path(params$fraser_chr_bamdir, chromosome)
+  fds_file = file.path(bams_subset, 'savedObjects', paste0('chr', chromosome, '_ALL'), 'fds-object.RDS')
+  res_file = file.path(bams_subset, 'res_dt.csv')
+  res_min_file = file.path(bams_subset, 'res_dt_min.csv')
 
-  res_min_file = file.path(bams_subset, paste0('res_dt_min_', proband, '.csv'))
-  if (file.exists(res_min_file)) {
-    print(paste0('Already done chr ', chromosome, ', proband ', proband, ': Sys.time is: ', Sys.time()))
+  # up to date if the results are newer than the counts (a recount, e.g. new .bam, rewrites the counts)
+  if (file.exists(res_file) && file.exists(res_min_file) &&
+      file.mtime(res_min_file) > file.mtime(fds_file) && file.mtime(res_file) > file.mtime(fds_file)) {
+    print(paste0('Already done chr ', chromosome, ': Sys.time is: ', Sys.time()))
     return(invisible(NULL))
   }
 
-  reference_cohorte = read.table(params$reference_cohorte)[, 1]
   fds = loadFraserDataSet(dir = bams_subset, name = paste0('chr', chromosome, '_ALL'))
-
-  # proband = a full sampleID of make_sample_table(); reference cohort IDs are matched on '<id>_'
-  all_ids = samples(fds)
-  keep = (all_ids == proband) |
-    Reduce(`|`, lapply(reference_cohorte, function(id) startsWith(all_ids, paste0(id, '_'))))
-  fds = fds[, all_ids[keep]]
   # own name, so FRASER's fit results are not written over the shared 'chr<N>_ALL' files
-  name(fds) = paste0('chr', chromosome, '_', proband)
+  name(fds) = paste0('chr', chromosome, '_fit')
 
   fds = FRASER(fds, q = c(jaccard = 2))
 
-  # Keep the proband's results only, filter to significant results and save
   res = suppressMessages(results(fds, all = TRUE, padjCutoff = NA, deltaPsiCutoff = NA))
   res_dt = as.data.table(res)
-  res_dt = res_dt[sampleID == proband, ]
 
+  # all the results with p < 0.01
   res_dt_001 = res_dt[res_dt$pValue < 0.01, ]
   res_dt_001$mean = (res_dt_001$start + res_dt_001$end) / 2
   res_dt_001$minuslogpval = -log(res_dt_001$pValue, 10)
-  write.csv(res_dt_001, file.path(bams_subset, paste0('res_dt_', proband, '.csv')))
+  write.csv(res_dt_001, res_file)
 
+  # best (lowest p) result per gene and sample
   res_dt$mean = (res_dt$start + res_dt$end) / 2
   res_dt$minuslogpval = -log(res_dt$pValue, 10)
   res_dt = res_dt[!is.na(res_dt$hgncSymbol), ]
@@ -144,7 +141,7 @@ fraser_gw_pipeline = function(chromosome, proband) {
   res_dt_min = res_dt_min[!grepl(';', res_dt_min$hgncSymbol), ]
   write.csv(res_dt_min, res_min_file)
 
-  print(paste0('Done chr ', chromosome, ', proband ', proband, ': Sys.time is: ', Sys.time()))
+  print(paste0('Done chr ', chromosome, ' (', ncol(fds), ' samples): Sys.time is: ', Sys.time()))
   invisible(NULL)
 }
 
@@ -158,36 +155,18 @@ for (chromosome in params$chromosomes) {
   fraser_gw_count(chromosome)
 }
 
-# 5b. Rest of the pipeline (per chromosome x proband), in parallel
-#     Each (chromosome, proband) job is independent (own saved dataset name, own result files), so they are
-#     spread over params$ncores forked workers. Inside a worker FRASER runs serially (no nested parallelism).
+# 5b. One FRASER fit per chromosome (all samples at once), chromosomes in parallel
+#     Inside a worker FRASER runs serially (no nested parallelism).
 #     Memory scales with the number of workers: lower ncores if jobs get killed (out of memory).
-jobs = rbindlist(lapply(params$chromosomes, function(chromosome)
-  data.table(chromosome = chromosome, proband = make_sample_table(chromosome)$sampleID)))
-
-run_job = function(i) {
+run_job = function(chromosome) {
   register(SerialParam())
-  fraser_gw_pipeline(jobs$chromosome[i], jobs$proband[i])
+  fraser_gw_pipeline(chromosome)
   TRUE
 }
-print(paste0('RUNNING ', nrow(jobs), ' chromosome/proband jobs on ', params$ncores, ' cores: Sys.time is: ', Sys.time()))
-job_res = parallel::mclapply(seq_len(nrow(jobs)), function(i) try(run_job(i)),
+print(paste0('RUNNING ', length(params$chromosomes), ' chromosomes on ', params$ncores, ' cores: Sys.time is: ', Sys.time()))
+job_res = parallel::mclapply(params$chromosomes, function(chromosome) try(run_job(chromosome)),
                              mc.cores = params$ncores, mc.preschedule = FALSE)
 failed = which(vapply(job_res, function(r) !isTRUE(r), logical(1)))  # error, or worker killed (NULL)
 if (length(failed) > 0) {
-  print(paste0('FAILED jobs (chr, proband): ', paste0(jobs$chromosome[failed], ', ', jobs$proband[failed], collapse = ' | ')))
-}
-
-# 5c. Merge the per-proband results into one res_dt.csv and one res_dt_min.csv per chromosome
-for (chromosome in params$chromosomes) {
-  probands = make_sample_table(chromosome)$sampleID
-  bams_subset = file.path(params$fraser_chr_bamdir, chromosome)
-  for (prefix in c('res_dt', 'res_dt_min')) {
-    files = file.path(bams_subset, paste0(prefix, '_', probands, '.csv'))
-    files = files[file.exists(files)]
-    if (length(files) == 0) next
-    merged = rbindlist(lapply(files, function(f) fread(f, drop = 1)), fill = TRUE)  # drop = 1: write.csv row-name column
-    fwrite(merged, file.path(bams_subset, paste0(prefix, '.csv')))
-    print(paste0('Merged ', length(files), ' ', prefix, ' files for chr ', chromosome, ' (', nrow(merged), ' rows)'))
-  }
+  print(paste0('FAILED chromosomes: ', paste(params$chromosomes[failed], collapse = ', ')))
 }
